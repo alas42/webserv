@@ -2,7 +2,7 @@ NAME = webserv
 
 HEADER_FILES = 
 
-SOURCES_FILES =	main.cpp
+SOURCES_FILES =	src/main.cpp
 
 OBJS = $(SOURCES_FILES:.cpp=.o)
 

@@ -1,42 +1,30 @@
-NAME = webserv
+NAME	=	webserv
 
-HEADER_FILES = 	
+CC		=	clang++
 
-SOURCES_FILES =	main.cpp
+RM		=	rm -f
 
-OBJS = $(SOURCES_FILES:.cpp=.o)
-OBJS2 = $(SOURCES_FILES2:.cpp=.o)
+CFLAGS	=	-Wall -Wextra -Werror -std=c++98
 
-CPPFLAGS = -Wall -Werror -Wextra 
-CC = clang++ -std=c++98
+SRCS	=	main.cpp
 
-all: $(NAME)
+OBJS	:=	${SRCS:.cpp=.o}
 
-$(NAME): $(OBJS) $(HEADER_FILES)
-	$(CC) $(CPPFLAGS) $(SOURCES_FILES) -o $(NAME)
+.PHONY: clean fclean re
 
-stl : $(NAME2)
 
-$(NAME2): $(OBJS2)
-	$(CC) $(CPPFLAGS) $(SOURCES_FILES2) -o $(NAME2)
+all: ${NAME}
+
+${NAME}: ${OBJS}
+	$(CC) $(CFLAGS) -o $(NAME) $^
 
 %.o: %.cpp
-	$(CC) $(CPPFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(OBJS)
-
-clean2:
-	rm -f $(OBJS2)
+	$(RM) ${OBJS}
 
 fclean: clean
-	rm -f $(NAME)
-
-fclean2: clean2
-	rm -f $(NAME2)
+	$(RM) ${NAME}
 
 re: fclean all
-
-re2: fclean2 stl
-
-.PHONY: all clean fclean re stl

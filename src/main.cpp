@@ -15,61 +15,83 @@
 #include <cstdlib>
 
 
+extern char **environ;
+void parse_output_client(std::string & output);
+
+
+void	free_tab(char **tab)
+{
+	int i = 0;
+	while (tab[i] != 0)
+	{
+		free(tab[i++]);
+	}
+	free(tab);
+	tab = NULL;
+}
+
+void	set_envs(void)
+{
+	setenv("DOCUMENT_ROOT", "mnt/nfs/homes/avogt/sgoinfre/webserv/data/", 1);
+	setenv("DOCUMENT_NAME", "", 1);
+	setenv("DOCUMENT_URL", "", 1);
+	setenv("DOCUMENT_URI", "", 1);
+
+	setenv("CONTENT_TYPE", "text/html", 1);
+	setenv("CONTENT_LENGTH", "", 1);
+
+	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
+	setenv("PATH_INFO", "/mnt/nfs/homes/avogt/sgoinfre/webserv/data/", 1);
+	setenv("QUERY_STRING", "", 1); //What is after script_name in REQUEST_URI
+	setenv("REMOTE_ADDR", "", 1);
+	
+	setenv("SCRIPT_NAME", "", 1); //Web path, requested file (ex: /cgi-bin/printenv.pl)
+	setenv("SCRIPT_FILENAME", "/usr/bin/php-cgi", 1); //server_path, requested file (ex: C:/Program_Files...)
+	
+	setenv("SERVER_NAME", "127.0.0.1", 1);
+	setenv("SERVER_PORT", "", 1);
+	setenv("SERVER_PROTOCOL", "HTTP/1.1", 1);
+	setenv("SERVER_SOFTWARE", "webserv", 1);
+	
+	setenv("REQUEST_METHOD", "", 1);
+	setenv("REQUEST_URI", "", 1); //Web path, requested URI (ex: /cgi-bin/printenv.pl/foo/bar?var1=value1&var2=with%20percent%20encoding)
+	
+	setenv("REDIRECT_STATUS", "", 1);
+}
+
+void set_sock_struct(sockaddr_in * sock_struct)
+{
+	sock_struct->sin_family = AF_INET;
+	sock_struct->sin_port = htons(8080);
+	sock_struct->sin_addr.s_addr = inet_addr("127.0.0.1");
+}
 
 int main(int ac, char **av, char **env)
 {
-	std::cout<< "First thing first, obtain a real connection between\n"
-		<< "the server and client." << std::endl;
-	/*
-	** Essentials
-	*/
-	int server_fd, new_socket;
-	sockaddr_in sock_struct;
-	int len_addr = sizeof(sock_struct);
-	long valread;
-
-	/*
-	** Tests
-	*/
 	std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
-	char **tab = (char **)malloc(sizeof(char *) * 3);
-
-	/*
-	** AF_INET = IP
-	** SOCK_STREAM TOO
-	** Protocol 0 because we don't care for now
-	*/
+	sockaddr_in sock_struct;
+	int 		server_fd;
+	int 		new_socket = 0;
+	int 		len_addr = sizeof(sock_struct);
+	int 		yes = 1;
+	pid_t		pid = -1;
+	int			pipe[2];
+	char 		**tab = NULL;
+	
+	set_envs();
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		std::cerr << "socket error" << std::endl;
 		return (1);
 	}
-	sock_struct.sin_family = AF_INET;
-	sock_struct.sin_port = htons(8080);
-	sock_struct.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-	/*
-	** CGI ENVIRONMENT VARIABLES
-	*/
-	setenv("DOCUMENT_ROOT", "/mnt/nfs/homes/avogt/sgoinfre/webserv/data/", 1);
-	setenv("CONTENT_TYPE", "null", 1);
-	setenv("CONTENT_LENGTH", "22", 1);
-	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
-	setenv("PATH_INFO", "/mnt/nfs/homes/avogt/sgoinfre/webserv/data/", 1);
-	setenv("QUERY_STRING", "", 1);
-	setenv("REMOTE_ADDR", "98.0.4758.102", 1); // have to change !!!
-	setenv("REQUEST_METHOD", "GET", 1);
-	setenv("SCRIPT_NAME", "", 1);
-	setenv("SERVER_NAME", "messier", 1);
-	setenv("SERVER_PORT", "8080", 1);
-	setenv("SERVER_PROTOCOL", " HTTP/1.1", 1);
-	setenv("SERVER_SOFTWARE", "webserv", 1);
-	setenv("REQUEST_URI", "./index.html", 1);
-	setenv("REDIRECT_STATUS", "200", 1);
-	setenv("SCRIPT_FILENAME", "/usr/bin/php-cgi", 1);
+	set_sock_struct(&sock_struct);
 
-
-	//memset(sock_struct.sin_zero, '\0', sizeof sock_struct.sin_zero);
+	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+	{
+		std::cerr << "setsockopt error" << std::endl;
+		return (1);
+	}
 	if (bind(server_fd, (sockaddr *)&sock_struct, sizeof(sock_struct)) < 0)
 	{
 		std::cerr << "bind error" << std::endl;
@@ -80,33 +102,57 @@ int main(int ac, char **av, char **env)
 		std::cerr << "listen error" << std::endl;
 		return (1);
 	}
+
 	while (1)
 	{
+		tab = (char **)malloc(sizeof(char *) * 3);
+		tab[0] = 0;
+		tab[1] = 0;
+		tab[2] = 0;
+		pid = -1;
+
 		if ((new_socket = accept(server_fd, (sockaddr *)&sock_struct, (socklen_t*)&len_addr)) < 0)
 		{
 			std::cerr << "accept error" << std::endl;
 			return (1);        
 		}
 
-		char buffer[3000] = {0};
-        valread = read( new_socket , buffer, 30000);
-		printf("%s\n", buffer);
+		std::string output(30000, 0);
+		if (read(new_socket, &output[0], 30000-1) < 0) {
+			std::cerr << "Failed to read data from socket.\n";
+		}
+		else
+			std::cout << output << std::endl;
+		parse_output_client(output);
 
-
-	/*	tab[0] = strdup("/usr/bin/php-cgi");
-		tab[1] = strdup("form.php");
-		tab[2] = 0;*/
-    //    std::cout << cgi_test << std::endl;
-	//	execve("/usr/bin/php-cgi", tab, env);
-		
+		tab[0] = strdup("testers/cgi_self");
+		tab[1] = strdup("data/form.php");
+		tab[2] = 0;
+		pid = fork();
+		if (pid == -1)
+		{
+			std::cerr << "fork error" << std::endl;
+			exit (1);
+		}
+		else if(pid == 0)
+		{
+			execve("testers/cgi_self", tab, environ);
+		}
+		else
+		{
+			
+		}
 
         write(new_socket , hello.c_str() , strlen(hello.c_str()));
 		close(new_socket);
+		free_tab(tab);
 	}
 
 	(void)env;
 	(void)ac;
 	(void)av;
+	(void)pipe;
 	(void)tab;
+	(void)pid;
 	return (0);
 }

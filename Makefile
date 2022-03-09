@@ -6,7 +6,11 @@ RM		=	rm -f
 
 CFLAGS	=	-Wall -Wextra -Werror -std=c++98
 
-SRCS	=	main.cpp
+SRCS	=	src/main.cpp \
+			src/process.cpp
+
+
+INCLUDES	= -I src/webserv.hpp
 
 OBJS	:=	${SRCS:.cpp=.o}
 

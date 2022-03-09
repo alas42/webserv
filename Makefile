@@ -7,7 +7,8 @@ RM		=	rm -f
 CFLAGS	=	-Wall -Wextra -Werror -std=c++98
 
 SRCS	=	src/main.cpp \
-			src/process.cpp
+			src/process.cpp \
+			src/parcer.cpp
 
 
 INCLUDES	= -I src/webserv.hpp

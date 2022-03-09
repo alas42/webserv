@@ -6,6 +6,9 @@ int main(int argc, char **argv, char **env) {
 	(void)argv;
 	(void)env;
 
+	if (argc != 2)
+		return (0);
+	parceToEnv(argv[1]);
 	int server_fd;
 	long valread;
 	struct sockaddr_in address;
@@ -27,7 +30,7 @@ int main(int argc, char **argv, char **env) {
 	setenv("SERVER_PORT", "8080", 1);
 	setenv("SERVER_PROTOCOL", "HTTP/1.1", 1);
 	setenv("SERVER_SOFTWARE", "NULL", 1);
-	setenv("REQUEST_URI", "index.html", 1);
+	setenv("REQUEST_URI", "data/index.html", 1);
 	setenv("REDIRECT_STATUS", "200", 1);
 	setenv("SCRIPT_FILENAME", "", 1);
 

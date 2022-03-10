@@ -1,5 +1,10 @@
 #include "webserv.hpp"
 
+/*
+** The QUERY_STRING variable contains a URL-encoded search or parameter
+** string; it provides information to the CGI script to affect or refine
+** the document to be returned by the script.
+*/
 void    parse_query_string(std::string & request_uri)
 {
 	std::size_t i = 0;
@@ -10,6 +15,9 @@ void    parse_query_string(std::string & request_uri)
 	}
 }
 
+/*
+** The REQUEST_METHOD meta-variable MUST be set to the method which should be used by the script to process the request
+*/
 void parse_request_method(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0;
@@ -50,6 +58,10 @@ void parse_request_uri(std::string & output, std::size_t & pos)
 	}
 }
 
+/*
+** The SERVER_PROTOCOL variable MUST be set to the name and version of
+** the application protocol used for this CGI request.
+*/
 void	parse_server_protocol(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_protocol = 0;
@@ -64,23 +76,28 @@ void	parse_server_protocol(std::string & output, std::size_t & pos)
 				length_protocol++;
 			}
 			setenv("SERVER_PROTOCOL", output.substr(i, length_protocol).c_str(), 1);
-			pos += (i - pos) + length_protocol;
+			pos += (i - pos) + length_protocol + 8;
 			break ;
 		}
 		i++;
 	}
 }
 
+/*
+** The SERVER_PORT variable MUST be set to the TCP/IP port number on
+** which this request is received from the client.
+*/
 void	parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
 	{
+		
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{
 			length_port++;
-		}
+		}		
 		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
 		pos += (i + 1 - pos) + length_port;
 	}
@@ -91,9 +108,8 @@ void parse_output_client(std::string & output)
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
-	parse_server_port(output, i); //check with the config file which port is opened so that we can directly try to find url:port
-	std::cout << getenv("REQUEST_METHOD") << std::endl;
-	std::cout << getenv("REQUEST_URI") << std::endl;
-	std::cout << getenv("SERVER_PROTOCOL") << std::endl;
-	std::cout << getenv("SERVER_PORT") << std::endl;
+	parse_server_port(output, i);
+	/*
+	** Ip adress can be obtained from the socket, it is not send via a http header
+	*/
 }

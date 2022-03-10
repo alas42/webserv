@@ -8,8 +8,9 @@ CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
 SRCS =	src/parsing_client_header.cpp \
 	src/main.cpp \
-  src/process.cpp \
-	src/parser.cpp
+ 	src/process.cpp \
+	src/parser.cpp \
+	src/sockets.cpp
 
 INCLUDES	= -I src/webserv.hpp
 

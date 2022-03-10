@@ -26,8 +26,9 @@ extern char **environ;
 
 void	ft_fork(std::string path, char **tab, char **env);
 void	ft_execve(std::string path, char **tab, char **env);
-void	parceToEnv(char *conf);
+void	parseToEnv(char *conf);
 void    parse_output_client(std::string & output);
 int     init_webserv_socket(sockaddr_in * sock_struct);
+void    connections(int server_fd);
 
 #endif

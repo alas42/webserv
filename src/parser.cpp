@@ -32,7 +32,7 @@ std::vector<std::string> SplitString(std::string s){
 	return (v);
 }
 
-void	parceToEnv(char *conf) {
+void	parseToEnv(char *conf) {
 
 	std::ifstream nginxConf(conf);
 	std::string line = "test";

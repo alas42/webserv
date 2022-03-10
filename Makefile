@@ -10,7 +10,8 @@ SRCS =	src/parsing_client_header.cpp \
 	src/main.cpp \
  	src/process.cpp \
 	src/parser.cpp \
-	src/sockets.cpp
+	src/sockets.cpp \
+	src/connections.cpp
 
 INCLUDES	= -I src/webserv.hpp
 

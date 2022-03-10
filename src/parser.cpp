@@ -13,20 +13,39 @@ bool	isServer(std::vector<std::string> confOut) {
 	return ret;
 }
 
+std::vector<std::string> SplitString(std::string s){
+
+	std::vector<std::string> v;
+
+	std::string temp = "";
+	for(size_t i=0;i<s.length();++i){
+
+		if(s[i] == ' '){
+			v.push_back(temp);
+			temp = "";
+		}
+		else {
+			temp.push_back(s[i]);
+		}
+	}
+	v.push_back(temp);
+	return (v);
+}
+
 void	parceToEnv(char *conf) {
 
 	std::ifstream nginxConf(conf);
-	std::string line;
-	std::vector<std::string> confOut;
+	std::string line = "test";
+	std::vector<std::vector<std::string> > confOut;
+	std::vector<std::string> tmp;
 
 	if (nginxConf.is_open()) {
 		while (getline(nginxConf, line)) {
-			confOut.push_back(line);
+			tmp = SplitString(line);
+			confOut.push_back(tmp);
 		}
 	}
-	if (confOut.begin()->compare("server {") != 0 || (confOut.end() - 1)->compare("}") != 0)
-		printf("egssthssebes\n");
-
-	isServer(confOut);
-
+	else {
+		std::cout << "FUCK" << std::endl;
+	}
 }

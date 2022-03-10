@@ -9,7 +9,8 @@ CFLAGS	=	-Wall -Wextra -Werror -std=c++98
 SRCS =	src/parsing_client_header.cpp \
 	src/main.cpp \
  	src/process.cpp \
-	src/parcer.cpp
+	src/parcer.cpp \
+	src/sockets.cpp
 
 INCLUDES	= -I src/webserv.hpp
 

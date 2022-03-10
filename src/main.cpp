@@ -19,13 +19,6 @@ void	set_envs_cgi(void)
 	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
 }
 
-void set_sock_struct(sockaddr_in * sock_struct)
-{
-	sock_struct->sin_family = AF_INET;
-	sock_struct->sin_port = htons(8080);
-	sock_struct->sin_addr.s_addr = inet_addr("127.0.0.1");
-}
-
 int main(int argc, char **argv, char **env)
 {
   if (argc == 2)
@@ -34,45 +27,75 @@ int main(int argc, char **argv, char **env)
 	std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
 	sockaddr_in sock_struct;
 	int 		server_fd;
-	int 		new_socket = 0;
+	int			end = FALSE;
+	int 		new_socket = -1;
 	int 		len_addr = sizeof(sock_struct);
-	int 		yes = 1;
-	pid_t		pid = -1;
-	int			pipe[2];
 	char 		**tab = NULL;
-	
+	int    		timeout;
+  	struct pollfd fds[200];
+	int			rc = 0, nfds = 1, current_size = 0;
+
 	set_envs_cgi();
-	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+	if ((server_fd = init_webserv_socket(&sock_struct)) == -1)
 	{
-		std::cerr << "socket error" << std::endl;
+		std::cerr << "set_sock_struct error" << std::endl;
 		return (1);
 	}
+	/*
+	** Using structure from sys/poll library
+	*/
+ 	memset(fds, 0 , sizeof(fds));
+	fds[0].fd = server_fd;
+  	fds[0].events = POLLIN;
 
-	set_sock_struct(&sock_struct);
+	timeout = (3 * 60 * 1000);
+	do
+	{
+		rc = poll(fds, nfds, timeout);
+		if (rc < 0)
+		{
+			std::cerr << "poll error " << std::endl;
+			break ;
+		}else if(rc == 0)
+		{
+			std::cerr << "poll timeout " << std::endl;
+			break ;
+		}
+		current_size = nfds;
+		for (int i = 0; i < current_size; i++)
+		{
+			if (fds[i].revents == 0)
+				continue ;
+			if (fds[i].revents != POLLIN)
+			{
+				std::cerr << "poll unexpected result " << std::endl;
+				end = TRUE;
+				break ;
+			}
+			if (fds[i].fd == server_fd)
+			{
+				do
+				{
+					new_socket = accept(server_fd, NULL, NULL);
+					if (new_socket < 0)
+					{
+						break ;
+					}
+				} while (new_socket != -1);
+				
+			}
+		}
+	}	while (end == FALSE);
 
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
-	{
-		std::cerr << "setsockopt error" << std::endl;
-		return (1);
-	}
-	if (bind(server_fd, (sockaddr *)&sock_struct, sizeof(sock_struct)) < 0)
-	{
-		std::cerr << "bind error" << std::endl;
-		return (1);
-	}
-	if (listen(server_fd, 3) < 0) 
-	{ 
-		std::cerr << "listen error" << std::endl;
-		return (1);
-	}
+	(void)env;
+	(void)tab;
+	return (0);
+}
 
-	while (1)
-	{
-		tab = (char **)malloc(sizeof(char *) * 3);
+		/*tab = (char **)malloc(sizeof(char *) * 3);
 		tab[0] = 0;
 		tab[1] = 0;
 		tab[2] = 0;
-		pid = -1;
 
 		if ((new_socket = accept(server_fd, (sockaddr *)&sock_struct, (socklen_t*)&len_addr)) < 0)
 		{
@@ -98,12 +121,4 @@ int main(int argc, char **argv, char **env)
 		write(new_socket , hello.c_str() , strlen(hello.c_str()));
 		printf("------------------Hello message sent-------------------");
 		close(new_socket);
-		free_tab(tab);
-	}
-
-	(void)env;
-	(void)pipe;
-	(void)tab;
-	(void)pid;
-	return (0);
-}
+		free_tab(tab);*/

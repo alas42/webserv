@@ -112,50 +112,48 @@ int main(int argc, char *argv[], char **env)
 				/*******************************************************/
 
 
-					/*****************************************************/
-					/* Receive data on this connection until the         */
-					/* recv fails with EWOULDBLOCK. If any other         */
-					/* failure occurs, we will close the                 */
-					/* connection.                                       */
-					/*****************************************************/
-					rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-					if (rc < 0)
+				/*****************************************************/
+				/* Receive data on this connection until the         */
+				/* recv fails with EWOULDBLOCK. If any other         */
+				/* failure occurs, we will close the                 */
+				/* connection.                                       */
+				/*****************************************************/
+				rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
+				if (rc < 0)
+				{
+					if (errno != EWOULDBLOCK)
 					{
-						if (errno != EWOULDBLOCK)
-						{
-							perror("  recv() failed");
-							close_connection = TRUE;
-						}
-						break;
-					}
-
-					/*****************************************************/
-					/* Check to see if the connection has been           */
-					/* closed by the client                              */
-					/*****************************************************/
-					if (rc == 0)
-					{
-						printf("  Connection closed\n");
+						perror("  recv() failed");
 						close_connection = TRUE;
-						break;
 					}
+					break;
+				}
 
-					/*****************************************************/
-					/* Data was received                                 */
-					/*****************************************************/
-					len = rc;
-					printf("  %d bytes received\n", len);
+				/*****************************************************/
+				/* Check to see if the connection has been           */
+				/* closed by the client                              */
+				/*****************************************************/
+				if (rc == 0)
+				{
+					printf("  Connection closed\n");
+					close_connection = TRUE;
+				}
 
-					/*****************************************************/
-					/* Echo the data back to the client                  */
-					/*****************************************************/
-					rc = send(fds[i].fd, buffer, len, 0);
-					if (rc < 0)
-					{
-						perror("  send() failed");
-						close_connection = TRUE;
-						break;
-					}
+				/*****************************************************/
+				/* Data was received                                 */
+				/*****************************************************/
+				len = rc;
+				printf("  %d bytes received\n", len);
+
+				/*****************************************************/
+				/* Echo the data back to the client                  */
+				/*****************************************************/
+				rc = send(fds[i].fd, buffer, len, 0);
+				if (rc < 0)
+				{
+					perror("  send() failed");
+					close_connection = TRUE;
+				}
 				if (close_connection)
 				{
 					close(fds[i].fd);

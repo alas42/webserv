@@ -4,6 +4,7 @@ CC		=	clang++
 
 RM		=	rm -f
 
+# CFLAGS	=	-Wall -Wextra -Werror -g
 CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
 SRCS =	src/parsing_client_header.cpp \

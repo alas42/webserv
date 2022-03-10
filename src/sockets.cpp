@@ -1,6 +1,16 @@
 #include "webserv.hpp"
 
+/*
+** What is a socket (in a large snens) ? (a combination of ip and port and protocol)
+** What does it do ? (uniquely identifies the endpoint of a communication link between two application ports)
+** The function socket(int domain, int type, int protocol) doesn't return a socket per se
+** It creates an the endpoint for communication and return a file_descriptor that refers to that endpoint
+*/
 
+/*
+** What is a blocking and non-blocking socket ?
+** https://www.scottklement.com/rpg/socktut/nonblocking.html -> Good
+*/
 int   init_webserv_socket(sockaddr_in * sock_struct)
 {
 	int server_fd = -1;
@@ -8,6 +18,8 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 
 	/*
 	** Returns a socket descriptor (endpoint)
+	** only the protocol is specified (not yet the IP and PORT)
+	** A socket_descriptor represents the socket but is not a socket in itself (it is a binary that acts as an index to the socket)
 	*/
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
@@ -41,6 +53,8 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 
 	/*
 	** Gets a unique name for the socket
+	** bind() assigns the address specified by the second argument to the socket referred to by the file descriptor sever_fd
+	** it is here that the fd will be assigned an IP and PORT that he will afterwards listen to
 	*/
 	if (bind(server_fd, (sockaddr *)sock_struct, sizeof(*sock_struct)) < 0)
 	{
@@ -51,6 +65,7 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 
 	/*
 	** Allows the server to accept incoming client connections
+	** listen() marks the socket referred by server_fd as a passive socket that will be used to accept incoming connection with accept
 	*/
 	if (listen(server_fd, 42) < 0) 
 	{ 

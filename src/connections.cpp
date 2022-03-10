@@ -1,5 +1,10 @@
 #include "webserv.hpp"
 
+
+/*
+** the poll() functions is an observer of a tab of pollfd that contains their current fds and the events that is happening
+** at each one of them
+*/
 void    connections(int server_fd)
 {
     /*
@@ -10,6 +15,7 @@ void    connections(int server_fd)
   	struct pollfd	fds[200];
 	char   			buffer[80];
 	int				rc = 0, nfds = 1, current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
+   
     /*
 	** Using structure from sys/poll library
 	*/
@@ -20,7 +26,7 @@ void    connections(int server_fd)
 	/*
 	** Code issu de IBM
 	*/
-	timeout = (3 * 60 * 1000);
+	timeout = (3 * 60 * 1000); //I guess every client should have it's own timeout before the connection closes
 	do
 	{
 		rc = poll(fds, nfds, timeout);
@@ -68,18 +74,7 @@ void    connections(int server_fd)
 			{
 				std::cout << "  Descriptor " << fds[i].fd << " is readable" << std::endl;
 				close_connection = FALSE;
-				/*******************************************************/
-				/* Receive all incoming data on this socket            */
-				/* before we loop back and call poll again.            */
-				/*******************************************************/
 
-
-				/*****************************************************/
-				/* Receive data on this connection until the         */
-				/* recv fails with EWOULDBLOCK. If any other         */
-				/* failure occurs, we will close the                 */
-				/* connection.                                       */
-				/*****************************************************/
 				rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 				if (rc < 0)
 				{
@@ -125,13 +120,6 @@ void    connections(int server_fd)
 			}  /* End of existing connection is readable             */
 		} /* End of loop through pollable descriptors              */
 
-		/***********************************************************/
-		/* If the compress_array flag was turned on, we need       */
-		/* to squeeze together the array and decrement the number  */
-		/* of file descriptors. We do not need to move back the    */
-		/* events and revents fields because the events will always*/
-		/* be POLLIN in this case, and revents is output.          */
-		/***********************************************************/
 		if (compress_array)
 		{
 			compress_array = FALSE;

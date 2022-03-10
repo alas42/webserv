@@ -6,10 +6,12 @@ RM		=	rm -f
 
 CFLAGS	=	-Wall -Wextra -Werror -std=c++98
 
-SRCS	=	src/main.cpp \
-			src/process.cpp \
-			src/parcer.cpp
+SRCS =	src/parsing_client_header.cpp \
+	src/main.cpp \
+  src/process.cpp \
+	src/parcer.cpp
 
+OBJS = $(SOURCES_FILES:.cpp=.o)
 
 INCLUDES	= -I src/webserv.hpp
 
@@ -33,3 +35,4 @@ fclean: clean
 	$(RM) ${NAME}
 
 re: fclean all
+

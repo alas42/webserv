@@ -19,10 +19,14 @@ void	set_envs_cgi(void)
 	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
 }
 
-int main(int argc, char **argv, char **env)
+int main(int argc, char *argv[], char **env)
 {
-  if (argc == 2)
+	if (argc == 2)
 		parceToEnv(argv[1]);
+	else if (argc == 1) {
+		std::cout << "need arg" << std::endl;
+		return (0);
+	}
 
 	//std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
 	char 		**tab = NULL;
@@ -204,7 +208,7 @@ int main(int argc, char **argv, char **env)
 		if ((new_socket = accept(server_fd, (sockaddr *)&sock_struct, (socklen_t*)&len_addr)) < 0)
 		{
 			std::cerr << "accept error" << std::endl;
-			return (1);        
+			return (1);
 		}
 
 		std::string output(30000, 0);

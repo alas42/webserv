@@ -4,12 +4,12 @@ CC		=	clang++
 
 RM		=	rm -f
 
-CFLAGS	=	-Wall -Wextra -Werror -std=c++98
+CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
 SRCS =	src/parsing_client_header.cpp \
 	src/main.cpp \
  	src/process.cpp \
-	src/parcer.cpp \
+	src/parser.cpp \
 	src/sockets.cpp
 
 INCLUDES	= -I src/webserv.hpp

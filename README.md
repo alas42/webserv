@@ -61,7 +61,8 @@ https://suchprogramming.com/epoll-in-3-easy-steps/
 https://developer.mozilla.org/fr/docs/Web/HTTP/Status
 
 
-
+- Variable Envs pour CGI
+https://datatracker.ietf.org/doc/html/rfc3875#section-4.1.1
 
 
 

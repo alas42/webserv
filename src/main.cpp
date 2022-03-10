@@ -14,9 +14,9 @@ void	free_tab(char **tab)
 void	set_envs_cgi(void)
 {
 	setenv("DOCUMENT_ROOT", "mnt/nfs/homes/avogt/sgoinfre/webserv/data/", 1);
-	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1);
-	setenv("SERVER_NAME", "127.0.0.1", 1);
-	setenv("SERVER_SOFTWARE", "webserv", 1);
+	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1); //variable : must be set to the dialect of CGI being used by the servre to communicate with the script
+	setenv("SERVER_NAME", "127.0.0.1", 1); // variable : must be set to the name of the server host which the client request is directed
+	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
 }
 
 void set_sock_struct(sockaddr_in * sock_struct)

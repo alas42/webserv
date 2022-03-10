@@ -5,11 +5,26 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
+			"name": "(lldb) Lancer",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/webserv",
+			"args": ["/Users/thomaspierre/Desktop/webserv/Desktop/webserv/data/example.conf"],
+			"stopAtEntry": false,
+			"cwd": "${fileDirname}",
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "lldb",
+			"preLaunchTask": "make"
+		},
+
+		{
 			"name": "(gdb) Launch",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/webserv",
-			"args": ["/mnt/nfs/homes/tpierre/Desktop/webserv/data/example.conf"],
+			// "args": ["/mnt/nfs/homes/tpierre/Desktop/webserv/data/example.conf"],
+			"args": ["/Users/thomaspierre/Desktop/webserv/Desktop/webserv/data/example.conf"],
 			"stopAtEntry": false,
 			"cwd": "${fileDirname}",
 			"environment": [],

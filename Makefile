@@ -11,8 +11,6 @@ SRCS =	src/parsing_client_header.cpp \
   src/process.cpp \
 	src/parcer.cpp
 
-OBJS = $(SOURCES_FILES:.cpp=.o)
-
 INCLUDES	= -I src/webserv.hpp
 
 OBJS	:=	${SRCS:.cpp=.o}
@@ -34,4 +32,5 @@ fclean: clean
 	$(RM) ${NAME}
 
 re: fclean all
+
 

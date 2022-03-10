@@ -2,7 +2,7 @@
 
 void	ft_execve(std::string path, char **tab, char **env, int status) {
 
-	status = execve(path.c_str(), tab, env);
+	status = execve(path.c_str(), tab, env); // have to change to **environ (env doesn't have the env variable)
 	// if (status < 0)
 	// {
 	// 	free something

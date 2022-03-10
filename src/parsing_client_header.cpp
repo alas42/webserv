@@ -1,6 +1,4 @@
-#include <iostream>
-#include <string>
-#include <cstdlib>
+#include "webserv.hpp"
 
 void    parse_query_string(std::string & request_uri)
 {

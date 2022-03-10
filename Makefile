@@ -19,7 +19,6 @@ OBJS	:=	${SRCS:.cpp=.o}
 
 .PHONY: clean fclean re
 
-
 all: ${NAME}
 
 ${NAME}: ${OBJS}

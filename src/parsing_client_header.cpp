@@ -71,11 +71,29 @@ void	parse_server_protocol(std::string & output, std::size_t & pos)
 	}
 }
 
+void	parse_server_port(std::string & output, std::size_t & pos)
+{
+	std::size_t i = 0, length_port = 0;
+	if ((i = output.find(":", pos)) != std::string::npos)
+	{
+		i += 1;
+		while (!std::isspace(output.at(i + length_port)))
+		{
+			length_port++;
+		}
+		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
+		pos += (i + 1 - pos) + length_port;
+	}
+}
 void parse_output_client(std::string & output)
 {
 	size_t i = 0;
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
-	/*parse_server_port(output, i);*/ //check with the config file which port is opened so that we can directly try to find url:port	
+	parse_server_port(output, i); //check with the config file which port is opened so that we can directly try to find url:port
+	std::cout << getenv("REQUEST_METHOD") << std::endl;
+	std::cout << getenv("REQUEST_URI") << std::endl;
+	std::cout << getenv("SERVER_PROTOCOL") << std::endl;
+	std::cout << getenv("SERVER_PORT") << std::endl;
 }

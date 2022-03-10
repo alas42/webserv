@@ -91,7 +91,7 @@ int main(int argc, char **argv, char **env)
 		tab[0] = strdup("testers/cgi_self");
 		tab[1] = strdup("data/form.php");
 		tab[2] = 0;
-		std::string path = "/usr/bin/php-cgi";
+		std::string path = "testers/cgi_self";
 		ft_fork(path, tab, env);
 
     	printf("%s\n","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");

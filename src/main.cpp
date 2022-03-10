@@ -1,19 +1,4 @@
-#include <arpa/inet.h>	//	htons ... inet_addr
-#include <sys/select.h>	//  select
-#include <poll.h>		//	poll
-#include <sys/epoll.h>	//	epoll
-#include <sys/socket.h>	//	socket setsockopt accept listen send getsockname
-//#include <sys/event.h>
-#include <sys/types.h>
-#include <iostream>		//	std::cout
-#include <functional>	//	std::bind
-#include <unistd.h>		//	fcntl
-#include <fcntl.h>		//	fcntl
-#include <netinet/in.h>
-#include <stdio.h>
-#include <string.h>
-#include <cstdlib>
-
+#include "webserv.hpp"
 
 extern char **environ;
 void parse_output_client(std::string & output);
@@ -68,6 +53,9 @@ void set_sock_struct(sockaddr_in * sock_struct)
 
 int main(int ac, char **av, char **env)
 {
+  if (argc != 2)
+		return (0);
+	parceToEnv(argv[1]);
 	std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
 	sockaddr_in sock_struct;
 	int 		server_fd;
@@ -128,22 +116,14 @@ int main(int ac, char **av, char **env)
 		tab[0] = strdup("testers/cgi_self");
 		tab[1] = strdup("data/form.php");
 		tab[2] = 0;
-		pid = fork();
-		if (pid == -1)
-		{
-			std::cerr << "fork error" << std::endl;
-			exit (1);
-		}
-		else if(pid == 0)
-		{
-			execve("testers/cgi_self", tab, environ);
-		}
-		else
-		{
-			
-		}
+		ft_fork(path, tab, env);
+    printf("%s\n","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
 
-        write(new_socket , hello.c_str() , strlen(hello.c_str()));
+    write(new_socket , hello.c_str() , hello.length());
+    printf("------------------Hello message sent-------------------");
+    close(new_socket);
+
+    write(new_socket , hello.c_str() , strlen(hello.c_str()));
 		close(new_socket);
 		free_tab(tab);
 	}

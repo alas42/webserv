@@ -1,29 +1,38 @@
-NAME = webserv
+NAME	=	webserv
 
-HEADER_FILES = 
+CC		=	clang++
 
-SOURCES_FILES =	src/parsing_client_header.cpp \
-	src/main.cpp
+RM		=	rm -f
+
+CFLAGS	=	-Wall -Wextra -Werror -std=c++98
+
+SRCS =	src/parsing_client_header.cpp \
+	src/main.cpp \
+  src/process.cpp \
+	src/parcer.cpp
 
 OBJS = $(SOURCES_FILES:.cpp=.o)
 
-CPPFLAGS = -Wall -Werror -Wextra 
-CC = clang++ -std=c++98
+INCLUDES	= -I src/webserv.hpp
 
-all: $(NAME)
+OBJS	:=	${SRCS:.cpp=.o}
 
-$(NAME): $(OBJS) $(HEADER_FILES)
-	$(CC) $(CPPFLAGS) $(SOURCES_FILES) -o $(NAME)
+.PHONY: clean fclean re
+
+
+all: ${NAME}
+
+${NAME}: ${OBJS}
+	$(CC) $(CFLAGS) -o $(NAME) $^
 
 %.o: %.cpp
-	$(CC) $(CPPFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(OBJS)
+	$(RM) ${OBJS}
 
 fclean: clean
-	rm -f $(NAME)
+	$(RM) ${NAME}
 
 re: fclean all
 
-.PHONY: all clean fclean re

@@ -79,6 +79,5 @@ void parse_output_client(std::string & output)
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
-	/*parse_server_port(output, i);*/ //check with the config file which port is opened so that we can directly try to find url:port
-	
+	/*parse_server_port(output, i);*/ //check with the config file which port is opened so that we can directly try to find url:port	
 }

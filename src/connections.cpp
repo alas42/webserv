@@ -1,6 +1,5 @@
 #include "webserv.hpp"
 
-
 /*
 ** the poll() functions is an observer of a tab of pollfd that contains their current fds and the events that is happening
 ** at each one of them

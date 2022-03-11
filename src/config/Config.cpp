@@ -12,27 +12,32 @@
 
 #include "Config.hpp"
 
-Config::Config(void)
+Config::Config(void): _server_fds()
 {}
 
 Config::~Config(void)
 {}
 
-Config::Config(const Config & other)
-{
-    *this = other;
-}
+Config::Config(Config const & other): _server_fds(other._server_fds)
+{}
 
-Config & Config::operator=(const Config & other)
+Config & Config::operator=(Config const & other)
 {
     if (this != &other)
     {
-
+       this->_server_fds = other._server_fds;
     }
     return (*this);
 }
 
 void     Config::parse(const char *conf_file)
 {
-    (void)conf_file;
+    parceToEnv(conf_file);
+	setenv("GATEWAY_INTERFACE", "CGI/1.1", 1); //variable : must be set to the dialect of CGI being used by the servre to communicate with the script
+	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
+}
+
+std::vector<int>& Config::getServerFds(void)
+{
+    return this->_server_fds;
 }

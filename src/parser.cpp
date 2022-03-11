@@ -29,7 +29,7 @@ void	setEnv(std::vector<std::vector<std::string>> confOut) {
 			if (itVector.base()->begin()->find(listEnv[i]) != std::string::npos)
 			{
 				std::vector<std::string>::iterator itString = itVector.base()->begin();
-				std::cout << (itString.base() + 1)->c_str() << "111111111111111111111" << std::endl;
+				std::cout << (itString.base() + 1)->c_str() << std::endl;
 				// std::cout << itVector.base()->begin()->c_str() << "111111111111111111111" << std::endl;
 				switch (i) {
 					case 0:
@@ -46,7 +46,6 @@ void	setEnv(std::vector<std::vector<std::string>> confOut) {
 				}
 
 			// std::cout << itVector.base()->begin()->c_str() << "222222222222222222222222222222222222222222" << std::endl;
-
 			}
 
 		}
@@ -88,7 +87,7 @@ std::vector<std::string> splitStringToVector(std::string s){
 	return (v);
 }
 
-void	parceToEnv(char *conf) {
+void	parceToEnv(const char *conf) {
 
 	std::ifstream nginxConf(conf);
 	std::string line = "test";

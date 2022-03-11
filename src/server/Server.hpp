@@ -12,13 +12,14 @@ class Server
 		~Server(void);
 		Server(const Server & other);
 		Server & operator=(const Server & other);
-		void	config(std::string  & conf_file);
-		void	setup(void);
+		void	config(char * conf_file);
+		int		setup(void);
 		void	run(void);
 		void	clean(void);
 
 	private:
-		Config _config;
+		Config 	_config;
+		int		_timeout;
 };
 
 #endif

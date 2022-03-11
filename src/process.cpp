@@ -1,6 +1,7 @@
-#include "webserv.hpp"
+#include "../inc/webserv.hpp"
 
-void	ft_execve(std::string path, char **tab, char **env, int status) {
+void	ft_execve(std::string path, char **tab, char **env, int status)
+{
 
 	status = execve(path.c_str(), tab, environ); // have to change to **environ (env doesn't have the env variable)
 	// if (status < 0)
@@ -10,7 +11,8 @@ void	ft_execve(std::string path, char **tab, char **env, int status) {
 	(void)env;
 }
 
-void	ft_fork(std::string path, char **tab, char **env) {
+void	ft_fork(std::string path, char **tab, char **env)
+{
 	pid_t	c_pid;
 	int		status = 0;
 

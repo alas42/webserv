@@ -1,4 +1,4 @@
-#include "webserv.hpp"
+#include "../inc/webserv.hpp"
 
 void	free_tab(char **tab)
 {
@@ -19,65 +19,41 @@ void	set_envs_cgi(void)
 	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
 }
 
-void set_sock_struct(sockaddr_in * sock_struct)
+int main(int argc, char *argv[], char **env)
 {
-	sock_struct->sin_family = AF_INET;
-	sock_struct->sin_port = htons(8080);
-	sock_struct->sin_addr.s_addr = inet_addr("127.0.0.1");
+	sockaddr_in sock_struct; //WEBSERVER CLASS
+	int 		server_fd; //WEBSERVER CLASS
+
+	if (argc == 2)
+		parceToEnv(argv[1]);
+	else if (argc == 1)
+	{
+		std::cout << "need arg" << std::endl;
+		return (1);
+	}
+
+	set_envs_cgi();
+	if ((server_fd = init_webserv_socket(&sock_struct)) == -1)
+	{
+		std::cerr << "set_sock_struct error" << std::endl;
+		return (1);
+	}
+	connections(server_fd);
+
+	(void)env;
+	return (0);
 }
 
-int main(int argc, char **argv, char **env)
-{
-  if (argc == 2)
-		parceToEnv(argv[1]);
-
-	std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
-	sockaddr_in sock_struct;
-	int 		server_fd;
-	int 		new_socket = 0;
-	int 		len_addr = sizeof(sock_struct);
-	int 		yes = 1;
-	pid_t		pid = -1;
-	int			pipe[2];
-	char 		**tab = NULL;
-	
-	set_envs_cgi();
-	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-	{
-		std::cerr << "socket error" << std::endl;
-		return (1);
-	}
-
-	set_sock_struct(&sock_struct);
-
-	if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
-	{
-		std::cerr << "setsockopt error" << std::endl;
-		return (1);
-	}
-	if (bind(server_fd, (sockaddr *)&sock_struct, sizeof(sock_struct)) < 0)
-	{
-		std::cerr << "bind error" << std::endl;
-		return (1);
-	}
-	if (listen(server_fd, 3) < 0) 
-	{ 
-		std::cerr << "listen error" << std::endl;
-		return (1);
-	}
-
-	while (1)
-	{
+		/*char 		**tab = NULL;
 		tab = (char **)malloc(sizeof(char *) * 3);
 		tab[0] = 0;
 		tab[1] = 0;
 		tab[2] = 0;
-		pid = -1;
 
 		if ((new_socket = accept(server_fd, (sockaddr *)&sock_struct, (socklen_t*)&len_addr)) < 0)
 		{
 			std::cerr << "accept error" << std::endl;
-			return (1);        
+			return (1);
 		}
 
 		std::string output(30000, 0);
@@ -95,15 +71,8 @@ int main(int argc, char **argv, char **env)
 		ft_fork(path, tab, env);
 
     	printf("%s\n","<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< ");
+		//std::string hello = "HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 200\n\n<html><body><h1><form action=\"php-cgi\" method=\"get\">Name: <input type=\"text\" name=\"name\"><br>E-mail: <input type=\"text\" name=\"email\"><br><input type=\"submit\"></form></body></html>";
 		write(new_socket , hello.c_str() , strlen(hello.c_str()));
 		printf("------------------Hello message sent-------------------");
 		close(new_socket);
-		free_tab(tab);
-	}
-
-	(void)env;
-	(void)pipe;
-	(void)tab;
-	(void)pid;
-	return (0);
-}
+		free_tab(tab);*/

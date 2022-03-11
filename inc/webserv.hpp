@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <vector>
+#include <list>
 #include <sys/wait.h>
 #include <vector>
 #include <sys/types.h>

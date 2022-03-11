@@ -12,22 +12,42 @@
 
 #include "Server.hpp"
 
-void	Server::config(std::string conf_file)
+Server::Server(void)
+{}
+
+Server::~Server(void)
+{}
+
+Server::Server(const Server & other)
+{
+    *this = other;
+}
+
+Server & Server::operator=(const Server & other)
+{
+    if (this != &other)
+    {
+
+    }
+    return (*this);
+}
+
+void	Server::config(std::string & conf_file)
 {
 	_config.parse(conf_file.c_str());
 }
 
-void	Server::setup()
+void	Server::setup(void)
 {
 
 }
 
-void	Server::run()
+void	Server::run(void)
 {
 
 }
 
-void	Server::clean()
+void	Server::clean(void)
 {
 
 }

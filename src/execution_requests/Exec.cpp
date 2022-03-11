@@ -11,3 +11,23 @@
 /* ************************************************************************** */
 
 #include "Exec.hpp"
+
+Exec::Exec(void)
+{}
+
+Exec::~Exec(void)
+{}
+
+Exec::Exec(const Exec & other)
+{
+    *this = other;
+}
+
+Exec & Exec::operator=(const Exec & other)
+{
+    if (this != &other)
+    {
+
+    }
+    return (*this);
+}

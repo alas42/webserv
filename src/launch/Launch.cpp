@@ -10,4 +10,25 @@
 /*                                                                            */
 /* ************************************************************************** */
 
+
 #include "Launch.hpp"
+
+Launch::Launch(void)
+{}
+
+Launch::~Launch(void)
+{}
+
+Launch::Launch(const Launch & other)
+{
+    *this = other;
+}
+
+Launch & Launch::operator=(const Launch & other)
+{
+    if (this != &other)
+    {
+
+    }
+    return (*this);
+}

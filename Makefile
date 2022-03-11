@@ -11,7 +11,12 @@ SRCS =	src/parsing_client_header.cpp \
  	src/process.cpp \
 	src/parser.cpp \
 	src/sockets.cpp \
-	src/connections.cpp
+	src/connections.cpp \
+	src/config/Config.cpp \
+	src/server/Server.cpp \
+	src/execution_requests/Exec.cpp \
+	src/launch/Launch.cpp \
+	src/listen/Listen.cpp
 
 INCLUDES	= -I src/webserv.hpp
 

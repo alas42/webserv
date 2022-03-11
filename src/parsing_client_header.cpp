@@ -105,8 +105,8 @@ void	parse_server_port(std::string & output, std::size_t & pos)
 void parse_output_client(std::string & output)
 {
 	size_t i = 0;
-	parse_request_method(output, i);
-	parse_request_uri(output, i);
+	parse_request_method(output, i); // if post, should send the body to cgi via a pipe
+	parse_request_uri(output, i); // in this one is multiple info (file extensions, path to doc, path to executable(cgi), arg for get)
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
 	/*

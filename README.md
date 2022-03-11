@@ -68,3 +68,22 @@ https://datatracker.ietf.org/doc/html/rfc3875#section-4.1.1
 
 CGI:
 http://didier.deleglise.free.fr/web_dyn/cgi/cgi.htm
+
+/*
+** What is a socket (in a large sens) ? (a combination of ip and port and protocol)
+** What does it do ? (uniquely identifies the endpoint of a communication link between two application ports)
+** The function socket(int domain, int type, int protocol) doesn't return a socket per se
+** It creates an the endpoint for communication and return a file_descriptor that refers to that endpoint
+*/
+
+/*
+** What is a blocking and non-blocking socket ?
+** https://www.scottklement.com/rpg/socktut/nonblocking.html -> Good
+*/
+
+/*
+** the poll() functions is an observer of a tab of pollfd that contains their current fds and the events that is happening
+** at each one of them
+** can we listen to multiple ports ? yes, theorically we can have multiplt "server_fds"
+** and set the appropriate fd in fds[n].fd to the good one after an accept
+*/

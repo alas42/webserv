@@ -12,6 +12,9 @@
 
 #include "Server.hpp"
 
+/*
+** No, you can not use a single socket for multiple connections -> stackoverflow
+*/
 Server::Server(void)
 {}
 

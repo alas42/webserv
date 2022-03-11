@@ -3,8 +3,10 @@
 /*
 ** the poll() functions is an observer of a tab of pollfd that contains their current fds and the events that is happening
 ** at each one of them
+** can we listen to multiple ports ? yes, theorically we can have multiplt "server_fds"
+** and set the appropriate fd in fds[n].fd to the good one after an accept
 */
-void    connections(int server_fd)
+void    connections(int server_fd, int server_fd2)
 {
     /*
 	** Variables for multiple connections
@@ -12,20 +14,22 @@ void    connections(int server_fd)
 	int 			new_socket = -1;
 	int    			timeout;
   	struct pollfd	fds[200];
-	char   			buffer[80];
-	int				rc = 0, nfds = 1, current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
+	char   			buffer[500];
+	int				rc = 0, nfds = 2, current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
 
     /*
 	** Using structure from sys/poll library
 	*/
- 	memset(fds, 0 , sizeof(fds));
+ 	memset(fds, 0, sizeof(fds));
 	fds[0].fd = server_fd;
   	fds[0].events = POLLIN;
+	fds[1].fd = server_fd2;
+	fds[1].events = POLLIN;
 
 	/*
 	** Code issu de IBM
 	*/
-	timeout = (3 * 60 * 1000); //I guess every client should have it's own timeout before the connection closes
+	timeout = (0.5 * 60 * 1000); //I guess every client should have it's own timeout before the connection closes
 	do
 	{
 		rc = poll(fds, nfds, timeout);
@@ -49,11 +53,11 @@ void    connections(int server_fd)
 				end = TRUE;
 				break ;
 			}
-			if (fds[i].fd == server_fd)
+			if (fds[i].fd == server_fd || fds[i].fd == server_fd2)
 			{
 				do
 				{
-					new_socket = accept(server_fd, NULL, NULL);
+					new_socket = accept(fds[i].fd, NULL, NULL);
 					if (new_socket < 0)
 					{
 						if (errno != EWOULDBLOCK)
@@ -77,11 +81,13 @@ void    connections(int server_fd)
 				rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
 				if (rc < 0)
 				{
-					if (errno != EWOULDBLOCK)
-					{
-						perror("  recv() failed");
-						close_connection = TRUE;
-					}
+					/* Checking the value of errno after read or write is FORBIDDEN 
+					** if (errno != EWOULDBLOCK)
+					** {
+					**		perror("  recv() failed");
+					**		close_connection = TRUE;
+					**	}
+					*/
 					break;
 				}
 
@@ -100,24 +106,25 @@ void    connections(int server_fd)
 				/*****************************************************/
 				len = rc;
 				printf("  %d bytes received\n", len);
-
-				/*****************************************************/
-				/* Echo the data back to the client                  */
-				/*****************************************************/
-				rc = send(fds[i].fd, buffer, len, 0);
-				if (rc < 0)
-				{
-					perror("  send() failed");
-					close_connection = TRUE;
-				}
+				std::cout << buffer << std::endl;
+				/*
+				** Echo the data back to the client (uselfull for telnet, not for browser)
+				**
+				**	rc = send(fds[i].fd, buffer, len, 0);
+				**	if (rc < 0)
+				**	{
+				**		perror("  send() failed");
+				**		close_connection = TRUE;
+				**	}
+				*/
 				if (close_connection)
 				{
 					close(fds[i].fd);
 					fds[i].fd = -1;
 					compress_array = TRUE;
 				}
-			}  /* End of existing connection is readable             */
-		} /* End of loop through pollable descriptors              */
+			}
+		}
 
 		if (compress_array)
 		{
@@ -142,4 +149,5 @@ void    connections(int server_fd)
 		if(fds[i].fd >= 0)
 			close(fds[i].fd);
 	}
+	(void)server_fd2;
 }

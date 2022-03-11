@@ -21,8 +21,8 @@ void	set_envs_cgi(void)
 
 int main(int argc, char *argv[], char **env)
 {
-	sockaddr_in sock_struct; //WEBSERVER CLASS
-	int 		server_fd; //WEBSERVER CLASS
+	sockaddr_in sock_struct[2]; //WEBSERVER CLASS
+	int 		server_fd[2]; //WEBSERVER CLASS
 
 	if (argc == 2)
 		parceToEnv(argv[1]);
@@ -33,12 +33,17 @@ int main(int argc, char *argv[], char **env)
 	}
 
 	set_envs_cgi();
-	if ((server_fd = init_webserv_socket(&sock_struct)) == -1)
+	if ((server_fd[0] = init_webserv_socket(&sock_struct[0], 8080)) == -1)
 	{
 		std::cerr << "set_sock_struct error" << std::endl;
 		return (1);
 	}
-	connections(server_fd);
+	if ((server_fd[1] = init_webserv_socket(&sock_struct[1], 8081)) == -1)
+	{
+		std::cerr << "set_sock_struct error" << std::endl;
+		return (1);
+	}
+	connections(server_fd[0], server_fd[1]);
 
 	(void)env;
 	return (0);

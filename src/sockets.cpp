@@ -11,7 +11,7 @@
 ** What is a blocking and non-blocking socket ?
 ** https://www.scottklement.com/rpg/socktut/nonblocking.html -> Good
 */
-int   init_webserv_socket(sockaddr_in * sock_struct)
+int   init_webserv_socket(sockaddr_in * sock_struct, int port_number)
 {
 	int server_fd = -1;
 	int	yes = 1, on = 1;
@@ -21,6 +21,7 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 	** only the protocol is specified (not yet the IP and PORT)
 	** A socket_descriptor represents the socket but is not a socket in itself (it is a binary that acts as an index to the socket)
 	*/
+	std::cout << port_number << std::endl;
 	if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 	{
 		std::cerr << "socket error" << std::endl;
@@ -39,6 +40,9 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 	/*
 	** Set socket to be non blocking. All the sockets for incoming connections will be also nonblocking
 	*/
+	/*
+	** MAYBE we can't use this function
+	*/
 	if (ioctl(server_fd, FIONBIO, (char *)&on) < 0)
 	{
 		printf("%s\n", strerror(errno));
@@ -48,7 +52,7 @@ int   init_webserv_socket(sockaddr_in * sock_struct)
 
 	memset(sock_struct, 0, sizeof(*sock_struct));
 	sock_struct->sin_family = AF_INET;
-	sock_struct->sin_port = htons(8080);
+	sock_struct->sin_port = htons(port_number);
 	sock_struct->sin_addr.s_addr = inet_addr("127.0.0.1");
 
 	/*

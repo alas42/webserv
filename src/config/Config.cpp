@@ -12,7 +12,27 @@
 
 #include "Config.hpp"
 
+Config::Config(void)
+{}
+
+Config::~Config(void)
+{}
+
+Config::Config(const Config & other)
+{
+    *this = other;
+}
+
+Config & Config::operator=(const Config & other)
+{
+    if (this != &other)
+    {
+
+    }
+    return (*this);
+}
+
 void     Config::parse(const char *conf_file)
 {
-    
+    (void)conf_file;
 }

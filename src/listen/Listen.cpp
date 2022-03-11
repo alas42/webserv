@@ -11,3 +11,23 @@
 /* ************************************************************************** */
 
 #include "Listen.hpp"
+
+Listen::Listen(void)
+{}
+
+Listen::~Listen(void)
+{}
+
+Listen::Listen(const Listen & other)
+{
+    *this = other;
+}
+
+Listen & Listen::operator=(const Listen & other)
+{
+    if (this != &other)
+    {
+
+    }
+    return (*this);
+}

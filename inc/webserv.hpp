@@ -29,6 +29,6 @@ void	ft_execve(std::string path, char **tab, char **env);
 void	parceToEnv(char *conf);
 void    parse_output_client(std::string & output);
 int     init_webserv_socket(sockaddr_in * sock_struct, int port_number);
-void    connections(int server_fd, int server_fd2);
+void    connections(std::vector<int> & server_fds);
 
 #endif

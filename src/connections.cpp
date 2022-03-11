@@ -6,7 +6,7 @@
 ** can we listen to multiple ports ? yes, theorically we can have multiplt "server_fds"
 ** and set the appropriate fd in fds[n].fd to the good one after an accept
 */
-void    connections(int server_fd, int server_fd2)
+void    connections(std::vector<int> & server_fds)
 {
     /*
 	** Variables for multiple connections
@@ -15,16 +15,17 @@ void    connections(int server_fd, int server_fd2)
 	int    			timeout;
   	struct pollfd	fds[200];
 	char   			buffer[500];
-	int				rc = 0, nfds = 2, current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
+	int				rc = 0, nfds = (int)server_fds.size(), current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
 
     /*
 	** Using structure from sys/poll library
 	*/
  	memset(fds, 0, sizeof(fds));
-	fds[0].fd = server_fd;
-  	fds[0].events = POLLIN;
-	fds[1].fd = server_fd2;
-	fds[1].events = POLLIN;
+	for(size_t i = 0; i < server_fds.size(); i++)
+	{
+		fds[i].fd = server_fds[i];
+		fds[i].events = POLLIN;
+	}
 
 	/*
 	** Code issu de IBM
@@ -53,7 +54,7 @@ void    connections(int server_fd, int server_fd2)
 				end = TRUE;
 				break ;
 			}
-			if (fds[i].fd == server_fd || fds[i].fd == server_fd2)
+			if (fds[i].fd == server_fds[0] || fds[i].fd == server_fds[1])
 			{
 				do
 				{
@@ -106,7 +107,7 @@ void    connections(int server_fd, int server_fd2)
 				/*****************************************************/
 				len = rc;
 				printf("  %d bytes received\n", len);
-				std::cout << buffer << std::endl;
+				write(1, buffer,rc);
 				/*
 				** Echo the data back to the client (uselfull for telnet, not for browser)
 				**
@@ -149,5 +150,4 @@ void    connections(int server_fd, int server_fd2)
 		if(fds[i].fd >= 0)
 			close(fds[i].fd);
 	}
-	(void)server_fd2;
 }

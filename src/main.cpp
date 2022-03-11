@@ -21,8 +21,8 @@ void	set_envs_cgi(void)
 
 int main(int argc, char *argv[], char **env)
 {
-	sockaddr_in sock_struct[2]; //WEBSERVER CLASS
-	int 		server_fd[2]; //WEBSERVER CLASS
+	sockaddr_in			sock_struct[2]; //WEBSERVER CLASS
+	std::vector<int> 	vec_server_fds; //WEBSERVER CLASS
 
 	if (argc == 2)
 		parceToEnv(argv[1]);
@@ -31,24 +31,38 @@ int main(int argc, char *argv[], char **env)
 		std::cout << "need arg" << std::endl;
 		return (1);
 	}
-
 	set_envs_cgi();
-	if ((server_fd[0] = init_webserv_socket(&sock_struct[0], 8080)) == -1)
-	{
-		std::cerr << "set_sock_struct error" << std::endl;
-		return (1);
-	}
-	if ((server_fd[1] = init_webserv_socket(&sock_struct[1], 8081)) == -1)
-	{
-		std::cerr << "set_sock_struct error" << std::endl;
-		return (1);
-	}
-	connections(server_fd[0], server_fd[1]);
 
+	/*
+	** Testing on listening on multpiple ports
+	*/
+	int number_of_ports = 2;
+	int	server_fd;
+	int			*	ports = (int *)malloc(sizeof(int) * number_of_ports);
+	sockaddr_in *	sock_structs = (sockaddr_in *)malloc(sizeof(sockaddr_in) * number_of_ports);
+	if (!sock_structs || !ports)
+	{
+		std::cerr << "malloc sock_struct or int error" << std::endl;
+		return (1);
+	}
+	ports[0] = 8080;
+	ports[1] = 8081;
+	for (int i = 0; i < number_of_ports; i++)
+	{
+		if ((server_fd = init_webserv_socket(&sock_struct[i], ports[i])) == -1)
+		{
+			std::cerr << "set_sock_struct error" << std::endl;
+			return (1);
+		}
+		vec_server_fds.push_back(server_fd);
+	}
+	connections(vec_server_fds);
+
+	free(ports);
+	free(sock_structs);
 	(void)env;
 	return (0);
 }
-
 		/*char 		**tab = NULL;
 		tab = (char **)malloc(sizeof(char *) * 3);
 		tab[0] = 0;

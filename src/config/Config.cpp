@@ -39,6 +39,7 @@ void     Config::parse(const char *conf_file)
 	setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
     _ports.push_back(8080);
     _ports.push_back(8081);
+    _ip_address = "127.0.0.1";
 }
 
 std::vector<int>& Config::getServerFds(void)

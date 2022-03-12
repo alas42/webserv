@@ -29,7 +29,7 @@ Server & Server::operator=(const Server & other)
 {
 		if (this != &other)
 		{
-		this->_config = other._config;
+			this->_config = other._config;
 		}
 		return (*this);
 }
@@ -41,84 +41,54 @@ void	Server::config(char * conf_file)
 
 /*
 ** Setting up listening sockets based on configuration
-** Config will tell where to listen
+** this->_config will tell where to listen
 */
 int	Server::setup(void)
 {
-	/*
-	** We will get the number of ports from config file
-	*/
-	std::vector<int> ports = this->_config.getPorts();
-	sockaddr_in	sock_structs;
-	int	server_fd, port_number, yes = 1;
+	std::vector<int>	ports = this->_config.getPorts();
+	sockaddr_in			sock_structs;
+	int					server_fd, port_number, yes = 1;
+	size_t				ports_size = ports.size();
 
-	for (size_t i = 0; i < ports.size(); i++)
+	for (size_t i = 0; i < ports_size; i++)
 	{
 		port_number = ports[i];
 		server_fd = -1;
 
-		/*
-		** Returns a socket descriptor (endpoint)
-		** only the protocol is specified (not yet the IP and PORT)
-		** A socket_descriptor represents the socket but is not a socket in itself (it is a binary that acts as an index to the socket)
-		*/
-		std::cout << port_number << std::endl;
 		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
 		{
 			std::cerr << "socket error" << std::endl;
 			return (1);
 		}
 
-		/*
-		** Allows the application to reuse local address when the server restarts (CTRL-C + ./webserv) before wait time expires
-		*/
 		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
 		{
-			printf("%s\n", strerror(errno));
 			std::cerr << "setsockopt error" << std::endl;
 			return (1);
 		}
-		/*
-		** Set socket to be non blocking. All the sockets for incoming connections will be also nonblocking
-		*/
-		/*
-		** MAYBE we can't use this function
-		*/
+
 		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0)
 		{
-			printf("%s\n", strerror(errno));
 			std::cerr << "ioctl error" << std::endl;
 			return (1);
 		}
 
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(port_number);
-		sock_structs.sin_addr.s_addr = inet_addr("127.0.0.1");
+		sock_structs.sin_addr.s_addr = inet_addr(this->_config.getIpAddress().c_str());
 
-		/*
-		** Gets a unique name for the socket
-		** bind() assigns the address specified by the second argument to the socket referred to by the file descriptor sever_fd
-		** it is here that the fd will be assigned an IP and PORT that he will afterwards listen to
-		*/
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 		{
-			printf("%s\n", strerror(errno));
 			std::cerr << "bind error" << std::endl;
 			return (1);
 		}
 
-		/*
-		** Allows the server to accept incoming client connections
-		** listen() marks the socket referred by server_fd as a passive socket that will be used to accept incoming connection with accept
-		*/
 		if (listen(server_fd, 42) < 0) 
-		{ 
-			printf("%s\n", strerror(errno));
+		{
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
 		this->_config.getServerFds().push_back(server_fd);
-		std::cout << "Listening socket i with fd =  " << server_fd << std::endl;
 	}
 	return (0);
 }

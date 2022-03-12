@@ -13,7 +13,7 @@ bool	isServer(std::vector<std::string> confOut) {
 	return ret;
 }
 
-void	setEnv(std::vector<std::vector<std::string>> confOut) {
+void	setEnv(std::vector<std::vector<std::string> > confOut) {
 
 	// std::vector<std::vector<std::string>>::iterator itVector = confOut.begin();
 
@@ -24,7 +24,7 @@ void	setEnv(std::vector<std::vector<std::string>> confOut) {
 	// 						"REQUEST_URI", "REDIRECT_STATUS", "SCRIPT_FILENAME"};
 
 
-	for(std::vector<std::vector<std::string>>::iterator itVector = confOut.begin(); itVector != confOut.end(); itVector++) {
+	for(std::vector<std::vector<std::string> >::iterator itVector = confOut.begin(); itVector != confOut.end(); itVector++) {
 		for (int i = 0; i != 5 ; i++) {
 			if (itVector.base()->begin()->find(listEnv[i]) != std::string::npos)
 			{
@@ -91,7 +91,7 @@ void	parceToEnv(const char *conf) {
 
 	std::ifstream nginxConf(conf);
 	std::string line = "test";
-	std::vector<std::vector<std::string>> confOut;
+	std::vector<std::vector<std::string> > confOut;
 	std::vector<std::string> tmp;
 
 	if (nginxConf.is_open()) {

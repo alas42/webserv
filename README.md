@@ -87,3 +87,5 @@ http://didier.deleglise.free.fr/web_dyn/cgi/cgi.htm
 ** can we listen to multiple ports ? yes, theorically we can have multiplt "server_fds"
 ** and set the appropriate fd in fds[n].fd to the good one after an accept
 */
+https://stackoverflow.com/questions/15560336/listen-to-multiple-ports-from-one-server
+https://stackoverflow.com/questions/34447856/poll-and-read-resource-temporarily-unavailable

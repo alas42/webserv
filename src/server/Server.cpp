@@ -15,8 +15,9 @@
 /*
 ** No, you can not use a single socket for multiple connections -> stackoverflow
 */
-Server::Server(void): _config(), _timeout(0.5 * 60 * 1000)
-{}
+Server::Server(void): _config(), _timeout(2 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+{
+}
 
 Server::~Server(void)
 {}
@@ -40,35 +41,21 @@ void	Server::config(char * conf_file)
 
 /*
 ** Setting up listening sockets based on configuration
+** Config will tell where to listen
 */
 int	Server::setup(void)
 {
 	/*
 	** We will get the number of ports from config file
 	*/
-	int number_of_ports = 2;
-	int	server_fd;
+	std::vector<int> ports = this->_config.getPorts();
+	sockaddr_in	sock_structs;
+	int	server_fd, port_number, yes = 1;
 
-	/*
-	** Cannot use new with c struct sock_structs
-	*/
-	int			*	ports = (int *)malloc(sizeof(int) * number_of_ports);
-	ports[0] = 8080;
-	ports[1] = 8081;
-	sockaddr_in *	sock_structs = (sockaddr_in *)malloc(sizeof(sockaddr_in) * number_of_ports);
-
-	if (!sock_structs || !ports)
+	for (size_t i = 0; i < ports.size(); i++)
 	{
-		std::cerr << "malloc sock_struct or int error" << std::endl;
-		return (1);
-	}
-
-	for(int i = 0; i < number_of_ports; i++)
-	{
-		int port_number = ports[i];
-
+		port_number = ports[i];
 		server_fd = -1;
-		int	yes = 1, on = 1;
 
 		/*
 		** Returns a socket descriptor (endpoint)
@@ -97,24 +84,23 @@ int	Server::setup(void)
 		/*
 		** MAYBE we can't use this function
 		*/
-		if (ioctl(server_fd, FIONBIO, (char *)&on) < 0)
+		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0)
 		{
 			printf("%s\n", strerror(errno));
 			std::cerr << "ioctl error" << std::endl;
 			return (1);
 		}
 
-		memset(&sock_structs[i], 0, sizeof(sockaddr_in));
-		sock_structs[i].sin_family = AF_INET;
-		sock_structs[i].sin_port = htons(port_number);
-		sock_structs[i].sin_addr.s_addr = inet_addr("127.0.0.1");
+		sock_structs.sin_family = AF_INET;
+		sock_structs.sin_port = htons(port_number);
+		sock_structs.sin_addr.s_addr = inet_addr("127.0.0.1");
 
 		/*
 		** Gets a unique name for the socket
 		** bind() assigns the address specified by the second argument to the socket referred to by the file descriptor sever_fd
 		** it is here that the fd will be assigned an IP and PORT that he will afterwards listen to
 		*/
-		if (bind(server_fd, (sockaddr *)&sock_structs[i], sizeof(sockaddr_in)) < 0)
+		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 		{
 			printf("%s\n", strerror(errno));
 			std::cerr << "bind error" << std::endl;
@@ -132,123 +118,107 @@ int	Server::setup(void)
 			return (1);
 		}
 		this->_config.getServerFds().push_back(server_fd);
+		std::cout << "Listening socket i with fd =  " << server_fd << std::endl;
 	}
 	return (0);
 }
 
-/*
-** basically poll
-*/
 void	Server::run(void)
 {
-	int 			new_socket = -1;
-  	struct pollfd	fds[200];
+	int 			new_socket = -1, rc = 0, len;
+	struct pollfd	listening_fd, client_fd;
 	char   			buffer[500];
-	int				rc = 0, nfds = (int)this->_config.getServerFds().size(), current_size = 0, close_connection, end = FALSE, len, i, j, compress_array = FALSE;
+	bool 			end = FALSE;
 
-    /*
-	** Using structure from sys/poll library
-	*/
- 	memset(fds, 0, sizeof(fds));
 	for(size_t i = 0; i < this->_config.getServerFds().size(); i++)
 	{
-		fds[i].fd = this->_config.getServerFds()[i];
-		fds[i].events = POLLIN;
+		listening_fd.fd = this->_config.getServerFds()[i];
+		listening_fd.events = POLLIN;
+		this->_pollfds.push_back(listening_fd);
 	}
-
 	do
 	{
-		rc = poll(fds, nfds, this->_timeout);
-		if (rc < 0)
+		rc = poll(&this->_pollfds[0], (unsigned int)this->_pollfds.size(), this->_timeout);
+		if (rc <= 0)
 		{
-			std::cerr << "poll error " << std::endl;
-			break ;
-		}
-		else if(rc == 0)
-		{
-			std::cerr << "poll timeout " << std::endl;
-			break ;
-		}
-		current_size = nfds;
-		for (int i = 0; i < current_size; i++)
-		{
-			if (fds[i].revents == 0)
-				continue ;
-			if (fds[i].revents != POLLIN)
-			{
-				std::cerr << "poll unexpected result " << std::endl;
-				end = TRUE;
-				break ;
-			}
-			if (fds[i].fd == this->_config.getServerFds()[0] || fds[i].fd == this->_config.getServerFds()[1])
-			{
-				do
-				{
-					new_socket = accept(fds[i].fd, NULL, NULL);
-					if (new_socket < 0)
-					{
-						if (errno != EWOULDBLOCK)
-						{
-							perror("  accept() failed");
-							end = TRUE;
-						}
-						break ;
-					}
-					printf("  New incoming connection - %d\n", new_socket);
-					fds[nfds].fd = new_socket;
-					fds[nfds].events = POLLIN;
-					nfds++;
-				} while (new_socket != -1);
-			}
+			if (rc == 0)
+				std::cerr << "poll timeout " << std::endl;
 			else
-			{
-				std::cout << "  Descriptor " << fds[i].fd << " is readable" << std::endl;
-				close_connection = FALSE;
-
-				rc = recv(fds[i].fd, buffer, sizeof(buffer), 0);
-				if (rc < 0)
-					break;
-
-				if (rc == 0)
-				{
-					printf("  Connection closed\n");
-					close_connection = TRUE;
-				}
-				len = rc;
-				printf("  %d bytes received\n", len);
-				write(1, buffer,rc);
-				if (close_connection)
-				{
-					close(fds[i].fd);
-					fds[i].fd = -1;
-					compress_array = TRUE;
-				}
-			}
+				std::cerr << "poll error" << std::endl;
+			break ;
 		}
 
-		if (compress_array)
+		std::vector<pollfd>::iterator it = this->_pollfds.begin();
+		std::vector<pollfd>::iterator ite = this->_pollfds.end();
+		for (; it != ite; it++)
 		{
-			compress_array = FALSE;
-			for (i = 0; i < nfds; i++)
+			if (it->revents == 0)
+				continue ;
+
+			printf("\n*************************************************\nfd=%d; events: %s%s%s\n", it->fd,
+							(it->revents & POLLIN)  ? "POLLIN "  : "",
+							(it->revents & POLLHUP) ? "POLLHUP " : "",
+							(it->revents & POLLERR) ? "POLLERR " : "");
+
+			/* Listening sockets */
+			if (it->revents & POLLIN)
 			{
-				if (fds[i].fd == -1)
+				std::vector<int>::iterator find = std::find(this->_config.getServerFds().begin(), this->_config.getServerFds().end(), it->fd);
+				if (find != this->_config.getServerFds().end())
 				{
-					for(j = i; j < nfds; j++)
+					printf("  Listening socket %d is readable\n", *find);
+					do
 					{
-						fds[j].fd = fds[j + 1].fd;
-					}
-					i--;
-					nfds--;
+						new_socket = accept(*find, NULL, NULL);
+						if (new_socket < 0)
+						{
+							if (errno != EWOULDBLOCK)
+							{
+								perror("  accept() failed");
+								end = TRUE;
+							}
+							break ;
+						}
+						printf("  New incoming connection - %d\n", new_socket);
+						client_fd.fd = new_socket;
+						client_fd.events = POLLIN;
+						this->_pollfds.push_back(client_fd);
+					} while (new_socket != -1);
 				}
+				else /* Client sockets */
+				{
+					std::cout << "  Descriptor " << it->fd << " is readable" << std::endl;
+					strcpy(buffer, "");
+					rc = recv(it->fd, buffer, sizeof(buffer), 0);
+					if (rc <= 0)
+					{
+						std::cout << "Descriptor " << it->fd << " closed connection" << std::cout;
+						close(it->fd);
+						this->_pollfds.erase(it);
+					}
+					else
+					{
+						len = rc;
+						printf("  %d bytes received\n", len);
+						//write(1, buffer, rc);
+						write(1, "\n\n", 2);
+						char arr[200]="HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+						if (send(it->fd, arr, sizeof(arr), 0) < 0)
+						{
+							perror("send < 0");
+							break ;
+						}
+					}
+				}
+			}
+			else if (it->revents & POLLERR)
+			{
+				close(it->fd);
+				this->_pollfds.erase(it);
 			}
 		}
 	}	while (end == FALSE);
-
-	for (i = 0; i < nfds; i++)
-	{
-		if(fds[i].fd >= 0)
-			close(fds[i].fd);
-	}
+	std::cout << "Quitting..." << std::endl;
 }
 
 /*
@@ -256,5 +226,7 @@ void	Server::run(void)
 */
 void	Server::clean(void)
 {
-
+	for (size_t i = 0; i < this->_pollfds.size(); i++)
+		close(this->_pollfds[i].fd);
+	this->_pollfds.clear();
 }

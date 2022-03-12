@@ -4,6 +4,7 @@
 # include <iostream>
 # include <string>
 # include "../config/Config.hpp"
+#include <sys/poll.h>
 
 class Server
 {
@@ -20,6 +21,7 @@ class Server
 	private:
 		Config 	_config;
 		int		_timeout;
+		std::vector<pollfd> _pollfds;
 };
 
 #endif

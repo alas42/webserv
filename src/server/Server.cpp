@@ -124,24 +124,65 @@ bool	Server::accept_connections(int server_fd)
 		printf("  New incoming connection - %d\n", new_socket);
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
-		this->_pollfds.push_back(client_fd); //Creation of new Client (which will have Requests and which we will send Responses)
+		this->_pollfds.push_back(client_fd); //Creation of new Client (which will have Requests and to which we will send Responses)
 	} while (new_socket != -1);
 	return (false);
 }
 
-void	Server::print_revents(std::vector<pollfd>::iterator it)
+void	Server::close_connection(std::vector<pollfd>::iterator	it)
 {
-	printf("\n*************************************************\nfd=%d->revents: %s%s%s\n", it->fd,
-		(it->revents & POLLIN)  ? "POLLIN "  : "",
-		(it->revents & POLLHUP) ? "POLLHUP " : "",
-		(it->revents & POLLERR) ? "POLLERR " : "");
+	close(it->fd);
+	this->_pollfds.erase(it);
+}
+
+bool	Server::receiving(std::vector<pollfd>::iterator	it)
+{
+	int 			rc = 0, len = 0;
+	char   			buffer[1024];
+
+	std::cout << "  Descriptor " << it->fd << " is readable" << std::endl;
+	strcpy(buffer, "");
+	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	if (rc == -1) //"If no messages are available at the socket and O_NONBLOCK is set on the socket's file descriptor, recv() shall fail" -> manual recv
+	{
+		std::cout << "recv failed because socket is non blockable" << std::endl;
+	}
+	else if (rc == 0) //"If no messages are available to be received and the peer has performed an orderly shutdown, recv() shall return 0" -> manual recv
+	{
+		std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
+		this->close_connection(it);
+		return (1);
+	}
+	else
+	{
+		len = rc;
+		printf("  %d bytes received\n\n", len);
+	}
+	return (0);
+}
+
+bool	Server::sending(std::vector<pollfd>::iterator	it)
+{
+	char arr[200]="HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+	if (send(it->fd, arr, sizeof(arr), 0) < 0)
+	{
+		perror("send error");
+		return (1);
+	}
+	return (0);
+}
+
+void	Server::print_revents(pollfd fd)
+{
+	printf("\n*************************************************\nfd=%d->revents: %s%s%s\n", fd.fd,
+		(fd.revents & POLLIN)  ? "POLLIN "  : "",
+		(fd.revents & POLLHUP) ? "POLLHUP " : "",
+		(fd.revents & POLLERR) ? "POLLERR " : "");
 }
 
 bool	Server::checking_revents(void)
 {
-	int 			rc = 0, len;
-	char   			buffer[1024];
-	bool			end = false;
+	bool							end = false; //should be global or static singleton because signals should interrupt the server
 	std::vector<int>::iterator		find = this->_config.getServerFds().end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
@@ -160,39 +201,20 @@ bool	Server::checking_revents(void)
 			{
 				end = this->accept_connections(*find);
 			}
-			else /* Creation of new Request */
+			else
 			{
-				std::cout << "  Descriptor " << it->fd << " is readable" << std::endl;
-				strcpy(buffer, "");
-				rc = recv(it->fd, buffer, sizeof(buffer), 0);
-				if (rc == -1) //"If no messages are available at the socket and O_NONBLOCK is set on the socket's file descriptor, recv() shall fail" -> manual recv
-				{
-					std::cout << "recv failed because socket is non blockable" << std::endl;
-				}
-				else if (rc == 0) //"If no messages are available to be received and the peer has performed an orderly shutdown, recv() shall return 0" -> manual recv
-				{
-					std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
-					close(it->fd);
-					this->_pollfds.erase(it);
-				}
-				else
-				{
-					len = rc;
-					printf("  %d bytes received\n", len);
-					write(1, "\n\n", 2);
-					char arr[200]="HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
-					if (send(it->fd, arr, sizeof(arr), 0) < 0)
-					{
-						perror("send < 0");
-						break ;
-					}
-				}
+				if (this->receiving(it))
+					break;
+				/* Creation of new Request*/
+				/* Execute CGI */ 
+				/* Creation of Response*/
+				if (this->sending(it))
+					break;
 			}
 		}
 		else if (it->revents & POLLERR)
 		{
-			close(it->fd);
-			this->_pollfds.erase(it);
+			this->close_connection(it);
 		}
 	}
 	return (end);

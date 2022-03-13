@@ -22,13 +22,17 @@ class Server
 		void	clean(void);
 		int		listen_poll(void);
 		bool 	checking_revents(void);
-		void	print_revents(std::vector<pollfd>::iterator it);
+		void	print_revents(pollfd fd);
+		bool	receiving(std::vector<pollfd>::iterator	it);
+		bool	sending(std::vector<pollfd>::iterator	it);
+		bool	accept_connections(int server_fd);
+		void	close_connection(std::vector<pollfd>::iterator	it);
 
 	private:
 		Config 						_config;
 		int							_timeout;
 		std::vector<struct pollfd>	_pollfds;
-		std::vector<Client
+		std::vector<Client>			_clients;
 };
 
 #endif

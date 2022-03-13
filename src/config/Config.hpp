@@ -13,8 +13,8 @@ class Config
 		~Config(void);
 		Config(Config const & other);
 		Config & operator=(Config const & other);
-        void     parse(const char *conf_file);
-        
+		void	parse(const char *conf_file);
+
 		std::vector<int> 	&	getServerFds(void);
 		std::vector<int>	&	getPorts(void);
 		std::string			&	getIpAddress(void);

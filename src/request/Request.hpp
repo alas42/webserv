@@ -16,7 +16,7 @@ class Request
 		Request & operator=(const Request & other);
 
 	private:
-
+		std::string _request;
 };
 
 #endif

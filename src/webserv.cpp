@@ -15,6 +15,8 @@
 #include "./config/Config.hpp"
 #include "./launch/Launch.hpp"
 #include "./request/Request.hpp"
+#include "./response/Response.hpp"
+#include "./client/Client.hpp"
 //#include "Parse_config.hpp"
 //#include "Parse_connections"
 
@@ -42,6 +44,3 @@ int		main(int ac, char **av)
 	}
 	return (0);
 }
-/*
-ft_fork(path, tab, env);
-*/

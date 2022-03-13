@@ -20,14 +20,14 @@ Exec::~Exec(void)
 
 Exec::Exec(const Exec & other)
 {
-    *this = other;
+	*this = other;
 }
 
 Exec & Exec::operator=(const Exec & other)
 {
-    if (this != &other)
-    {
+	if (this != &other)
+	{
 
-    }
-    return (*this);
+	}
+	return (*this);
 }

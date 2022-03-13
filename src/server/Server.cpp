@@ -12,10 +12,7 @@
 
 #include "Server.hpp"
 
-/*
-** No, you can not use a single socket for multiple connections -> stackoverflow
-*/
-Server::Server(void): _config(), _timeout(2 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(0.5 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {
 }
 
@@ -39,12 +36,9 @@ void	Server::config(char * conf_file)
 	_config.parse(conf_file);
 }
 
-/*
-** Setting up listening sockets based on configuration
-** this->_config will tell where to listen
-*/
 int	Server::setup(void)
 {
+	struct pollfd		listening_fd;
 	std::vector<int>	ports = this->_config.getPorts();
 	sockaddr_in			sock_structs;
 	int					server_fd, port_number, yes = 1;
@@ -89,114 +83,177 @@ int	Server::setup(void)
 			return (1);
 		}
 		this->_config.getServerFds().push_back(server_fd);
+		listening_fd.fd = server_fd;
+		listening_fd.events = POLLIN;
+		this->_pollfds.push_back(listening_fd);
+	}
+	return (0);
+}
+
+void	Server::close_connection(std::vector<pollfd>::iterator	it)
+{
+	close(it->fd);
+	this->_pollfds.erase(it);
+}
+
+bool	Server::accept_connections(int server_fd)
+{
+	struct pollfd	client_fd;
+	int				new_socket = -1;
+
+	do
+	{
+		new_socket = accept(server_fd, NULL, NULL);
+		if (new_socket < 0)
+		{
+			if (errno != EWOULDBLOCK)
+			{
+				perror("  accept() failed");
+				return (true);
+			}
+			break ;
+		}
+		printf("  New incoming connection - %d\n", new_socket);
+		client_fd.fd = new_socket;
+		client_fd.events = POLLIN;
+		this->_pollfds.push_back(client_fd); //Creation of new Client (which will have Requests and to which we will send Responses)
+	} while (new_socket != -1);
+	return (false);
+}
+
+bool	Server::sending(std::vector<pollfd>::iterator	it)
+{
+	char arr[200] = "HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+
+	if (send(it->fd, arr, sizeof(arr), 0) < 0)
+	{
+		perror("send error");
+		return (1);
+	}
+	return (0);
+}
+
+bool	Server::receiving(std::vector<pollfd>::iterator	it)
+{
+	int 			rc = 0;
+	char   			buffer[1024];
+
+	strcpy(buffer, "");
+	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	if (rc == -1)
+	{
+		std::cout << "recv failed because socket is non blockable" << std::endl;
+		return (0);
+	}
+	else if (rc == 0)
+	{
+		std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
+		this->close_connection(it);
+		return (1);
+	}
+	printf("  %d bytes received\n\n", rc);
+	return (0);
+}
+
+void	Server::print_revents(pollfd fd)
+{
+	printf("\n*************************************************\nfd=%d->revents: %s%s%s\n", fd.fd,
+		(fd.revents & POLLIN)  ? "POLLIN "  : "",
+		(fd.revents & POLLHUP) ? "POLLHUP " : "",
+		(fd.revents & POLLERR) ? "POLLERR " : "");
+}
+
+bool	Server::checking_revents(void)
+{
+	bool							end = false; //should be global or static singleton because signals should interrupt the server
+	std::vector<int>::iterator		find = this->_config.getServerFds().end();
+	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
+	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
+
+	for (; it != ite; it++)
+	{
+		if (it->revents == 0)
+			continue ;
+
+		this->print_revents(*it);
+
+		if (it->revents & POLLIN)
+		{
+			find = std::find(this->_config.getServerFds().begin(), this->_config.getServerFds().end(), it->fd);
+			if (find != this->_config.getServerFds().end())
+			{
+				end = this->accept_connections(*find);
+			}
+			else
+			{
+				if (this->receiving(it))
+					break;
+				/* Creation of new Request*/
+				/* Here ft_fork([...])*/
+				/* Execute CGI */ 
+				/* Creation of Response*/
+				if (this->sending(it))
+					break;
+			}
+		}
+		else if (it->revents & POLLERR)
+		{
+			this->close_connection(it);
+		}
+	}
+	return (end);
+}
+
+
+int	Server::listen_poll(void)
+{
+	int 			rc = 0;
+	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
+
+	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
+	if (rc <= 0)
+	{
+		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;
+		return (1);
 	}
 	return (0);
 }
 
 void	Server::run(void)
 {
-	int 			new_socket = -1, rc = 0, len;
-	struct pollfd	listening_fd, client_fd;
-	char   			buffer[500];
-	bool 			end = FALSE;
+	bool	end = false; //should be global or static singleton because signals should interrupt the server
 
-	for(size_t i = 0; i < this->_config.getServerFds().size(); i++)
+	while (end == false)
 	{
-		listening_fd.fd = this->_config.getServerFds()[i];
-		listening_fd.events = POLLIN;
-		this->_pollfds.push_back(listening_fd);
-	}
-	do
-	{
-		rc = poll(&this->_pollfds[0], (unsigned int)this->_pollfds.size(), this->_timeout);
-		if (rc <= 0)
-		{
-			if (rc == 0)
-				std::cerr << "poll timeout " << std::endl;
-			else
-				std::cerr << "poll error" << std::endl;
+		if (this->listen_poll())
 			break ;
-		}
-
-		std::vector<pollfd>::iterator it = this->_pollfds.begin();
-		std::vector<pollfd>::iterator ite = this->_pollfds.end();
-		for (; it != ite; it++)
-		{
-			if (it->revents == 0)
-				continue ;
-
-			printf("\n*************************************************\nfd=%d; events: %s%s%s\n", it->fd,
-							(it->revents & POLLIN)  ? "POLLIN "  : "",
-							(it->revents & POLLHUP) ? "POLLHUP " : "",
-							(it->revents & POLLERR) ? "POLLERR " : "");
-
-			/* Listening sockets */
-			if (it->revents & POLLIN)
-			{
-				std::vector<int>::iterator find = std::find(this->_config.getServerFds().begin(), this->_config.getServerFds().end(), it->fd);
-				if (find != this->_config.getServerFds().end())
-				{
-					printf("  Listening socket %d is readable\n", *find);
-					do
-					{
-						new_socket = accept(*find, NULL, NULL);
-						if (new_socket < 0)
-						{
-							if (errno != EWOULDBLOCK)
-							{
-								perror("  accept() failed");
-								end = TRUE;
-							}
-							break ;
-						}
-						printf("  New incoming connection - %d\n", new_socket);
-						client_fd.fd = new_socket;
-						client_fd.events = POLLIN;
-						this->_pollfds.push_back(client_fd);
-					} while (new_socket != -1);
-				}
-				else /* Client sockets */
-				{
-					std::cout << "  Descriptor " << it->fd << " is readable" << std::endl;
-					strcpy(buffer, "");
-					rc = recv(it->fd, buffer, sizeof(buffer), 0);
-					if (rc <= 0)
-					{
-						std::cout << "Descriptor " << it->fd << " closed connection" << std::cout;
-						close(it->fd);
-						this->_pollfds.erase(it);
-					}
-					else
-					{
-						len = rc;
-						printf("  %d bytes received\n", len);
-						//write(1, buffer, rc);
-						write(1, "\n\n", 2);
-						char arr[200]="HTTP/1.1 200 OK\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
-						if (send(it->fd, arr, sizeof(arr), 0) < 0)
-						{
-							perror("send < 0");
-							break ;
-						}
-					}
-				}
-			}
-			else if (it->revents & POLLERR)
-			{
-				close(it->fd);
-				this->_pollfds.erase(it);
-			}
-		}
-	}	while (end == FALSE);
+		end = this->checking_revents();
+	}
 	std::cout << "Quitting..." << std::endl;
 }
 
-/*
-** close, delete, destructors called
-*/
 void	Server::clean(void)
 {
 	for (size_t i = 0; i < this->_pollfds.size(); i++)
 		close(this->_pollfds[i].fd);
 	this->_pollfds.clear();
 }
+
+/*
+**	Simplification of code :
+**
+**	listen to fds
+**	if (event is on server side)
+**		accept->new Client
+**	if (event is on client side)
+**	{
+**		recv -> new Request
+**		fork(process cgi);
+**		get hold on answer;
+**		send (new Response(info to transmit))
+**	}
+*/
+
+/*
+** POLLOUT usage : https://stackoverflow.com/questions/12170037/when-to-use-the-pollout-event-of-the-poll-c-function
+*/

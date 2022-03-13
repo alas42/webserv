@@ -90,17 +90,10 @@ int	Server::setup(void)
 	return (0);
 }
 
-int	Server::listen_poll(void)
+void	Server::close_connection(std::vector<pollfd>::iterator	it)
 {
-	int rc = 0;
-
-	rc = poll(&this->_pollfds[0], (unsigned int)this->_pollfds.size(), this->_timeout);
-	if (rc <= 0)
-	{
-		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;
-		return (1);
-	}
-	return (0);
+	close(it->fd);
+	this->_pollfds.erase(it);
 }
 
 bool	Server::accept_connections(int server_fd)
@@ -108,7 +101,6 @@ bool	Server::accept_connections(int server_fd)
 	struct pollfd	client_fd;
 	int				new_socket = -1;
 
-	printf("  Listening socket %d is readable\n", server_fd);
 	do
 	{
 		new_socket = accept(server_fd, NULL, NULL);
@@ -129,46 +121,37 @@ bool	Server::accept_connections(int server_fd)
 	return (false);
 }
 
-void	Server::close_connection(std::vector<pollfd>::iterator	it)
-{
-	close(it->fd);
-	this->_pollfds.erase(it);
-}
-
-bool	Server::receiving(std::vector<pollfd>::iterator	it)
-{
-	int 			rc = 0, len = 0;
-	char   			buffer[1024];
-
-	std::cout << "  Descriptor " << it->fd << " is readable" << std::endl;
-	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), 0);
-	if (rc == -1) //"If no messages are available at the socket and O_NONBLOCK is set on the socket's file descriptor, recv() shall fail" -> manual recv
-	{
-		std::cout << "recv failed because socket is non blockable" << std::endl;
-	}
-	else if (rc == 0) //"If no messages are available to be received and the peer has performed an orderly shutdown, recv() shall return 0" -> manual recv
-	{
-		std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
-		this->close_connection(it);
-		return (1);
-	}
-	else
-	{
-		len = rc;
-		printf("  %d bytes received\n\n", len);
-	}
-	return (0);
-}
-
 bool	Server::sending(std::vector<pollfd>::iterator	it)
 {
-	char arr[200]="HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+	char arr[200] = "HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+
 	if (send(it->fd, arr, sizeof(arr), 0) < 0)
 	{
 		perror("send error");
 		return (1);
 	}
+	return (0);
+}
+
+bool	Server::receiving(std::vector<pollfd>::iterator	it)
+{
+	int 			rc = 0;
+	char   			buffer[1024];
+
+	strcpy(buffer, "");
+	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	if (rc == -1)
+	{
+		std::cout << "recv failed because socket is non blockable" << std::endl;
+		return (0);
+	}
+	else if (rc == 0)
+	{
+		std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
+		this->close_connection(it);
+		return (1);
+	}
+	printf("  %d bytes received\n\n", rc);
 	return (0);
 }
 
@@ -206,6 +189,7 @@ bool	Server::checking_revents(void)
 				if (this->receiving(it))
 					break;
 				/* Creation of new Request*/
+				/* Here ft_fork([...])*/
 				/* Execute CGI */ 
 				/* Creation of Response*/
 				if (this->sending(it))
@@ -218,6 +202,21 @@ bool	Server::checking_revents(void)
 		}
 	}
 	return (end);
+}
+
+
+int	Server::listen_poll(void)
+{
+	int 			rc = 0;
+	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
+
+	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
+	if (rc <= 0)
+	{
+		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;
+		return (1);
+	}
+	return (0);
 }
 
 void	Server::run(void)
@@ -240,13 +239,12 @@ void	Server::clean(void)
 	this->_pollfds.clear();
 }
 
-
 /*
 **	Simplification of code :
 **
 **	listen to fds
 **	if (event is on server side)
-**		accept->new Client)
+**		accept->new Client
 **	if (event is on client side)
 **	{
 **		recv -> new Request

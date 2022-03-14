@@ -123,20 +123,18 @@ bool	Server::accept_connections(int server_fd)
 
 bool	Server::sending(std::vector<pollfd>::iterator	it)
 {
-	char arr[200] = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Type:text/html\r\nContent-Length: 16\n\n<h1>testing</h1>";
-
-	if (send(it->fd, arr, sizeof(arr), 0) < 0)
+  	char* resp_data = strdup("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n"
+                    "Content-Length: 35\r\n\r\n"
+                    "<h1>Testing</h1><br>response_body\r\n");
+	if (send(it->fd, resp_data, strlen(resp_data), 0) < 0)
 	{
 		perror("send error");
 		return (1);
 	}
+	free(resp_data);
 	return (0);
 }
 
-/*
-** Google Chrome is shady (return 0 even when we demand that the connection should be kept alive) - A new socket has to be creates every time
-** On Firefox, it works well, the same socket can be reused multiple times
-*/
 int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	int 			rc = -1;

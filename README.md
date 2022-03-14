@@ -140,3 +140,9 @@ Functions used and explanations :
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
+
+SO_REUSEADDR && SO_REUSEPORT
+https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
+
+HTTP 1.1 : RFC 7230 to 7237
+https://datatracker.ietf.org/doc/html/rfc7230#section-1

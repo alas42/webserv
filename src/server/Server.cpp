@@ -123,7 +123,7 @@ bool	Server::accept_connections(int server_fd)
 
 bool	Server::sending(std::vector<pollfd>::iterator	it)
 {
-	char arr[200] = "HTTP/1.1 200 OK\nConnection: Keep-Alive\nContent-Type:text/html\nContent-Length: 16\n\n<h1>testing</h1>";
+	char arr[200] = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Type:text/html\r\nContent-Length: 16\n\n<h1>testing</h1>";
 
 	if (send(it->fd, arr, sizeof(arr), 0) < 0)
 	{
@@ -133,25 +133,29 @@ bool	Server::sending(std::vector<pollfd>::iterator	it)
 	return (0);
 }
 
-bool	Server::receiving(std::vector<pollfd>::iterator	it)
+/*
+** Google Chrome is shady (return 0 even when we demand that the connection should be kept alive) - A new socket has to be creates every time
+** On Firefox, it works well, the same socket can be reused multiple times
+*/
+int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
-	int 			rc = 0;
+	int 			rc = -1;
 	char   			buffer[1024];
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	rc = recv(it->fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
 		std::cout << "recv failed because socket is non blockable" << std::endl;
-		return (0);
+		return (1);
 	}
 	else if (rc == 0)
 	{
-		std::cout << "Descriptor " << it->fd << " closed connection" << std::endl;
+		std::cout << "Descriptor " << it->fd << " maybe closed connection" << std::endl;
 		this->close_connection(it);
 		return (1);
 	}
-	printf("  %d bytes received\n\n", rc);
 	return (0);
 }
 

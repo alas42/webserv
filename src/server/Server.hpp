@@ -8,7 +8,7 @@
 # include "../client/Client.hpp"
 # include "../request/Request.hpp"
 # include "../response/Response.hpp"
-
+# include <algorithm>
 class Server
 {
 	public:
@@ -23,7 +23,7 @@ class Server
 		int		listen_poll(void);
 		bool 	checking_revents(void);
 		void	print_revents(pollfd fd);
-		bool	receiving(std::vector<pollfd>::iterator	it);
+		int	receiving(std::vector<pollfd>::iterator	it);
 		bool	sending(std::vector<pollfd>::iterator	it);
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);

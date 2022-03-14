@@ -15,12 +15,10 @@ class Config
 		Config & operator=(Config const & other);
 		void	parse(const char *conf_file);
 
-		std::vector<int> 	&	getServerFds(void);
 		std::vector<int>	&	getPorts(void);
 		std::string			&	getIpAddress(void);
 
 	private:
-		std::vector<int>	_server_fds;
 		std::vector<int>	_ports;
 		std::string			_ip_address;
 	

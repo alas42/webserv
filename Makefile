@@ -6,15 +6,12 @@ RM		=	rm -f
 
 CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
-SRCS =	src/parsing_client_header.cpp \
-	src/webserv.cpp \
- 	src/process.cpp \
+SRCS =	src/webserv.cpp \
 	src/parser.cpp \
 	src/config/Config.cpp \
 	src/server/Server.cpp \
 	src/request/Request.cpp \
 	src/execution_requests/Exec.cpp \
-	src/launch/Launch.cpp \
 	src/listen/Listen.cpp \
 	src/client/Client.cpp
 

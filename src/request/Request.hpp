@@ -3,6 +3,16 @@
 
 # include <iostream>
 # include <string>
+#include <sys/wait.h>
+# include <sys/types.h>
+# include <sys/stat.h>
+# include <stdlib.h>
+# include <stdio.h>
+# include <unistd.h>
+# include <fcntl.h>
+# include <cstring>
+
+extern char **environ;
 
 /*
 ** FOR HTTP REQUEST WE GET FROM USER
@@ -14,9 +24,20 @@ class Request
 		~Request(void);
 		Request(const Request & other);
 		Request & operator=(const Request & other);
+		Request(const char * request_str);
+		void parse_output_client(std::string & output);
+		void parse_server_port(std::string & output, std::size_t & pos);
+		void parse_server_protocol(std::string & output, std::size_t & pos);
+		void parse_request_uri(std::string & output, std::size_t & pos);
+		void parse_request_method(std::string & output, std::size_t & pos);
+		void parse_query_string(std::string & request_uri);
+		bool isComplete(void);
+		void execute(void);
 
 	private:
 		std::string _request;
+		std::string _path_to_cgi;
+		bool		_complete;
 };
 
 #endif

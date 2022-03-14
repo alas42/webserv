@@ -23,11 +23,6 @@
 #define TRUE             1
 #define FALSE            0
 
-extern char **environ;
-
-void	ft_fork(std::string path, char **tab, char **env);
-void	ft_execve(std::string path, char **tab, char **env);
 void	parceToEnv(const char *conf);
-void    parse_output_client(std::string & output);
 
 #endif

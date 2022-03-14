@@ -9,6 +9,8 @@
 # include "../request/Request.hpp"
 # include "../response/Response.hpp"
 # include <algorithm>
+# include <map>
+
 class Server
 {
 	public:
@@ -16,14 +18,14 @@ class Server
 		~Server(void);
 		Server(const Server & other);
 		Server & operator=(const Server & other);
-		void	config(char * conf_file);
+		void	config(const char * conf_file);
 		int		setup(void);
 		void	run(void);
 		void	clean(void);
 		int		listen_poll(void);
 		bool 	checking_revents(void);
 		void	print_revents(pollfd fd);
-		int	receiving(std::vector<pollfd>::iterator	it);
+		int		receiving(std::vector<pollfd>::iterator	it);
 		bool	sending(std::vector<pollfd>::iterator	it);
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
@@ -31,8 +33,9 @@ class Server
 	private:
 		Config 						_config;
 		int							_timeout;
+		std::vector<int>			_server_fds;
 		std::vector<struct pollfd>	_pollfds;
-		std::vector<Client>			_clients;
+		std::map<int, Client>		_clients;
 };
 
 #endif

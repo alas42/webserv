@@ -13,13 +13,12 @@
 #include "Server.hpp"
 
 Server::Server(void): _config(), _timeout(0.5 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
-{
-}
+{}
 
 Server::~Server(void)
 {}
 
-Server::Server(const Server & other): _config(other._config)
+Server::Server(const Server & other): _config(other._config), _timeout(other._timeout)
 {}
 
 Server & Server::operator=(const Server & other)
@@ -27,11 +26,12 @@ Server & Server::operator=(const Server & other)
 		if (this != &other)
 		{
 			this->_config = other._config;
+			this->_timeout = other._timeout;
 		}
 		return (*this);
 }
 
-void	Server::config(char * conf_file)
+void	Server::config(const char * conf_file)
 {
 	_config.parse(conf_file);
 }
@@ -41,12 +41,11 @@ int	Server::setup(void)
 	struct pollfd		listening_fd;
 	std::vector<int>	ports = this->_config.getPorts();
 	sockaddr_in			sock_structs;
-	int					server_fd, port_number, yes = 1;
+	int					server_fd, yes = 1;
 	size_t				ports_size = ports.size();
 
 	for (size_t i = 0; i < ports_size; i++)
 	{
-		port_number = ports[i];
 		server_fd = -1;
 
 		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -68,7 +67,7 @@ int	Server::setup(void)
 		}
 
 		sock_structs.sin_family = AF_INET;
-		sock_structs.sin_port = htons(port_number);
+		sock_structs.sin_port = htons(ports[i]);
 		sock_structs.sin_addr.s_addr = inet_addr(this->_config.getIpAddress().c_str());
 
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
@@ -82,10 +81,10 @@ int	Server::setup(void)
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
-		this->_config.getServerFds().push_back(server_fd);
+		this->_server_fds.push_back(server_fd); // contains every file descriptor that our server uses to listen
 		listening_fd.fd = server_fd;
 		listening_fd.events = POLLIN;
-		this->_pollfds.push_back(listening_fd);
+		this->_pollfds.push_back(listening_fd); // contains every poll_file_descriptor that the poll function will check 
 	}
 	return (0);
 }
@@ -93,6 +92,7 @@ int	Server::setup(void)
 void	Server::close_connection(std::vector<pollfd>::iterator	it)
 {
 	close(it->fd);
+	this->_clients.erase(it->fd);
 	this->_pollfds.erase(it);
 }
 
@@ -116,7 +116,9 @@ bool	Server::accept_connections(int server_fd)
 		printf("  New incoming connection - %d\n", new_socket);
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
-		this->_pollfds.push_back(client_fd); //Creation of new Client (which will have Requests and to which we will send Responses)
+		this->_pollfds.push_back(client_fd);
+		std::cout << "Creation of new Client (which will have Requests and to which we will send Responses)" << std::endl;
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
 	} while (new_socket != -1);
 	return (false);
 }
@@ -137,22 +139,26 @@ bool	Server::sending(std::vector<pollfd>::iterator	it)
 
 int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
+	std::map<int, Client>::iterator found;
 	int 			rc = -1;
 	char   			buffer[1024];
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), MSG_DONTWAIT);
+	rc = recv(it->fd, buffer, sizeof(buffer), 0);
 	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
-		std::cout << "recv failed because socket is non blockable" << std::endl;
 		return (1);
 	}
 	else if (rc == 0)
 	{
-		std::cout << "Descriptor " << it->fd << " maybe closed connection" << std::endl;
 		this->close_connection(it);
 		return (1);
+	}
+	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
+	if (found != this->_clients.end())
+	{
+		found->second.createRequest(&buffer[0]); // The Client object creates a Request
 	}
 	return (0);
 }
@@ -168,21 +174,20 @@ void	Server::print_revents(pollfd fd)
 bool	Server::checking_revents(void)
 {
 	bool							end = false; //should be global or static singleton because signals should interrupt the server
-	std::vector<int>::iterator		find = this->_config.getServerFds().end();
+	std::vector<int>::iterator		find = this->_server_fds.end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
 
 	for (; it != ite; it++)
 	{
 		if (it->revents == 0)
-			continue ;
-
+			continue;
 		this->print_revents(*it);
 
 		if (it->revents & POLLIN)
 		{
-			find = std::find(this->_config.getServerFds().begin(), this->_config.getServerFds().end(), it->fd);
-			if (find != this->_config.getServerFds().end())
+			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
+			if (find != this->_server_fds.end())
 			{
 				end = this->accept_connections(*find);
 			}
@@ -190,12 +195,17 @@ bool	Server::checking_revents(void)
 			{
 				if (this->receiving(it))
 					break;
-				/* Creation of new Request*/
-				/* Here ft_fork([...])*/
-				/* Execute CGI */ 
-				/* Creation of Response*/
-				if (this->sending(it))
-					break;
+				std::map<int, Client>::iterator client = this->_clients.find(it->fd);
+				if (client != this->_clients.end())// in all logic, this should never fail
+				{
+					if (client->second.getRequest().isComplete()) // request from client is ready
+					{
+						client->second.getRequest().execute(); // execute it
+						/* Creation of Response*/
+						if (this->sending(it))
+							break;
+					}
+				}
 			}
 		}
 		else if (it->revents & POLLERR)

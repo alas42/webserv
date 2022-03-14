@@ -17,6 +17,7 @@ class Client
 		Client & operator=(Client const & other);
 		struct pollfd getClientFd(void);
 		Request & getRequest(void);
+		void	createRequest(const char *str);
 
 	private:
 		struct pollfd	_client_fd;

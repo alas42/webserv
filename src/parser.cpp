@@ -92,7 +92,7 @@ void	parceToEnv(char *conf) {
 
 	std::ifstream nginxConf(conf);
 	std::string line = "test";
-	std::vector<std::vector<std::string> > confOut;
+	std::vector<std::vector<std::string>> confOut;
 	std::vector<std::string> tmp;
 
 	if (nginxConf.is_open()) {

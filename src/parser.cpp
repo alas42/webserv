@@ -1,4 +1,4 @@
-#include "webserv.hpp"
+#include "../inc/webserv.hpp"
 
 bool	isServer(std::vector<std::string> confOut) {
 
@@ -88,7 +88,7 @@ std::vector<std::string> splitStringToVector(std::string s){
 	return (v);
 }
 
-void	parceToEnv(char *conf) {
+void	parceToEnv(const char *conf) {
 
 	std::ifstream nginxConf(conf);
 	std::string line = "test";

@@ -21,7 +21,11 @@ class Config
 	private:
 		std::vector<int>	_ports;
 		std::string			_ip_address;
-	
+
+		void						_parceToEnv(const char *conf);
+		std::vector<std::string>	_splitStringToVector(std::string s);
+		void						_setEnv(std::vector<std::vector<std::string> > confOut);
+
 };
 
 #endif

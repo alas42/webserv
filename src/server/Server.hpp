@@ -32,6 +32,7 @@ class Server
 
 	private:
 		Config 						_config;
+
 		int							_timeout;
 		std::vector<int>			_server_fds;
 		std::vector<struct pollfd>	_pollfds;

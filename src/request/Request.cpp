@@ -1,15 +1,27 @@
 #include "Request.hpp"
 
+/*
+** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
+**
+**	when REQUEST received :
+		1. Check the url demanded and the method
+		2. Is a CGI called ?
+			a. GET -> send the data in QUERY_STRING env var
+			b. POST -> send the data via the CGI stdin (use of pipe)
+** when cgi called :
+**	
+**
+*/
 Request::Request(void): _request(), _path_to_cgi("testers/cgi_self"), _complete(0)
 {}
 
 Request::~Request(void)
 {}
 
-Request::Request(const Request & other): _request(other._request), _path_to_cgi("testers/cgi_self"), _complete(other._complete)
+Request::Request(const Request & other): _method(other._method), _request(other._request), _path_to_cgi("testers/cgi_self"), _complete(other._complete)
 {}
 
-Request::Request(const char * request_str): _request(request_str), _path_to_cgi("testers/cgi_self"), _complete(false)
+Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("testers/cgi_self"), _complete(false)
 {
 	std::cout << "creation of Request Object" << std::endl;
 	this->parse_output_client(this->_request);
@@ -22,6 +34,7 @@ Request & Request::operator=(const Request & other)
 	{
 		this->_request = other._request;
 		this->_complete = other._complete;
+		this->_method = other._method;
 	}
 	return (*this);
 }
@@ -33,10 +46,12 @@ void	Request::execute(void)
 	pid_t		c_pid;
 	int			status = 0, i = 0, log;
 
-	tab[0] = strdup("testers/cgi_self");
+	std::cout << "this->method = " << this->_method << std::endl;
+
+	tab[0] = strdup("cgi/php-cgi");
 	tab[1] = strdup("data/form.php");
 	tab[2] = 0;
-	log = open("data/execve.log", O_WRONLY|O_CREAT, 0666);
+	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
 	if ((c_pid = fork()) == 0)
 	{
@@ -64,6 +79,7 @@ void	Request::execute(void)
 
 bool	Request::isComplete(void)
 {
+	std::cout << "this->method = " << this->_method << std::endl;
 	return this->_complete;
 }
 
@@ -95,11 +111,16 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 		if (output.substr(0, methods[i].length()).compare(methods[i]) == 0)
 		{
 			setenv("REQUEST_METHOD", methods[i].c_str(), 1);
+			this->_method = methods[i];
 			pos += methods[i].length();
 			break ;
 		}
 		i++;
 	}
+	if (this->_method.empty())
+		std::cout << "not included in methods[4]" << std::endl;
+	else
+		std::cout << "method = " << this->_method << std::endl;
 }
 
 void Request::parse_request_uri(std::string & output, std::size_t & pos)

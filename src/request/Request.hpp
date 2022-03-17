@@ -34,6 +34,9 @@ class Request
 		bool isComplete(void);
 		void execute(void);
 
+	public:
+		std::string	_method;
+		
 	private:
 		std::string _request;
 		std::string _path_to_cgi;

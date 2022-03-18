@@ -32,7 +32,7 @@ class Request
 		void parse_request_uri(std::string & output, std::size_t & pos);
 		void parse_request_method(std::string & output, std::size_t & pos);
 		void parse_query_string(std::string & request_uri);
-		void parse_content_length(std::string & output, std::size_t & pos);
+		void parse_content_length(std::string & output);
 		bool isComplete(void);
 		void execute(void);
 		void print_env_var(void);

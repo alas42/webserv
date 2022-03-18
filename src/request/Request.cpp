@@ -63,15 +63,25 @@ void Request::print_env_var(void)
 
 void	Request::execute(void)
 {
+	int 		pipes[2];
 	char 		**tab = (char **)malloc(sizeof(char *) * 3);
 	pid_t		c_pid;
 	int			status = 0, i = 0, log;
+	bool		post = false;
+
+	if (!strcmp(getenv("REQUEST_METHOD"), "POST"))
+	{
+		post = true;
+		setenv("PATH_INFO", "form.php", 1);
+		setenv("PATH_TRANSLATED", "/mnt/nfs/homes/avogt/sgoinfre/tpierre/data/form.php",1);
+		if (pipe(pipes) == -1)
+			perror("pipe");
+	}
 
 	setenv("SCRIPT_NAME", "data/form.php", 1);
 	setenv("SCRIPT_FILENAME", "data/form.php", 1);
 	setenv("REDIRECT_STATUS", "200", 1);
 	setenv("CONTENT_TYPE", "text/html", 1);
-	setenv("CONTENT_LENGTH", "0", 1);
 	setenv("GATEWAY_PROTOCOL", "CGI/1.1", 1);
 
 	print_env_var();
@@ -81,11 +91,17 @@ void	Request::execute(void)
 	tab[2] = 0;
 	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
-	if ((c_pid = fork()) == 0)
+	c_pid = fork();
+	if (c_pid == 0)
 	{
-		std::cout << "printed from child process " << getpid() << std::endl;
-		close(1);
-		dup(log);
+		if (post)
+		{
+			close(pipes[1]);
+			if (dup2(pipes[0], STDIN_FILENO) == -1)
+				perror("dup2");
+		}
+		if (dup2(log, STDOUT_FILENO) == -1)
+			perror("dup2");
 		execve(this->_path_to_cgi.c_str(), tab, environ);
 		exit(EXIT_SUCCESS);
 	}
@@ -96,7 +112,16 @@ void	Request::execute(void)
 	}
 	else
 	{
+		if (post)
+		{
+			char * a = strdup(this->_postdata.c_str());
+			close(pipes[0]);
+			write(pipes[1], a, strlen(a));
+			free(a);
+		}
 		waitpid(c_pid, &status, 0);
+		if (post){}
+			close(pipes[1]);
 		close(log);
 	}
 	while (tab[i])
@@ -212,41 +237,46 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 	}
 }
 
-void	Request::parse_content_length(std::string & output, std::size_t & pos)
+void	Request::parse_content_length(std::string & output)
 {
 	std::size_t i = 0, length_content_length = 0;
-	std::string content_length;
-	if ((i = output.find("Content-Length: ", pos)) != std::string::npos)
+
+	if ((i = output.find("Content-Length: ", 0)) != std::string::npos)
 	{
 		i += 16;
-		std::cout << output.substr(i) << std::endl;
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		setenv("CONTENT_LENGTH", this->_content_length.c_str(), 1);
-		pos += length_content_length;
+	}
+	else
+	{
+		this->_content_length = "0";
+		std::cout << "content length not found" << std::endl;
 	}
 }
 
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
-	size_t length_content;
+	size_t length_content = 0;
 
 	std::stringstream ss;
 	parse_request_method(output, i); // if post, should send the body to cgi via his stdin
 	parse_request_uri(output, i); // in this one is multiple info (file extensions, path to doc, path to executable(cgi), arg for get)
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
-	if (!_method.compare("POST"))
+	if (!this->_method.compare("POST"))
 	{
-		parse_content_length(output, i);
-		if (this->_content_length.compare(0))
+		parse_content_length(output);
+		if (this->_content_length.compare("0"))
 		{
-			std::cout << _content_length << std::endl;
 			ss << _content_length;
 			ss >> length_content;
-			this->_postdata = output.substr(output.find("\r\n\r\n", i) + 4, length_content); //save body
-			std::cout << _postdata << std::endl;
+			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
 		}
+		else
+			setenv("CONTENT_LENGTH", "0", 1);
 	}
+	else
+		setenv("CONTENT_LENGTH", "0", 1);
 }

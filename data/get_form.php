@@ -1,13 +1,16 @@
-Content-type: text/html; charset=UTF-8
-
 <!DOCTYPE html>
 
 <html>
 	<body>
-		<form action="php-cgi" method="post">
+		<form action="php-cgi" method="get">
 			Name: <input type="text" name="name"><br>
 			E-mail: <input type="text" name="email"><br>
 			<input type="submit">
 		</form>
-			</body>
+		<?php
+			if(isset($_GET['name'])) {
+				echo 'Bonjour ' . htmlspecialchars($_GET["name"]) . '!';
+			}
+		?>
+	</body>
 </html>

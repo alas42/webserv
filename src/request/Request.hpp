@@ -33,6 +33,7 @@ class Request
 		void parse_query_string(std::string & request_uri);
 		bool isComplete(void);
 		void execute(void);
+		void print_env_var(void);
 
 	public:
 		std::string	_method;
@@ -40,6 +41,7 @@ class Request
 	private:
 		std::string _request;
 		std::string _path_to_cgi;
+		std::string _postdata;
 		bool		_complete;
 };
 

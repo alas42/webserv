@@ -125,16 +125,42 @@ bool	Server::accept_connections(int server_fd)
 
 bool	Server::sending(std::vector<pollfd>::iterator	it)
 {
-	char* form_data = strdup("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Length: 215\r\n\r\n<!DOCTYPE html>\r\n<html>\r\n<body>\r\n<form action=\"php-cgi\" method=\"post\">\r\nName: <input type=\"text\" name=\"name\"><br><br>\r\nE-mail: <input type=\"text\" name=\"email\"><br>\r\n<input type=\"submit\">\r\n</form>\r\n</body>\r\n</html>\r\n");
-  /*	char* resp_data = strdup("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n"
-                    "Content-Length: 35\r\n\r\n"
-                    "<h1>Testing</h1><br>response_body\r\n");*/
-	if (send(it->fd, form_data, strlen(form_data), 0) < 0)
+	const char * filename = "data/execve.log"; //return of cgi processing
+	std::ifstream f(filename);
+	std::stringstream ss;
+	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	size_t i = 0;
+
+	if (f)
+	{
+		while (f.good())
+		{
+			if (i == 0) // first-line = content type line (for php-cgi)
+			{
+				getline(f, str);
+				header.append(str);
+				header.append("\r\nContent-Length: ");
+				str.clear();
+			}
+			else
+			{
+				getline(f, str);
+				body.append(str);
+				body.append("\r\n");
+			}
+			i++;
+		}
+	}
+	ss << body.size();
+	header.append(ss.str());
+	header.append("\r\n\r\n");
+	header.append(body);
+	if (send(it->fd, header.c_str(), header.size(), 0) < 0)
 	{
 		perror("send error");
 		return (1);
 	}
-	free(form_data);
 	return (0);
 }
 
@@ -197,7 +223,6 @@ bool	Server::checking_revents(void)
 				if (this->receiving(it))
 					break;
 				std::map<int, Client>::iterator client = this->_clients.find(it->fd);
-				std::cout << client->second.getRequest()._method << std::endl;
 				if (client != this->_clients.end())// in all logic, this should never fail
 				{
 					if (client->second.getRequest().isComplete()) // request from client is ready

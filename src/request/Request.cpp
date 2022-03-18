@@ -6,24 +6,24 @@
 **	when REQUEST received :
 		1. Check the url demanded and the method
 		2. Is a CGI called ?
-			a. GET -> send the data in QUERY_STRING env var
+			a. GET -> send the data in QUERY_STRING env var ! IT WORKS
 			b. POST -> send the data via the CGI stdin (use of pipe)
 ** when cgi called :
 **	
 **
 */
-Request::Request(void): _request(), _path_to_cgi("testers/cgi_self"), _complete(0)
+Request::Request(void): _method(), _request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _complete()
 {}
 
 Request::~Request(void)
 {}
 
-Request::Request(const Request & other): _method(other._method), _request(other._request), _path_to_cgi("testers/cgi_self"), _complete(other._complete)
+Request::Request(const Request & other):
+	_method(other._method), _request(other._request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _complete(other._complete)
 {}
 
-Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("testers/cgi_self"), _complete(false)
+Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(), _complete(false)
 {
-	std::cout << "creation of Request Object" << std::endl;
 	this->parse_output_client(this->_request);
 	this->_complete = true;
 }
@@ -35,21 +35,48 @@ Request & Request::operator=(const Request & other)
 		this->_request = other._request;
 		this->_complete = other._complete;
 		this->_method = other._method;
+		this->_postdata = other._postdata;
 	}
 	return (*this);
 }
 
+void Request::print_env_var(void)
+{
+	std::string env_var[] = {"DOCUMENT_ROOT", "SERVER_SOFTWARE", "SERVER_NAME", "GATEWAY_PROTOCOL", "SERVER_PROTOCOL",
+		"SERVER_PORT", "REQUEST_METHOD", "PATH_INFO", "PATH_TRANSLATED", "SCRIPT_NAME",
+		"SCRIPT_FILENAME", "QUERY_STRING",
+		"REMOTE_HOST", "REMOTE_ADDR", "AUTH_TYPE", "REMOTE_USER", "REMOTE_IDENT", "CONTENT_TYPE",
+		"CONTENT_LENGTH", "HTTP_ACCEPT", "HTTP_ACCEPT_LANGUAGE", "HTTP_USER_AGENT", "REDIRECT_STATUS", "0"};
+	
+	std::cout << "{" << std::endl;
+	for(int i = 0; env_var[i].compare("0"); i++)
+	{
+		char *ptr = getenv(env_var[i].c_str());
+		if (!ptr)
+			std::cout << env_var[i] << " not set" << std::endl;
+		else
+			std::cout << env_var[i] << " = " << ptr << std::endl;
+	}
+	std::cout << "}\n" << std::endl;
+}
+
 void	Request::execute(void)
 {
-	std::cout << "Request.execute() " << std::endl;
 	char 		**tab = (char **)malloc(sizeof(char *) * 3);
 	pid_t		c_pid;
 	int			status = 0, i = 0, log;
 
-	std::cout << "this->method = " << this->_method << std::endl;
+	setenv("SCRIPT_NAME", "data/form.php", 1);
+	setenv("SCRIPT_FILENAME", "data/form.php", 1);
+	setenv("REDIRECT_STATUS", "200", 1);
+	setenv("CONTENT_TYPE", "text/html", 1);
+	setenv("CONTENT_LENGTH", "0", 1);
+	setenv("GATEWAY_PROTOCOL", "CGI/1.1", 1);
 
-	tab[0] = strdup("cgi/php-cgi");
-	tab[1] = strdup("data/form.php");
+	print_env_var();
+
+	tab[0] = strdup(this->_path_to_cgi.c_str());
+	tab[1] = strdup(getenv("SCRIPT_FILENAME"));
 	tab[2] = 0;
 	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
@@ -68,7 +95,6 @@ void	Request::execute(void)
 	}
 	else
 	{
-		std::cout << "printed from parent process " << getpid() << std::endl;
 		waitpid(c_pid, &status, 0);
 		close(log);
 	}
@@ -79,7 +105,6 @@ void	Request::execute(void)
 
 bool	Request::isComplete(void)
 {
-	std::cout << "this->method = " << this->_method << std::endl;
 	return this->_complete;
 }
 
@@ -117,10 +142,6 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 		}
 		i++;
 	}
-	if (this->_method.empty())
-		std::cout << "not included in methods[4]" << std::endl;
-	else
-		std::cout << "method = " << this->_method << std::endl;
 }
 
 void Request::parse_request_uri(std::string & output, std::size_t & pos)
@@ -193,11 +214,13 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
-	parse_request_method(output, i); // if post, should send the body to cgi via a pipe
+	parse_request_method(output, i); // if post, should send the body to cgi via his stdin
 	parse_request_uri(output, i); // in this one is multiple info (file extensions, path to doc, path to executable(cgi), arg for get)
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
-	/*
-	** Ip adress can be obtained from the socket, it is not send via a http header
-	*/
+	if (!_method.compare("POST"))
+	{
+		this->_postdata = output.substr(output.find("\r\n\r\n", i)); //save body
+		std::cout << _postdata << std::endl;
+	}
 }

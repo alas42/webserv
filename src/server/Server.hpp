@@ -2,6 +2,8 @@
 # define SERVER_HPP
 
 # include <iostream>
+# include <fstream>
+# include <sstream>
 # include <string>
 # include "../config/Config.hpp"
 # include <sys/poll.h>
@@ -10,6 +12,8 @@
 # include "../response/Response.hpp"
 # include <algorithm>
 # include <map>
+# include <sys/types.h>
+# include <sys/stat.h>
 
 class Server
 {

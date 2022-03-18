@@ -30,6 +30,8 @@ class Server
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 
+		Config &getConfig(void);
+
 	private:
 		Config 						_config;
 

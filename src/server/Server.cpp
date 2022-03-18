@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/17 14:40:23 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/18 16:11:46 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,13 @@ Server & Server::operator=(const Server & other)
 		return (*this);
 }
 
+Config & Server::getConfig() {
+	return this->_config;
+}
+
 void	Server::config(const char * conf_file)
 {
-	_config.parse(conf_file);
+	_config.parseServer(conf_file);
 }
 
 int	Server::setup(void)
@@ -215,7 +219,6 @@ bool	Server::checking_revents(void)
 	}
 	return (end);
 }
-
 
 int	Server::listen_poll(void)
 {

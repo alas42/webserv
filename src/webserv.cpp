@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:40:04 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/16 16:48:12 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/18 16:14:20 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,12 +20,11 @@
 int		main(int ac, char **av)
 {
 	Server		server;
-	std::string	default_conf("data/example.conf");
 
 	if (ac == 2)
 		server.config(av[1]);
 	else
-		server.config(default_conf.c_str());
+		server.config(DEFAULT_CONFIG);
 	try
 	{
 		if (server.setup())

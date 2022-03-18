@@ -200,8 +200,7 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
-	{
-		
+	{	
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{
@@ -211,6 +210,20 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 		pos += (i + 1 - pos) + length_port;
 	}
 }
+
+void	Request::parse_content_length(std::string & output, std::size_t & pos)
+{
+	std::size_t i = 0, length_port = 0;
+	std::string content_length;
+	if ((i = output.find("Content-Length: ", pos)) != std::string::npos)
+	{
+		i += 16;
+		content_length = output.substr();
+		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
+		pos += (i + 1 - pos) + length_port;
+	}
+}
+
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
@@ -220,6 +233,7 @@ void Request::parse_output_client(std::string & output)
 	parse_server_port(output, i);
 	if (!_method.compare("POST"))
 	{
+		parse_content_length(output, i);
 		this->_postdata = output.substr(output.find("\r\n\r\n", i)); //save body
 		std::cout << _postdata << std::endl;
 	}

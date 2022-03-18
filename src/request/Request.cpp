@@ -12,17 +12,17 @@
 **	
 **
 */
-Request::Request(void): _method(), _request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _complete()
+Request::Request(void): _method(), _request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _complete()
 {}
 
 Request::~Request(void)
 {}
 
 Request::Request(const Request & other):
-	_method(other._method), _request(other._request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _complete(other._complete)
+	_method(other._method), _request(other._request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length), _complete(other._complete)
 {}
 
-Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(), _complete(false)
+Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _complete(false)
 {
 	this->parse_output_client(this->_request);
 	this->_complete = true;
@@ -36,6 +36,7 @@ Request & Request::operator=(const Request & other)
 		this->_complete = other._complete;
 		this->_method = other._method;
 		this->_postdata = other._postdata;
+		this->_content_length = other._content_length;
 	}
 	return (*this);
 }
@@ -213,20 +214,25 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 
 void	Request::parse_content_length(std::string & output, std::size_t & pos)
 {
-	std::size_t i = 0, length_port = 0;
+	std::size_t i = 0, length_content_length = 0;
 	std::string content_length;
 	if ((i = output.find("Content-Length: ", pos)) != std::string::npos)
 	{
 		i += 16;
-		content_length = output.substr();
-		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
-		pos += (i + 1 - pos) + length_port;
+		std::cout << output.substr(i) << std::endl;
+		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
+		this->_content_length = output.substr(i, length_content_length);
+		setenv("CONTENT_LENGTH", this->_content_length.c_str(), 1);
+		pos += length_content_length;
 	}
 }
 
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
+	size_t length_content;
+
+	std::stringstream ss;
 	parse_request_method(output, i); // if post, should send the body to cgi via his stdin
 	parse_request_uri(output, i); // in this one is multiple info (file extensions, path to doc, path to executable(cgi), arg for get)
 	parse_server_protocol(output, i);
@@ -234,7 +240,13 @@ void Request::parse_output_client(std::string & output)
 	if (!_method.compare("POST"))
 	{
 		parse_content_length(output, i);
-		this->_postdata = output.substr(output.find("\r\n\r\n", i)); //save body
-		std::cout << _postdata << std::endl;
+		if (this->_content_length.compare(0))
+		{
+			std::cout << _content_length << std::endl;
+			ss << _content_length;
+			ss >> length_content;
+			this->_postdata = output.substr(output.find("\r\n\r\n", i) + 4, length_content); //save body
+			std::cout << _postdata << std::endl;
+		}
 	}
 }

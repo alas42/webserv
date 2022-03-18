@@ -3,7 +3,8 @@
 
 # include <iostream>
 # include <string>
-#include <sys/wait.h>
+# include <sstream>
+# include <sys/wait.h>
 # include <sys/types.h>
 # include <sys/stat.h>
 # include <stdlib.h>
@@ -43,6 +44,7 @@ class Request
 		std::string _request;
 		std::string _path_to_cgi;
 		std::string _postdata;
+		std::string _content_length;
 		bool		_complete;
 };
 

@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/18 16:09:52 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/18 16:23:47 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ Config::~Config(void) {}
 Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other._ports), _clientMaxBodySize(other._clientMaxBodySize), _autoIndex(other._autoIndex) {}
 
 Config & Config::operator=(Config const & other) {
+
 	if (this != &other)
 	{
 	   this->_ipAddress = other._ipAddress;
@@ -37,6 +38,7 @@ Config & Config::operator=(Config const & other) {
 }
 
 void	printVectorOfVectorOfString(std::vector<std::vector<std::string> > server) {
+
 	for (size_t i = 0; i < server.size(); i++) {
 		for (size_t j = 0; j < server[i].size(); j++) {
 			std::cout << server[i][j] << std::endl;
@@ -46,6 +48,7 @@ void	printVectorOfVectorOfString(std::vector<std::vector<std::string> > server) 
 }
 
 void	printVectorOfString(std::vector<std::string> server) {
+
 	for (size_t i = 0; i < server.size(); i++) {
 		std::cout << server[i] << std::endl;
 	}
@@ -53,6 +56,7 @@ void	printVectorOfString(std::vector<std::string> server) {
 }
 
 void	Config::parseServer(const char *conf_file) {
+
 	std::vector<std::vector<std::string> > confFile;
 
 	confFile = this->_getConfOfFile(conf_file);

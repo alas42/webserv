@@ -13,12 +13,12 @@ class Config
 		void	parseServer(const char *conf_file);
 
 		//GET
-		std::string			&	getIpAddress(void);
-		std::vector<int>	&	getPorts(void);
-		std::vector<std::string>	& getServerNames();
-		std::map<int, std::string>	& getErrorPages(void);
-		int	& getClientMaxBodySize(void);
-		std::string & getCgiPass(void);
+		std::string						& getIpAddress(void);
+		std::vector<int>				& getPorts(void);
+		std::vector<std::string>		& getServerNames(void);
+		std::map<int, std::string>		& getErrorPages(void);
+		int								& getClientMaxBodySize(void);
+		std::string 					& getCgiPass(void);
 		std::vector<std::string>		& getAlowMethods(void);
 		std::map<std::string, Config>	& getLocation(void);
 		std::string						& getRoot(void);
@@ -38,9 +38,9 @@ class Config
 		std::vector<std::string>		_index;
 		bool							_autoIndex;
 
+		// Parse file .conf
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 		int	_parseServerDeep(std::vector<std::vector<std::string> > confFile, size_t i);
-
 		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 
 		// SET
@@ -55,8 +55,10 @@ class Config
 		void	_setIndex(std::vector<std::string> line);
 		void	_setAutoIndex(std::vector<std::string> line);
 
+		// Util
 		std::vector<std::string>		_split(std::string s, std::string charset);
-		void							_setEnv(std::vector<std::vector<std::string> > confOut);
+
+		// void							_setEnv(std::vector<std::vector<std::string> > confOut);
 
 };
 

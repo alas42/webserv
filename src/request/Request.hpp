@@ -12,8 +12,7 @@
 # include <unistd.h>
 # include <fcntl.h>
 # include <cstring>
-
-extern char **environ;
+# include <map>
 
 /*
 ** FOR HTTP REQUEST WE GET FROM USER
@@ -35,17 +34,18 @@ class Request
 		void parse_content_length(std::string & output);
 		bool isComplete(void);
 		void execute(void);
-		void print_env_var(void);
+		char **create_env_tab(void);
 
 	public:
 		std::string	_method;
 		
 	private:
-		std::string _request;
-		std::string _path_to_cgi;
-		std::string _postdata;
-		std::string _content_length;
-		bool		_complete;
+		std::string 						_request;
+		std::string							_path_to_cgi;
+		std::string							_postdata;
+		std::string 						_content_length;
+		bool								_complete;
+		std::map<std::string, std::string>	_env_vars;
 };
 
 #endif

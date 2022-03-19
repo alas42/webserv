@@ -44,6 +44,7 @@ int	Server::setup(void)
 	int					server_fd, yes = 1;
 	size_t				ports_size = ports.size();
 
+	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
 	for (size_t i = 0; i < ports_size; i++)
 	{
 		server_fd = -1;

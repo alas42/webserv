@@ -11,6 +11,9 @@
 			if(isset($_GET['name'])) {
 				echo 'Bonjour ' . htmlspecialchars($_GET["name"]) . '!';
 			}
+			if (isset($_GET['email'])){
+				echo 'Your email is ' . htmlspecialchars($_GET["name"]). '.';
+			}
 		?>
 	</body>
 </html>

@@ -19,11 +19,40 @@ Request::~Request(void)
 {}
 
 Request::Request(const Request & other):
-	_method(other._method), _request(other._request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length), _complete(other._complete)
+	_method(other._method), _request(other._request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length), _complete(other._complete), _env_vars(other._env_vars)
 {}
 
 Request::Request(const char * request_str): _method(), _request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _complete(false)
 {
+	std::string env_var[] = {
+		"REDIRECT_STATUS",
+		"DOCUMENT_ROOT",
+		"SERVER_SOFTWARE",
+		"SERVER_NAME",
+		"GATEWAY_INTERFACE",
+		"SERVER_PROTOCOL",
+		"SERVER_PORT",
+		"REQUEST_URI",
+		"REQUEST_METHOD",
+		"CONTENT_TYPE",
+		"CONTENT_LENGTH",
+		"PATH_INFO",
+		"PATH_TRANSLATED",
+		"SCRIPT_NAME",
+		"SCRIPT_FILENAME",
+		"QUERY_STRING",
+		"REMOTE_HOST",
+		"REMOTE_ADDR",
+		"AUTH_TYPE",
+		"REMOTE_USER",
+		"REMOTE_IDENT",
+		"HTTP_ACCEPT",
+		"HTTP_ACCEPT_LANGUAGE",
+		"HTTP_USER_AGENT",
+		"0"
+	};
+	for (size_t i = 0; env_var[i].compare("0"); i++)
+		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_request);
 	this->_complete = true;
 }
@@ -37,60 +66,88 @@ Request & Request::operator=(const Request & other)
 		this->_method = other._method;
 		this->_postdata = other._postdata;
 		this->_content_length = other._content_length;
+		this->_env_vars = other._env_vars;
 	}
 	return (*this);
 }
 
-void Request::print_env_var(void)
+char	**Request::create_env_tab(void)
 {
-	std::string env_var[] = {"DOCUMENT_ROOT", "SERVER_SOFTWARE", "SERVER_NAME", "GATEWAY_PROTOCOL", "SERVER_PROTOCOL",
-		"SERVER_PORT", "REQUEST_METHOD", "PATH_INFO", "PATH_TRANSLATED", "SCRIPT_NAME",
-		"SCRIPT_FILENAME", "QUERY_STRING",
-		"REMOTE_HOST", "REMOTE_ADDR", "AUTH_TYPE", "REMOTE_USER", "REMOTE_IDENT", "CONTENT_TYPE",
-		"CONTENT_LENGTH", "HTTP_ACCEPT", "HTTP_ACCEPT_LANGUAGE", "HTTP_USER_AGENT", "REDIRECT_STATUS", "0"};
-	
+	char		*tmp = NULL;
+	char 		**env_tab = NULL;
+	size_t		length = 0;
+	size_t i = 0; 
+
+	env_tab = (char **)malloc(sizeof(char *) * (25));
 	std::cout << "{" << std::endl;
-	for(int i = 0; env_var[i].compare("0"); i++)
+	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
+	for(;it != this->_env_vars.end(); it++)
 	{
-		char *ptr = getenv(env_var[i].c_str());
-		if (!ptr)
-			std::cout << env_var[i] << " not set" << std::endl;
+		tmp = strdup(it->second.c_str());
+		if (tmp == NULL)
+			length = strlen(it->first.c_str()) + 1;
 		else
-			std::cout << env_var[i] << " = " << ptr << std::endl;
+			length = strlen(it->first.c_str()) + 2 + strlen(it->second.c_str());
+		env_tab[i] = (char *)malloc(sizeof(char) * (length));
+		env_tab[i] = strcpy(env_tab[i], it->first.c_str());
+		if (tmp)
+		{
+			env_tab[i] = strcat(env_tab[i], "=\0");
+			env_tab[i] = strcat(env_tab[i], tmp);
+		}
+		env_tab[i][length - 1] = '\0';
+		if (tmp)
+			free(tmp);
+		std::cout << env_tab[i] << std::endl;
+		i++;
 	}
+	env_tab[24] = 0;
 	std::cout << "}\n" << std::endl;
+	return env_tab;
 }
 
 void	Request::execute(void)
 {
 	int 		pipes[2];
 	char 		**tab = (char **)malloc(sizeof(char *) * 3);
+	char		**env_tab = NULL;
 	pid_t		c_pid;
 	int			status = 0, i = 0, log;
 	bool		post = false;
+	char 		*a = NULL;
 
-	if (!strcmp(getenv("REQUEST_METHOD"), "POST"))
+	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
+	this->_env_vars["SERVER_NAME"] = "webserv";
+	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
+	this->_env_vars["SCRIPT_NAME"] = "data/post_form.php";
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["REDIRECT_STATUS"] = "200";
+	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
+
+	if (!this->_env_vars["REQUEST_METHOD"].compare("POST"))
 	{
 		post = true;
-		setenv("PATH_INFO", "form.php", 1);
-		setenv("PATH_TRANSLATED", "/mnt/nfs/homes/avogt/sgoinfre/tpierre/data/form.php",1);
+		this->_env_vars["CONTENT_TYPE"] = "application/x-www-form-urlencoded";
+		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/data/form.php";
 		if (pipe(pipes) == -1)
 			perror("pipe");
 	}
+	else
+		this->_env_vars["CONTENT_TYPE"] = "text/html";
 
-	setenv("SCRIPT_NAME", "data/form.php", 1);
-	setenv("SCRIPT_FILENAME", "data/form.php", 1);
-	setenv("REDIRECT_STATUS", "200", 1);
-	setenv("CONTENT_TYPE", "text/html", 1);
-	setenv("GATEWAY_PROTOCOL", "CGI/1.1", 1);
-
-	print_env_var();
+	env_tab = create_env_tab();
 
 	tab[0] = strdup(this->_path_to_cgi.c_str());
-	tab[1] = strdup(getenv("SCRIPT_FILENAME"));
+	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
 	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
+	if (post)
+	{
+		a = strdup(this->_postdata.c_str());
+		write(pipes[1], a, strlen(a));
+	}
 	c_pid = fork();
 	if (c_pid == 0)
 	{
@@ -102,7 +159,7 @@ void	Request::execute(void)
 		}
 		if (dup2(log, STDOUT_FILENO) == -1)
 			perror("dup2");
-		execve(this->_path_to_cgi.c_str(), tab, environ);
+		execve(this->_path_to_cgi.c_str(), tab, env_tab);
 		exit(EXIT_SUCCESS);
 	}
 	else if (c_pid < 0)
@@ -113,20 +170,22 @@ void	Request::execute(void)
 	else
 	{
 		if (post)
-		{
-			char * a = strdup(this->_postdata.c_str());
 			close(pipes[0]);
-			write(pipes[1], a, strlen(a));
+		waitpid(c_pid, &status, 0);
+		if (post)
+		{
+			close(pipes[1]);
 			free(a);
 		}
-		waitpid(c_pid, &status, 0);
-		if (post){}
-			close(pipes[1]);
 		close(log);
 	}
 	while (tab[i])
 		free(tab[i++]);
 	free(tab);
+	i = 0;
+	while (env_tab[i])
+		free(env_tab[i++]);
+	free(env_tab);
 }
 
 bool	Request::isComplete(void)
@@ -145,7 +204,9 @@ void    Request::parse_query_string(std::string & request_uri)
 	if ((i = request_uri.find("?")) != std::string::npos)
 	{
 		if (i < request_uri.length())
-			setenv("QUERY_STRING", request_uri.substr(i + 1, request_uri.length() - (i + 1)).c_str(), 1);
+		{
+			this->_env_vars["QUERY_STRING"] = request_uri.substr(i + 1, request_uri.length() - (i + 1));
+		}
 	}
 }
 
@@ -161,7 +222,7 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 	{
 		if (output.substr(0, methods[i].length()).compare(methods[i]) == 0)
 		{
-			setenv("REQUEST_METHOD", methods[i].c_str(), 1);
+			this->_env_vars["REQUEST_METHOD"] = methods[i];
 			this->_method = methods[i];
 			pos += methods[i].length();
 			break ;
@@ -182,13 +243,13 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 			length_uri++;
 		}
 		request_uri = output.substr(i, length_uri);
-		setenv("REQUEST_URI", request_uri.c_str(), 1);
+		this->_env_vars["REQUEST_URI"] = request_uri;
 		pos += (i - pos) + length_uri;
 		parse_query_string(request_uri);
 	}
 	else
 	{
-		setenv("REQUEST_URI", "index.html", 1);
+		this->_env_vars["REQUEST_URI"] = "index.html";
 		std::cerr << "/ not found (for request_uri)" << std::endl;
 	}
 }
@@ -210,7 +271,7 @@ void	Request::parse_server_protocol(std::string & output, std::size_t & pos)
 			{
 				length_protocol++;
 			}
-			setenv("SERVER_PROTOCOL", output.substr(i, length_protocol).c_str(), 1);
+			this->_env_vars["SERVER_PROTOCOL"] = output.substr(i, length_protocol);
 			pos += (i - pos) + length_protocol + 8;
 			break ;
 		}
@@ -231,8 +292,8 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 		while (!std::isspace(output.at(i + length_port)))
 		{
 			length_port++;
-		}		
-		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
+		}
+		this->_env_vars["SERVER_PORT"] = output.substr(i, length_port);
 		pos += (i + 1 - pos) + length_port;
 	}
 }
@@ -246,7 +307,7 @@ void	Request::parse_content_length(std::string & output)
 		i += 16;
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
-		setenv("CONTENT_LENGTH", this->_content_length.c_str(), 1);
+		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else
 	{
@@ -275,8 +336,10 @@ void Request::parse_output_client(std::string & output)
 			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
 		}
 		else
-			setenv("CONTENT_LENGTH", "0", 1);
+		{
+			this->_env_vars["CONTENT_LENGTH"] = "0";
+		}	
 	}
 	else
-		setenv("CONTENT_LENGTH", "0", 1);
+		this->_env_vars["CONTENT_LENGTH"] = "0";
 }

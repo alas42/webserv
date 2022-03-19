@@ -2,11 +2,9 @@
 #include <string>
 #include <stdlib.h>
 
-int main(int ac, char **av, char **env)
+int main()
 {
 	/*std::cout << getenv("DOCUMENT_NAME") << std::endl;*/
-	printf("%s\n", "testing printf");
-	std::cout << "testing stdcout" << std::endl;
 	std::cout << getenv("DOCUMENT_ROOT") << std::endl;
 /*	std::cout << getenv("DOCUMENT_URL") << std::endl;
 	std::cout << getenv("DOCUMENT_URI") << std::endl;
@@ -23,9 +21,5 @@ int main(int ac, char **av, char **env)
 	std::cout << getenv("SERVER_PROTOCOL") << std::endl;
 	std::cout << getenv("SERVER_SOFTWARE") << std::endl;
 	std::cout << getenv("REQUEST_METHOD") << std::endl;
-	std::cout << getenv("REDIRECT_STATUS") << std::endl;
-	(void)ac;
-	(void)av;
-	(void)env;
 	return (0);
 }

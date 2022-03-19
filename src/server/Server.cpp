@@ -44,6 +44,7 @@ int	Server::setup(void)
 	int					server_fd, yes = 1;
 	size_t				ports_size = ports.size();
 
+	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
 	for (size_t i = 0; i < ports_size; i++)
 	{
 		server_fd = -1;
@@ -125,15 +126,42 @@ bool	Server::accept_connections(int server_fd)
 
 bool	Server::sending(std::vector<pollfd>::iterator	it)
 {
-  	char* resp_data = strdup("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n"
-                    "Content-Length: 35\r\n\r\n"
-                    "<h1>Testing</h1><br>response_body\r\n");
-	if (send(it->fd, resp_data, strlen(resp_data), 0) < 0)
+	const char * filename = "data/execve.log"; //return of cgi processing
+	std::ifstream f(filename);
+	std::stringstream ss;
+	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	size_t i = 0;
+
+	if (f)
+	{
+		while (f.good())
+		{
+			if (i == 0) // first-line = content type line (for php-cgi)
+			{
+				getline(f, str);
+				header.append(str);
+				header.append("\r\nContent-Length: ");
+				str.clear();
+			}
+			else
+			{
+				getline(f, str);
+				body.append(str);
+				body.append("\r\n");
+			}
+			i++;
+		}
+	}
+	ss << body.size();
+	header.append(ss.str());
+	header.append("\r\n\r\n");
+	header.append(body);
+	if (send(it->fd, header.c_str(), header.size(), 0) < 0)
 	{
 		perror("send error");
 		return (1);
 	}
-	free(resp_data);
 	return (0);
 }
 
@@ -222,7 +250,7 @@ int	Server::listen_poll(void)
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
 
-	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
+	rc = poll(&this->_pollfds[0], size_vec, -1);
 	if (rc <= 0)
 	{
 		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;

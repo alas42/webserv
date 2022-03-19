@@ -1,4 +1,22 @@
-testing printf
-testing stdcout
-mnt/nfs/homes/avogt/sgoinfre/webserv/data
-CGI/1.1
+Content-type: text/html; charset=UTF-8
+
+<!DOCTYPE html>
+
+<html>
+	<body>
+		<form action="php-cgi" method="post">
+			Name: <input type="text" name="name"><br>
+			Age: <input type="text" name="age"><br>
+			Date of birth: <input type="text" name="date_of_birth"><br>
+			Faction: <input type="text" name="faction"><br>
+			<input type="submit">
+		</form>
+		Array
+(
+    [name] => wwwq
+    [age] => 4
+    [date_of_birth] => 4
+    [faction] => 4
+)
+	</body>
+</html>

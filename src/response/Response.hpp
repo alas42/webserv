@@ -5,6 +5,7 @@
 # include <string>
 # include <fstream>
 # include <sstream>
+# include <map>
 /*
 ** Response to Client's Request
 */
@@ -23,12 +24,15 @@ class Response
 		void	setRawResponse(std::string new_raw_response);
 		void	create_cgi_base(void);
 		void	create_get(std::string filename);
-		void	image(std::string filename);
+		void	binary(std::string filename);
+		void	setting_mimes(void);
 
 	private:
 		std::string _header;
 		std::string _body;
 		std::string _raw_response;
+		std::map<std::string, std::string> _mimes;
+		bool		_binary;
 };
 
 #endif

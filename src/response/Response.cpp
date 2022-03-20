@@ -1,13 +1,17 @@
 #include "Response.hpp"
 
-Response::Response(void): _header("s"),_body(""), _raw_response("")
-{}
+Response::Response(void): _header("s"), _body(""), _raw_response("")
+{
+	this->_binary = false;
+}
 
 Response::~Response(void)
 {}
 
 Response::Response(const Response & other): _header(other._body), _body(other._body), _raw_response(other._raw_response)
-{}
+{
+	this->_binary = other._binary;
+}
 
 Response & Response::operator=(const Response & other)
 {
@@ -16,6 +20,8 @@ Response & Response::operator=(const Response & other)
 		this->_body = other._body;
 		this->_header = other._header;
 		this->_raw_response = other._raw_response;
+		this->_mimes = other._mimes;
+		this->_binary = other._binary;
 	}
 	return (*this);
 }
@@ -65,12 +71,16 @@ void	Response::create_cgi_base(void)
 	this->_raw_response.append(this->_body);
 }
 
-// https://stackoverflow.com/questions/43670762/c-sending-png-file-via-http
 void	Response::create_get(std::string filename)
 {
-	if (filename.find(".png") != std::string::npos) //exception for image (i guess all binary?)
+	/*
+	** Checks for the file (existing etc)
+	** First check mime_type of request
+	** Binary of text ?
+	*/
+	if (filename.find(".png") != std::string::npos)
 	{
-		this->image(filename);
+		this->binary(filename);
 		return ;
 	}
 	std::ifstream f(filename.c_str());
@@ -100,15 +110,18 @@ void	Response::create_get(std::string filename)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::image(std::string filename)
+void	Response::binary(std::string filename)
 {
+	std::size_t length;
+	std::string header;
+	std::stringstream ss;
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
-	std::stringstream ss;
-	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ");
+	
+	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
-	std::size_t length = f.tellg();
+	length = f.tellg();
 	f.seekg(0, std::ios::beg);
 	header.append(std::to_string(length));
 
@@ -118,4 +131,31 @@ void	Response::image(std::string filename)
 	this->_raw_response = this->_header;
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
+}
+
+/*
+** Common mime types
+** If we don't know it, we should check if it is a binary ?
+**		Yes -> use Content-Type: application/octet-stream
+**		No  -> use Content-Type: text/plain
+*/
+void	Response::setting_mimes(void)
+{
+	this->_mimes[".avi"] = "video/x-msvideo";
+	this->_mimes[".bmp"] = "image/bmp";
+	this->_mimes[".csv"] = "text/csv";
+	this->_mimes[".epub"] = "application/epub+zib";
+	this->_mimes[".gif"] = "image/gif";
+	this->_mimes[".html"] = "text/html";
+	this->_mimes[".htm"] = "text/html";
+	this->_mimes[".jpg"] = "image/jpg";
+	this->_mimes[".jpeg"] = "image/jpeg";
+	this->_mimes[".json"] = "application/json";
+	this->_mimes[".mpeg"] = "video/mpeg";
+	this->_mimes[".png"] = "image/png";
+	this->_mimes[".pdf"] = "application/pdf";
+	this->_mimes[".svg"] = "image/svg+xml";
+	this->_mimes[".xml"] = "application/xml";
+	this->_mimes[".zip"] = "application/zip";
+	this->_mimes[".*"] = "application/octet-stream";
 }

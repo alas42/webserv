@@ -34,6 +34,7 @@ class Request
 		void parse_request_method(std::string & output, std::size_t & pos);
 		void parse_query_string(std::string & request_uri);
 		void parse_content_length(std::string & output);
+		void parse_content_type (std::string & output);
 		bool isComplete(void);
 		Response execute(void);
 		void execute_cgi(void);
@@ -51,6 +52,7 @@ class Request
 		std::string							_path_to_cgi;
 		std::string							_postdata;
 		std::string 						_content_length;
+		std::string							_content_type;
 		bool								_complete;
 		std::map<std::string, std::string>	_env_vars;
 };

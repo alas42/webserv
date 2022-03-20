@@ -30,7 +30,7 @@ class Server
 		bool 	checking_revents(void);
 		void	print_revents(pollfd fd);
 		int		receiving(std::vector<pollfd>::iterator	it);
-		bool	sending(std::vector<pollfd>::iterator	it);
+		bool	sending(std::vector<pollfd>::iterator	it, Response & r);
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 

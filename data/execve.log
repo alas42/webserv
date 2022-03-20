@@ -13,10 +13,6 @@ Content-type: text/html; charset=UTF-8
 		</form>
 		Array
 (
-    [name] => wwwq
-    [age] => 4
-    [date_of_birth] => 4
-    [faction] => 4
 )
 	</body>
 </html>

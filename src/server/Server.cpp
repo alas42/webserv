@@ -124,43 +124,21 @@ bool	Server::accept_connections(int server_fd)
 	return (false);
 }
 
-bool	Server::sending(std::vector<pollfd>::iterator	it)
+/* Creation of Response beforehand */
+bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
-	const char * filename = "data/execve.log"; //return of cgi processing
-	std::ifstream f(filename);
-	std::stringstream ss;
-	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
-	std::string str, body;
-	size_t i = 0;
-
-	if (f)
-	{
-		while (f.good())
-		{
-			if (i == 0) // first-line = content type line (for php-cgi)
-			{
-				getline(f, str);
-				header.append(str);
-				header.append("\r\nContent-Length: ");
-				str.clear();
-			}
-			else
-			{
-				getline(f, str);
-				body.append(str);
-				body.append("\r\n");
-			}
-			i++;
-		}
-	}
-	ss << body.size();
-	header.append(ss.str());
-	header.append("\r\n\r\n");
-	header.append(body);
-	if (send(it->fd, header.c_str(), header.size(), 0) < 0)
+	int i = 0;
+	if (r.getRawResponse().size() < 3)
+		return (0);
+	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
+	if (i < 0)
 	{
 		perror("send error");
 		return (1);
+	}
+	else if (i > 0)
+	{
+		std::cout << i << " bytes sent/" <<  r.getRawResponse().size() << " total bytes" << std::endl;
 	}
 	return (0);
 }
@@ -228,9 +206,9 @@ bool	Server::checking_revents(void)
 				{
 					if (client->second.getRequest().isComplete()) // request from client is ready
 					{
-						client->second.getRequest().execute(); // execute it
+						Response r = client->second.getRequest().execute(); // execute it
 						/* Creation of Response*/
-						if (this->sending(it))
+						if (this->sending(it, r))
 							break;
 					}
 				}

@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/18 16:23:47 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/18 16:58:51 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,19 +20,18 @@ Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other
 
 Config & Config::operator=(Config const & other) {
 
-	if (this != &other)
-	{
-	   this->_ipAddress = other._ipAddress;
-	   this->_ports = other._ports;
-	   this->_serverNames = other._serverNames;
-	   this->_errorPages = other._errorPages;
-	   this->_clientMaxBodySize = other._clientMaxBodySize;
-	   this->_cgiPass = other._cgiPass;
-	   this->_allowMethods = other._allowMethods;
-	   this->_location = other._location;
-	   this->_root = other._root;
-	   this->_index = other._index;
-	   this->_autoIndex = other._autoIndex;
+	if (this != &other) {
+		this->_ipAddress = other._ipAddress;
+		this->_ports = other._ports;
+		this->_serverNames = other._serverNames;
+		this->_errorPages = other._errorPages;
+		this->_clientMaxBodySize = other._clientMaxBodySize;
+		this->_cgiPass = other._cgiPass;
+		this->_allowMethods = other._allowMethods;
+		this->_location = other._location;
+		this->_root = other._root;
+		this->_index = other._index;
+		this->_autoIndex = other._autoIndex;
 	}
 	return (*this);
 }

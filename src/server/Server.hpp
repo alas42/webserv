@@ -2,6 +2,8 @@
 # define SERVER_HPP
 
 # include <iostream>
+# include <fstream>
+# include <sstream>
 # include <string>
 # include "../config/Config.hpp"
 # include <sys/poll.h>
@@ -10,6 +12,8 @@
 # include "../response/Response.hpp"
 # include <algorithm>
 # include <map>
+# include <sys/types.h>
+# include <sys/stat.h>
 
 class Server
 {
@@ -26,7 +30,7 @@ class Server
 		bool 	checking_revents(void);
 		void	print_revents(pollfd fd);
 		int		receiving(std::vector<pollfd>::iterator	it);
-		bool	sending(std::vector<pollfd>::iterator	it);
+		bool	sending(std::vector<pollfd>::iterator	it, Response & r);
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 

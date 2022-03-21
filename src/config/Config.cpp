@@ -76,6 +76,7 @@ void	Config::parseServer(const char *conf_file) {
 
 std::string & Config::getIpAddress(void) {
 	return this->_ipAddress;
+
 }
 
 std::vector<int> & Config::getPorts(void) {

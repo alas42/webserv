@@ -1,18 +1,64 @@
 #include "Request.hpp"
 
-Request::Request(void): _request(), _path_to_cgi("testers/cgi_self"), _complete(0)
+/*
+** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
+**
+**	when REQUEST received :
+		1. Check the url demanded and the method
+		2. Is a CGI called ?
+			a. GET -> send the data in QUERY_STRING env var ! IT WORKS
+			b. POST -> send the data via the CGI stdin (use of pipe)
+** when cgi called :
+**	
+**
+*/
+Request::Request(void): _method(), _raw_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
 {}
 
 Request::~Request(void)
 {}
 
-Request::Request(const Request & other): _request(other._request), _path_to_cgi("testers/cgi_self"), _complete(other._complete)
+Request::Request(const Request & other):
+	_method(other._method), _raw_request(other._raw_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
+	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header)
 {}
 
-Request::Request(const char * request_str): _request(request_str), _path_to_cgi("testers/cgi_self"), _complete(false)
+Request::Request(const char * request_str): _method(), _raw_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
 {
-	std::cout << "creation of Request Object" << std::endl;
-	this->parse_output_client(this->_request);
+	std::string env_var[] = {
+		"REDIRECT_STATUS",
+		"DOCUMENT_ROOT",
+		"SERVER_SOFTWARE",
+		"SERVER_NAME",
+		"GATEWAY_INTERFACE",
+		"SERVER_PROTOCOL",
+		"SERVER_PORT",
+		"REQUEST_URI",
+		"REQUEST_METHOD",
+		"CONTENT_TYPE",
+		"CONTENT_LENGTH",
+		"PATH_INFO",
+		"PATH_TRANSLATED",
+		"SCRIPT_NAME",
+		"SCRIPT_FILENAME",
+		"QUERY_STRING",
+		"REMOTE_HOST",
+		"REMOTE_ADDR",
+		"AUTH_TYPE",
+		"REMOTE_USER",
+		"REMOTE_IDENT",
+		"HTTP_ACCEPT",
+		"HTTP_ACCEPT_LANGUAGE",
+		"HTTP_USER_AGENT",
+		"0"
+	};
+	for (size_t i = 0; env_var[i].compare("0"); i++)
+		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
+	this->parse_output_client(this->_raw_request);
+	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
+	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
+	this->_env_vars["SERVER_NAME"] = "webserv";
+	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
 }
 
@@ -20,30 +66,165 @@ Request & Request::operator=(const Request & other)
 {
 	if (this != &other)
 	{
-		this->_request = other._request;
+		this->_raw_request = other._raw_request;
 		this->_complete = other._complete;
+		this->_method = other._method;
+		this->_postdata = other._postdata;
+		this->_content_length = other._content_length;
+		this->_content_type = other._content_type;
+		this->_env_vars = other._env_vars;
+		this->_header = other._header;
 	}
 	return (*this);
 }
 
-void	Request::execute(void)
+std::map<std::string,std::string> const &  Request::getEnvVars(void) const
 {
-	std::cout << "Request.execute() " << std::endl;
-	char 		**tab = (char **)malloc(sizeof(char *) * 3);
-	pid_t		c_pid;
-	int			status = 0, i = 0, log;
+	return this->_env_vars;
+}
 
-	tab[0] = strdup("testers/cgi_self");
-	tab[1] = strdup("data/form.php");
-	tab[2] = 0;
-	log = open("data/execve.log", O_WRONLY|O_CREAT, 0666);
+char	**Request::create_env_tab(void)
+{
+	char		*tmp = NULL;
+	char 		**env_tab = NULL;
+	size_t		length = 0;
+	size_t i = 0; 
 
-	if ((c_pid = fork()) == 0)
+	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
+	std::cout << "{" << std::endl;
+	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
+	for(;it != this->_env_vars.end(); it++)
 	{
-		std::cout << "printed from child process " << getpid() << std::endl;
-		close(1);
-		dup(log);
-		execve(this->_path_to_cgi.c_str(), tab, environ);
+		tmp = strdup(it->second.c_str());
+		if (tmp == NULL)
+			length = strlen(it->first.c_str()) + 1;
+		else
+			length = strlen(it->first.c_str()) + 2 + strlen(it->second.c_str());
+		env_tab[i] = (char *)malloc(sizeof(char) * (length));
+		env_tab[i] = strcpy(env_tab[i], it->first.c_str());
+		if (tmp)
+		{
+			env_tab[i] = strcat(env_tab[i], "=\0");
+			env_tab[i] = strcat(env_tab[i], tmp);
+		}
+		env_tab[i][length - 1] = '\0';
+		if (tmp)
+			free(tmp);
+		std::cout << env_tab[i] << "$"<< std::endl;
+		i++;
+	}
+	env_tab[this->_env_vars.size()] = 0;
+	std::cout << "}\n" << std::endl;
+	return env_tab;
+}
+
+Response	Request::execute(void)
+{
+	Response r;
+	
+	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
+	std::string methods[] = {"DELETE", "GET", "POST", "0"};
+	/*
+	** A prendre avec des pincette, les chemins seront d'abord mappes avec ceux de la conf
+	*/
+	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos 
+		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
+	{
+		execute_cgi();
+		r.create_cgi_base();
+	}
+	else
+	{
+		for(size_t i = 0; methods[i].compare("0"); i++)
+		{
+			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
+			{
+				return (this->*ptr[i])();
+			}
+		}
+		/*it is another method we dont have PUT - HEAD - etc.*/
+		std::cerr << "What are you trying to do ?" << std::endl;
+		/*preparer une reponse d erreur */
+	}
+	return (r);
+}
+
+Response	Request::execute_delete(void)
+{
+	//suppression d'une image etc (au prealable uploaded ?)
+	std::cout << "deletion" << std::endl;
+	return Response();
+}
+
+Response	Request::execute_get(void)
+{
+	Response r;
+	std::string root = "data";
+	//chargement d'une page ou ressource (json, image etc)
+	//check droits//
+	//on part du principe qu'il les a pour test
+	root.append(this->_env_vars["REQUEST_URI"]);
+	r.create_get(root);
+	return (r);
+}
+
+Response	Request::execute_post(void)
+{
+	//upload ?
+	std::cout << "uploading" << std::endl;
+	return Response();
+}
+
+void	Request::execute_cgi(void)
+{
+	int 		pipes[2];
+	char 		**tab = (char **)malloc(sizeof(char *) * 3);
+	char		**env_tab = NULL;
+	pid_t		c_pid;
+	int			status = 0, log;
+	bool		post = false;
+	char 		*a = NULL;
+
+	this->_env_vars["SCRIPT_NAME"] = "data" + this->_env_vars["REQUEST_URI"];
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["REDIRECT_STATUS"] = "200";
+
+	if (!this->_method.compare("POST"))
+	{
+		post = true;
+		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
+		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
+		if (pipe(pipes) == -1)
+			perror("pipe");
+	}
+	else
+		this->_env_vars["CONTENT_TYPE"] = "text/html";
+
+	env_tab = create_env_tab();
+
+	tab[0] = strdup(this->_path_to_cgi.c_str());
+	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
+	tab[2] = 0;
+	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
+
+	if (post)
+	{
+		a = strdup(this->_postdata.c_str());
+		write(pipes[1], a, strlen(a));
+	}
+	c_pid = fork();
+	if (c_pid == 0)
+	{
+		if (post)
+		{
+			close(pipes[1]);
+			if (dup2(pipes[0], STDIN_FILENO) == -1)
+				perror("dup2");
+		}
+		if (dup2(log, STDOUT_FILENO) == -1)
+			perror("dup2");
+		execve(this->_path_to_cgi.c_str(), tab, env_tab);
 		exit(EXIT_SUCCESS);
 	}
 	else if (c_pid < 0)
@@ -53,13 +234,22 @@ void	Request::execute(void)
 	}
 	else
 	{
-		std::cout << "printed from parent process " << getpid() << std::endl;
+		if (post)
+			close(pipes[0]);
 		waitpid(c_pid, &status, 0);
+		if (post)
+		{
+			close(pipes[1]);
+			free(a);
+		}
 		close(log);
 	}
-	while (tab[i])
+	for(size_t i = 0; tab[i]; i++)
 		free(tab[i++]);
 	free(tab);
+	for(size_t i = 0; env_tab[i]; i++)
+		free(env_tab[i++]);
+	free(env_tab);
 }
 
 bool	Request::isComplete(void)
@@ -78,7 +268,9 @@ void    Request::parse_query_string(std::string & request_uri)
 	if ((i = request_uri.find("?")) != std::string::npos)
 	{
 		if (i < request_uri.length())
-			setenv("QUERY_STRING", request_uri.substr(i + 1, request_uri.length() - (i + 1)).c_str(), 1);
+		{
+			this->_env_vars["QUERY_STRING"] = request_uri.substr(i + 1, request_uri.length() - (i + 1));
+		}
 	}
 }
 
@@ -94,7 +286,8 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 	{
 		if (output.substr(0, methods[i].length()).compare(methods[i]) == 0)
 		{
-			setenv("REQUEST_METHOD", methods[i].c_str(), 1);
+			this->_env_vars["REQUEST_METHOD"] = methods[i];
+			this->_method = methods[i];
 			pos += methods[i].length();
 			break ;
 		}
@@ -114,13 +307,13 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 			length_uri++;
 		}
 		request_uri = output.substr(i, length_uri);
-		setenv("REQUEST_URI", request_uri.c_str(), 1);
+		this->_env_vars["REQUEST_URI"] = request_uri;
 		pos += (i - pos) + length_uri;
 		parse_query_string(request_uri);
 	}
 	else
 	{
-		setenv("REQUEST_URI", "index.html", 1);
+		this->_env_vars["REQUEST_URI"] = "index.html";
 		std::cerr << "/ not found (for request_uri)" << std::endl;
 	}
 }
@@ -142,7 +335,7 @@ void	Request::parse_server_protocol(std::string & output, std::size_t & pos)
 			{
 				length_protocol++;
 			}
-			setenv("SERVER_PROTOCOL", output.substr(i, length_protocol).c_str(), 1);
+			this->_env_vars["SERVER_PROTOCOL"] = output.substr(i, length_protocol);
 			pos += (i - pos) + length_protocol + 8;
 			break ;
 		}
@@ -158,25 +351,104 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
-	{
-		
+	{	
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{
 			length_port++;
-		}		
-		setenv("SERVER_PORT", output.substr(i, length_port).c_str(), 1);
+		}
+		this->_env_vars["SERVER_PORT"] = output.substr(i, length_port);
 		pos += (i + 1 - pos) + length_port;
 	}
 }
+
+void	Request::parse_content_length(std::string & output)
+{
+	std::size_t i = 0, length_content_length = 0;
+
+	if ((i = output.find("Content-Length: ", 0)) != std::string::npos)
+	{
+		i += 16;
+		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
+		this->_content_length = output.substr(i, length_content_length);
+		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
+	}
+	else
+	{
+		this->_content_length = "0";
+		std::cout << "content length not found" << std::endl;
+	}
+}
+
+void Request::parse_content_type (std::string & output)
+{
+	std::size_t i = 0, length_content_type = 0;
+
+	if ((i = output.find("Content-Type: ", 0)) != std::string::npos)
+	{
+		i += 14;
+		while (output.at(i + length_content_type) != '\r' && output.at(i + length_content_type) != '\n')
+		{
+			length_content_type++;
+		}
+		this->_content_type = output.substr(i, length_content_type);
+		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
+	}
+	else
+	{
+		this->_content_type = "";
+		std::cout << "content type not found" << std::endl;
+	}
+}
+
+void Request::parse_http_accept(std::string &output, std::string tofind)
+{
+	std::size_t i = 0;
+	std::size_t length = 0;
+	if ((i = output.find(tofind, 0)) != std::string::npos)
+	{
+		i += tofind.size() + 2;
+		std::transform(tofind.begin(), tofind.end(), tofind.begin(), ::toupper);
+		std::replace(tofind.begin(), tofind.end(), '-', '_');
+		length = output.find("\r\n", i);
+		this->_env_vars["HTTP_" + tofind] = output.substr(i, length - i);
+	}
+}
+
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
-	parse_request_method(output, i); // if post, should send the body to cgi via a pipe
-	parse_request_uri(output, i); // in this one is multiple info (file extensions, path to doc, path to executable(cgi), arg for get)
+	size_t length_content = 0;
+
+	std::stringstream ss;
+
+	if (output.find("\r\n\r\n") != std::string::npos)
+		this->_header = output.substr(0, output.find("\r\n\r\n"));
+	else
+		this->_header = output;
+	std::cout << this->_header << std::endl;
+	parse_request_method(output, i);
+	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
-	/*
-	** Ip adress can be obtained from the socket, it is not send via a http header
-	*/
+	parse_http_accept(output, "Accept");
+	parse_http_accept(output, "Accept-Encoding");
+	parse_http_accept(output, "Accept-Language");
+	if (!this->_method.compare("POST"))
+	{
+		parse_content_length(output);
+		parse_content_type(output);
+		if (this->_content_length.compare("0"))
+		{
+			ss << _content_length;
+			ss >> length_content;
+			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
+		}
+		else
+		{
+			this->_env_vars["CONTENT_LENGTH"] = "0";
+		}	
+	}
+	else
+		this->_env_vars["CONTENT_LENGTH"] = "0";
 }

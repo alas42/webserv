@@ -11,6 +11,7 @@ SRCS =	src/webserv.cpp \
 	src/config/Config.cpp \
 	src/server/Server.cpp \
 	src/request/Request.cpp \
+	src/response/Response.cpp \
 	src/execution_requests/Exec.cpp \
 	src/listen/Listen.cpp \
 	src/client/Client.cpp \

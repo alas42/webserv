@@ -48,6 +48,7 @@ int	Server::setup(void)
 	int					server_fd, yes = 1;
 	size_t				ports_size = ports.size();
 
+	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
 	for (size_t i = 0; i < ports_size; i++)
 	{
 		server_fd = -1;
@@ -127,17 +128,22 @@ bool	Server::accept_connections(int server_fd)
 	return (false);
 }
 
-bool	Server::sending(std::vector<pollfd>::iterator	it)
+/* Creation of Response beforehand */
+bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
-  	char* resp_data = strdup("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n"
-                    "Content-Length: 35\r\n\r\n"
-                    "<h1>Testing</h1><br>response_body\r\n");
-	if (send(it->fd, resp_data, strlen(resp_data), 0) < 0)
+	int i = 0;
+	if (r.getRawResponse().size() < 3)
+		return (0);
+	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
+	if (i < 0)
 	{
 		perror("send error");
 		return (1);
 	}
-	free(resp_data);
+	else if (i > 0)
+	{
+		std::cout << i << " bytes sent/" <<  r.getRawResponse().size() << " total bytes" << std::endl;
+	}
 	return (0);
 }
 
@@ -145,7 +151,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			buffer[1024];
+	char   			buffer[90000];
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, sizeof(buffer), 0);
@@ -204,9 +210,9 @@ bool	Server::checking_revents(void)
 				{
 					if (client->second.getRequest().isComplete()) // request from client is ready
 					{
-						client->second.getRequest().execute(); // execute it
+						Response r = client->second.getRequest().execute(); // execute it
 						/* Creation of Response*/
-						if (this->sending(it))
+						if (this->sending(it, r))
 							break;
 					}
 				}
@@ -225,7 +231,7 @@ int	Server::listen_poll(void)
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
 
-	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
+	rc = poll(&this->_pollfds[0], size_vec, -1);
 	if (rc <= 0)
 	{
 		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;

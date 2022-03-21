@@ -13,6 +13,7 @@
 # include <fcntl.h>
 # include <cstring>
 # include <map>
+# include <algorithm>
 # include "../response/Response.hpp"
 
 /*
@@ -35,6 +36,7 @@ class Request
 		void parse_query_string(std::string & request_uri);
 		void parse_content_length(std::string & output);
 		void parse_content_type (std::string & output);
+		void parse_http_accept(std::string &output, std::string tofind);
 		bool isComplete(void);
 		Response execute(void);
 		void execute_cgi(void);
@@ -54,7 +56,9 @@ class Request
 		std::string 						_content_length;
 		std::string							_content_type;
 		bool								_complete;
+		//size_t								_length_content;
 		std::map<std::string, std::string>	_env_vars;
+		std::string							_header;
 };
 
 #endif

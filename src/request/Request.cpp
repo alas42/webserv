@@ -20,7 +20,7 @@ Request::~Request(void)
 
 Request::Request(const Request & other):
 	_method(other._method), _raw_request(other._raw_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
-	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars)
+	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header)
 {}
 
 Request::Request(const char * request_str): _method(), _raw_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
@@ -73,6 +73,7 @@ Request & Request::operator=(const Request & other)
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
 		this->_env_vars = other._env_vars;
+		this->_header = other._header;
 	}
 	return (*this);
 }
@@ -89,7 +90,7 @@ char	**Request::create_env_tab(void)
 	size_t		length = 0;
 	size_t i = 0; 
 
-	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size()));
+	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
 	std::cout << "{" << std::endl;
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
 	for(;it != this->_env_vars.end(); it++)
@@ -109,10 +110,10 @@ char	**Request::create_env_tab(void)
 		env_tab[i][length - 1] = '\0';
 		if (tmp)
 			free(tmp);
-		std::cout << env_tab[i] << std::endl;
+		std::cout << env_tab[i] << "$"<< std::endl;
 		i++;
 	}
-	env_tab[this->_env_vars.size() - 1] = 0;
+	env_tab[this->_env_vars.size()] = 0;
 	std::cout << "}\n" << std::endl;
 	return env_tab;
 }
@@ -400,16 +401,39 @@ void Request::parse_content_type (std::string & output)
 	}
 }
 
+void Request::parse_http_accept(std::string &output, std::string tofind)
+{
+	std::size_t i = 0;
+	std::size_t length = 0;
+	if ((i = output.find(tofind, 0)) != std::string::npos)
+	{
+		i += tofind.size() + 2;
+		std::transform(tofind.begin(), tofind.end(), tofind.begin(), ::toupper);
+		std::replace(tofind.begin(), tofind.end(), '-', '_');
+		length = output.find("\r\n", i);
+		this->_env_vars["HTTP_" + tofind] = output.substr(i, length - i);
+	}
+}
+
 void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
 	size_t length_content = 0;
 
 	std::stringstream ss;
+
+	if (output.find("\r\n\r\n") != std::string::npos)
+		this->_header = output.substr(0, output.find("\r\n\r\n"));
+	else
+		this->_header = output;
+	std::cout << this->_header << std::endl;
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
+	parse_http_accept(output, "Accept");
+	parse_http_accept(output, "Accept-Encoding");
+	parse_http_accept(output, "Accept-Language");
 	if (!this->_method.compare("POST"))
 	{
 		parse_content_length(output);

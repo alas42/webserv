@@ -147,7 +147,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			buffer[1024];
+	char   			buffer[90000];
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, sizeof(buffer), 0);

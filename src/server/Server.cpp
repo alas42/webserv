@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/21 16:32:52 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/21 18:52:49 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -35,22 +35,30 @@ std::map<std::string, Config> & Server::getConfig() {
 	return this->_config;
 }
 
+std::vector<int> Server::getPorts() {
+	std::vector<int> ports;
+
+	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
+		ports.push_back(it->second.getPorts());
+	return ports;
+}
 
 void	Server::config(const char * conf_file)
 {
-	_config = ConfigServer::fileToServer(conf_file);
+	this->_fileToServer(conf_file);
 }
 
 int	Server::setup(void)
 {
 	struct pollfd		listening_fd;
-	std::vector<int>	ports = this->_config.getPorts();
+	// std::vector<int>	ports = this->getPorts();
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
-	size_t				ports_size = ports.size();
+	// size_t				ports_size = ports.size();
 
 	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
-	for (size_t i = 0; i < ports_size; i++)
+	// for (size_t i = 0; i < ports_size; i++)
+	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
 
@@ -73,8 +81,8 @@ int	Server::setup(void)
 		}
 
 		sock_structs.sin_family = AF_INET;
-		sock_structs.sin_port = htons(ports[i]);
-		sock_structs.sin_addr.s_addr = inet_addr(this->_config.getIpAddress().c_str());
+		sock_structs.sin_port = htons(it->second.getPorts());
+		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
 
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 		{
@@ -260,6 +268,47 @@ void	Server::clean(void)
 		close(this->_pollfds[i].fd);
 	this->_pollfds.clear();
 }
+
+std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) {
+
+	std::ifstream file(conf);
+	std::string line;
+	std::vector<std::vector<std::string> > confFile;
+	std::vector<std::string> tmp;
+
+	if (file.is_open()) {
+		while (getline(file, line)) {
+			tmp = mySplit(line, " \n\t");
+			if (!tmp.empty())
+				confFile.push_back(tmp);
+			tmp.clear();
+		}
+	}
+	else
+		throw std::runtime_error("Error: Cannot open conf file\n");
+	return confFile;
+}
+
+void	Server::_fileToServer(const char *conf_file) {
+
+	std::vector<std::vector<std::string> > confFile;
+	std::stringstream out;
+
+	confFile = this->_getConfOfFile(conf_file);
+	for (size_t i = 0; i < confFile.size(); i++) {
+		if (confFile[i][0].compare("server") == 0 && confFile[i][1].compare("{") == 0) {
+			Config block;
+
+			i = block.parseServer(confFile, i);
+			out << block.getPorts();
+			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));
+			// break; // break after 1 block, remove it to parse multiple block server {}
+		}
+		else
+			throw std::runtime_error("Error: Need server configuration\n");
+	}
+}
+
 
 /*
 **	Simplification of code :

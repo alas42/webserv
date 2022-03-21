@@ -4,7 +4,7 @@
 		{
 			"taskName": "make",
 			"version": "0.1.0",
-			"command": "make re",
+			"command": "make",
 			"isShellCommand": true,
 			"showOutput": "always"
 		}

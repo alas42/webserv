@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/21 16:24:12 by tpierre           #+#    #+#             */
-/*   Updated: 2022/03/21 16:44:49 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/21 18:19:14 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,6 +15,7 @@
 
 # include "./../../inc/webserv.hpp"
 # include "./Config.hpp"
+# include "../server/Server.hpp"
 
 class ConfigServer {
 
@@ -26,7 +27,7 @@ class ConfigServer {
 		ConfigServer & operator=(const ConfigServer & other);
 
 
-		std::map<std::string, Config>	fileToServer(const char *conf_file);
+		void	fileToServer(std::map<std::string, Config> & conf, const char *conf_file);
 
 	private:
 
@@ -34,7 +35,6 @@ class ConfigServer {
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 
 		// Util
-		std::vector<std::string>		_split(std::string s, std::string charset);
 
 };
 

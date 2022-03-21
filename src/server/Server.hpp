@@ -35,7 +35,8 @@ class Server
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 
-		std::map<std::string, Config> &getConfig(void);
+		std::map<std::string, Config> & getConfig(void);
+		std::vector<int> getPorts();
 
 	private:
 		std::map<std::string, Config>	_config;
@@ -44,6 +45,11 @@ class Server
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
 		std::map<int, Client>			_clients;
+
+
+		void	_fileToServer(const char *conf_file);
+		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
+
 };
 
 #endif

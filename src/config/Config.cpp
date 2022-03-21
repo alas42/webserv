@@ -6,17 +6,23 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/21 16:45:19 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/21 19:17:51 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.hpp"
 
-Config::Config(void): _ipAddress(), _ports(), _clientMaxBodySize(0), _autoIndex(false) {}
+Config::Config(void): _ipAddress(), _ports(), _serverNames(), _errorPages(), \
+						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
+						_root(), _index(), _autoIndex(false) {}
 
 Config::~Config(void) {}
 
-Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other._ports), _clientMaxBodySize(other._clientMaxBodySize), _autoIndex(other._autoIndex) {}
+Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other._ports), \
+										_serverNames(other._serverNames), _errorPages(other._errorPages), \
+										_clientMaxBodySize(other._clientMaxBodySize), _cgiPass(other._cgiPass), \
+										_allowMethods(other._allowMethods), _location(other._location), \
+										_root(other._root), _index(other._index), _autoIndex(other._autoIndex) {}
 
 Config & Config::operator=(Config const & other) {
 
@@ -61,7 +67,7 @@ std::string & Config::getIpAddress(void) {
 
 }
 
-std::vector<int> & Config::getPorts(void) {
+int	& Config::getPorts(void) {
 	return this->_ports;
 }
 
@@ -103,7 +109,7 @@ bool							& Config::getAutoIndex(void) {
 
 
 
-int	Config::_parseServerDeep(std::vector<std::vector<std::string> > confFile, size_t i) {
+int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("}") == 0)
@@ -142,14 +148,14 @@ void Config::_setListen(std::vector<std::string> line) {
 		throw std::runtime_error("Bad listen config\n");
 	if ((cut = line[1].find(":")) == std::string::npos) {
 		if (isdigit(atoi(line[1].c_str())) == 0)
-			this->_ports.push_back(atoi(line[1].c_str()));
+			this->_ports = atoi(line[1].c_str());
 		else
 			throw std::runtime_error("Bad listen config\n" + line[1]);
 	}
 	else {
 		this->_ipAddress = line[1].substr(0, cut);
 		if (isdigit(atoi(line[1].substr(cut).c_str())) == 0)
-			this->_ports.push_back(atoi(line[1].substr(cut + 1).c_str()));
+			this->_ports = atoi(line[1].substr(cut + 1).c_str());
 		else
 			throw std::runtime_error("Bad listen config\n");
 	}

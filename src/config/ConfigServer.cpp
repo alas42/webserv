@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/21 16:24:07 by tpierre           #+#    #+#             */
-/*   Updated: 2022/03/21 16:45:45 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/21 18:19:01 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -19,6 +19,7 @@ ConfigServer::~ConfigServer(void) {
 }
 
 ConfigServer::ConfigServer(const ConfigServer & other) {
+	(void)other;
 }
 
 ConfigServer & ConfigServer::operator=(const ConfigServer & other)
@@ -38,7 +39,7 @@ std::vector<std::vector<std::string> >	ConfigServer::_getConfOfFile(const char *
 
 	if (file.is_open()) {
 		while (getline(file, line)) {
-			tmp = this->_split(line, " \n\t");
+			tmp = mySplit(line, " \n\t");
 			if (!tmp.empty())
 				confFile.push_back(tmp);
 			tmp.clear();
@@ -49,7 +50,7 @@ std::vector<std::vector<std::string> >	ConfigServer::_getConfOfFile(const char *
 	return confFile;
 }
 
-std::map<std::string, Config>	ConfigServer::fileToServer(const char *conf_file) {
+void	ConfigServer::fileToServer(std::map<std::string, Config> & config, const char *conf_file) {
 
 	std::vector<std::vector<std::string> > confFile;
 
@@ -58,30 +59,10 @@ std::map<std::string, Config>	ConfigServer::fileToServer(const char *conf_file) 
 		if (confFile[i][0].compare("server") == 0 && confFile[i][1].compare("{") == 0) {
 			Config block;
 
-			i = block._parseServerDeep(confFile, i);
-			this._config
-			break; // break after 1 block, remove it to parse multiple block server {}
+			i = block.parseServer(confFile, i);
+			config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + block.getIpAddress(), block));
+			// break; // break after 1 block, remove it to parse multiple block server {}
 		}
 		throw std::runtime_error("Error: Need server configuration\n");
 	}
-
-std::vector<std::string> ConfigServer::_split(std::string str, std::string charset) {
-
-	std::vector<std::string> ret;
-	std::string::size_type start;
-	std::string::size_type end = 0;
-	std::string tmp;
-
-	str.push_back(charset[0]);
-	start = str.find_first_not_of(charset, 0);
-	while ((start = str.find_first_not_of(charset, end)) != std::string::npos) {
-		end = str.find_first_of(charset, start);
-		tmp = str.substr(start, end - start);
-		ret.push_back(tmp);
-	}
-	return (ret);
-}
-
-
-
 }

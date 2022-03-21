@@ -16,6 +16,7 @@ SRCS =	src/webserv.cpp \
 	src/execution_requests/Exec.cpp \
 	src/listen/Listen.cpp \
 	src/client/Client.cpp \
+	src/utils/utils.cpp
 	# src/parser.cpp \
 
 INCLUDES	= -I src/webserv.hpp

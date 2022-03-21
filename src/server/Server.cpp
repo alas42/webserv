@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/18 16:11:46 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/21 16:32:52 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,13 +31,14 @@ Server & Server::operator=(const Server & other)
 		return (*this);
 }
 
-Config & Server::getConfig() {
+std::map<std::string, Config> & Server::getConfig() {
 	return this->_config;
 }
 
+
 void	Server::config(const char * conf_file)
 {
-	_config.parseServer(conf_file);
+	_config = ConfigServer::fileToServer(conf_file);
 }
 
 int	Server::setup(void)

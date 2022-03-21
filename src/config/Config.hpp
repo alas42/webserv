@@ -10,7 +10,6 @@ class Config
 		~Config(void);
 		Config(Config const & other);
 		Config & operator=(Config const & other);
-		void	parseServer(const char *conf_file);
 
 		//GET
 		std::string						& getIpAddress(void);
@@ -39,7 +38,6 @@ class Config
 		bool							_autoIndex;
 
 		// Parse file .conf
-		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 		int	_parseServerDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 
@@ -56,7 +54,6 @@ class Config
 		void	_setAutoIndex(std::vector<std::string> line);
 
 		// Util
-		std::vector<std::string>		_split(std::string s, std::string charset);
 
 		// void							_setEnv(std::vector<std::vector<std::string> > confOut);
 

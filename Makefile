@@ -9,6 +9,7 @@ CFLAGS	=	-Wall -Wextra -Werror -std=c++98 -g -fno-limit-debug-info
 
 SRCS =	src/webserv.cpp \
 	src/config/Config.cpp \
+	src/config/ConfigServer.cpp \
 	src/server/Server.cpp \
 	src/request/Request.cpp \
 	src/response/Response.cpp \

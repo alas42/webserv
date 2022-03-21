@@ -14,6 +14,7 @@
 # include <map>
 # include <sys/types.h>
 # include <sys/stat.h>
+#include "../config/ConfigServer.hpp"
 
 class Server
 {
@@ -34,15 +35,15 @@ class Server
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 
-		Config &getConfig(void);
+		std::map<std::string, Config> &getConfig(void);
 
 	private:
-		Config 						_config;
+		std::map<std::string, Config>	_config;
 
-		int							_timeout;
-		std::vector<int>			_server_fds;
-		std::vector<struct pollfd>	_pollfds;
-		std::map<int, Client>		_clients;
+		int								_timeout;
+		std::vector<int>				_server_fds;
+		std::vector<struct pollfd>		_pollfds;
+		std::map<int, Client>			_clients;
 };
 
 #endif

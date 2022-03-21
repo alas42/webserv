@@ -245,10 +245,10 @@ void	Request::execute_cgi(void)
 		close(log);
 	}
 	for(size_t i = 0; tab[i]; i++)
-		free(tab[i++]);
+		free(tab[i]);
 	free(tab);
 	for(size_t i = 0; env_tab[i]; i++)
-		free(env_tab[i++]);
+		free(env_tab[i]);
 	free(env_tab);
 }
 

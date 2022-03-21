@@ -6,6 +6,7 @@
 # include <fstream>
 # include <sstream>
 # include <map>
+# include <algorithm>
 /*
 ** Response to Client's Request
 */

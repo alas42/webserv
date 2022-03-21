@@ -26,7 +26,7 @@ class Request
 		~Request(void);
 		Request(const Request & other);
 		Request & operator=(const Request & other);
-		Request(const char * request_str);
+		Request(const char * request_str, int rc);
 
 		void parse_output_client(std::string & output);
 		void parse_server_port(std::string & output, std::size_t & pos);
@@ -50,15 +50,16 @@ class Request
 		std::string	_method;
 		
 	private:
-		std::string 						_raw_request;
+		std::string							_string_request;
 		std::string							_path_to_cgi;
 		std::string							_postdata;
 		std::string 						_content_length;
 		std::string							_content_type;
 		bool								_complete;
-		//size_t								_length_content;
 		std::map<std::string, std::string>	_env_vars;
 		std::string							_header;
+		size_t								_length_body;
+		char *								_raw_request;
 };
 
 #endif

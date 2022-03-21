@@ -12,7 +12,7 @@
 
 #include "Config.hpp"
 
-Config::Config(void): _ipAddress(), _ports(), _clientMaxBodySize(0), _autoIndex(false) {}
+Config::Config(void): _ipAddress("127.0.0.1"), _ports(), _clientMaxBodySize(0), _autoIndex(false) {}
 
 Config::~Config(void) {}
 

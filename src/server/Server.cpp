@@ -72,7 +72,7 @@ int	Server::setup(void)
 		}
 
 		sock_structs.sin_family = AF_INET;
-		sock_structs.sin_port = htons(ports[i]);
+		sock_structs.sin_port = htons(ports[i]);//this->_config.getPort();
 		sock_structs.sin_addr.s_addr = inet_addr(this->_config.getIpAddress().c_str());
 
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
@@ -151,7 +151,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			buffer[90000];
+	char   			*buffer = (char *)malloc(sizeof(char) * (90000 + 1));
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, sizeof(buffer), 0);
@@ -168,8 +168,9 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
 	if (found != this->_clients.end())
 	{
-		found->second.createRequest(&buffer[0]); // The Client object creates a Request
+		found->second.createRequest(&buffer[0], rc); // The Client object creates a Request
 	}
+	free(buffer);
 	return (0);
 }
 

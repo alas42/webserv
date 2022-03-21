@@ -1,22 +1,4 @@
+Status: 404 Not Found
 Content-type: text/html; charset=UTF-8
 
-<!DOCTYPE html>
-
-<html>
-	<body>
-		<form action="/post_form.php" method="post">
-			Name: <input type="text" name="name"><br><br>
-			Age: <input type="text" name="age"><br><br>
-			Date of birth: <input type="text" name="date_of_birth"><br><br>
-			Faction: <input type="text" name="faction"><br><br>
-			<input type="submit">
-		</form>
-		<br>
-
-		<br>
-		<img src="imgs/bonjour.png">
-		Array
-(
-)
-	</body>
-</html>
+No input file specified.

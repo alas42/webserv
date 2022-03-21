@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   webserv.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
+/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:40:04 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/10 15:56:26 by ymehdi           ###   ########.fr       */
+/*   Updated: 2022/03/18 17:08:40 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,16 +20,18 @@
 int		main(int ac, char **av)
 {
 	Server		server;
-	std::string	default_conf("data/example.conf");
 
 	if (ac == 2)
 		server.config(av[1]);
 	else
-		server.config(default_conf.c_str());
+		server.config(DEFAULT_CONFIG);
 	try
 	{
 		if (server.setup())
 			return (1);
+		// std::map<std::string, Config> test = server.getConfig().getLocation();
+		// Config truc = test.at("/");
+		// std::cout << truc.getIndex()[0] << std::endl;
 		server.run();
 		server.clean();
 	}

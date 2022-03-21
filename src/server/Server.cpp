@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
+/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/10 17:57:48 by ymehdi           ###   ########.fr       */
+/*   Updated: 2022/03/18 16:11:46 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,9 +31,13 @@ Server & Server::operator=(const Server & other)
 		return (*this);
 }
 
+Config & Server::getConfig() {
+	return this->_config;
+}
+
 void	Server::config(const char * conf_file)
 {
-	_config.parse(conf_file);
+	_config.parseServer(conf_file);
 }
 
 int	Server::setup(void)
@@ -77,7 +81,7 @@ int	Server::setup(void)
 			return (1);
 		}
 
-		if (listen(server_fd, 42) < 0) 
+		if (listen(server_fd, 42) < 0)
 		{
 			std::cerr << "listen error" << std::endl;
 			return (1);
@@ -85,7 +89,7 @@ int	Server::setup(void)
 		this->_server_fds.push_back(server_fd); // contains every file descriptor that our server uses to listen
 		listening_fd.fd = server_fd;
 		listening_fd.events = POLLIN;
-		this->_pollfds.push_back(listening_fd); // contains every poll_file_descriptor that the poll function will check 
+		this->_pollfds.push_back(listening_fd); // contains every poll_file_descriptor that the poll function will check
 	}
 	return (0);
 }
@@ -221,7 +225,6 @@ bool	Server::checking_revents(void)
 	}
 	return (end);
 }
-
 
 int	Server::listen_poll(void)
 {

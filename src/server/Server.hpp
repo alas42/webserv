@@ -34,8 +34,11 @@ class Server
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
 
+		Config &getConfig(void);
+
 	private:
 		Config 						_config;
+
 		int							_timeout;
 		std::vector<int>			_server_fds;
 		std::vector<struct pollfd>	_pollfds;

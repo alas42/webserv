@@ -117,12 +117,12 @@ void	Response::binary(std::string filename)
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
-	
+
 	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
-	header.append(std::to_string(length));
+	// header.append(std::to_string(length));
 
 	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
 	this->_body = content;

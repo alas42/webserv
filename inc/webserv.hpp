@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <cstring>
+#include <cstdlib>
 #include <string>
 
 // C Headers
@@ -32,5 +33,8 @@
 #define TRUE             1
 #define FALSE            0
 #define DEFAULT_CONFIG "data/example.conf"
+
+
+	std::vector<std::string> mySplit(std::string s, std::string charset);
 
 #endif

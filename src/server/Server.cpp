@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/22 12:24:17 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/22 17:08:33 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -51,13 +51,10 @@ void	Server::config(const char * conf_file)
 int	Server::setup(void)
 {
 	struct pollfd		listening_fd;
-	// std::vector<int>	ports = this->getPorts();
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
-	// size_t				ports_size = ports.size();
 
 	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
-	// for (size_t i = 0; i < ports_size; i++)
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
@@ -86,7 +83,7 @@ int	Server::setup(void)
 
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 		{
-			std::cerr << "bind error" << std::endl;
+			std::cerr << "bind error " << it->second.getIpAddress() << std::endl;
 			return (1);
 		}
 

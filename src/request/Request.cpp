@@ -15,7 +15,7 @@ TODO LIST :
 		a. GET -> (done)
 		b. POST -> (not done)
 		c. DELETE -> (not done)
-**	
+**
 **
 */
 Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
@@ -63,7 +63,7 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_string_request);
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
+	this->_env_vars["DOCUMENT_ROOT"] = "/sgoinfre/goinfre/Perso/tpierre/webserv/data";
 	this->_env_vars["SERVER_NAME"] = "webserv";
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
@@ -98,7 +98,7 @@ char	**Request::create_env_tab(void)
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
 	size_t		length = 0;
-	size_t i = 0; 
+	size_t i = 0;
 
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
 	std::cout << "{" << std::endl;
@@ -131,13 +131,13 @@ char	**Request::create_env_tab(void)
 Response	Request::execute(void)
 {
 	Response r;
-	
+
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 	/*
 	** A prendre avec des pincette, les chemins seront d'abord mappes avec ceux de la conf
 	*/
-	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos 
+	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
@@ -205,7 +205,7 @@ void	Request::execute_cgi(void)
 		post = true;
 		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
+		// this->_env_vars["PATH_TRANSLATED"] =  ("/sgoinfre/goinfre/Perso/tpierre/webserv/") + this->_env_vars["PATH_INFO"];
 		if (pipe(pipes) == -1)
 			perror("pipe");
 	}
@@ -362,7 +362,7 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
-	{	
+	{
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{
@@ -450,8 +450,7 @@ void Request::parse_output_client(std::string & output)
 	{
 		parse_content_length(output);
 		parse_content_type(output);
-		if (this->_content_type.find("image") != std::string::npos
-			&& this->_content_type.find("application") != std::string::npos)
+		if (this->_content_type.find("image") == std::string::npos)
 		{
 			if (this->_content_length.compare("0"))
 			{

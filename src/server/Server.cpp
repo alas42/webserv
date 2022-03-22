@@ -122,18 +122,14 @@ bool	Server::accept_connections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		std::cout << "Creation of new Client (which will have Requests and to which we will send Responses)" << std::endl;
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd)));
 	} while (new_socket != -1);
 	return (false);
 }
 
-/* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-	if (r.getRawResponse().size() < 3)
-		return (0);
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{
@@ -154,7 +150,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	char   			*buffer = (char *)malloc(sizeof(char) * (90000 + 1));
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	rc = recv(it->fd, buffer, 90000, 0);
 	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{

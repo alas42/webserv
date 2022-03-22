@@ -114,6 +114,7 @@ void	Response::binary(std::string filename)
 {
 	std::size_t length;
 	std::string header;
+	std::stringstream ss;
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
@@ -122,7 +123,8 @@ void	Response::binary(std::string filename)
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
-	// header.append(std::to_string(length));
+	ss << length;
+	header.append(ss.str());
 
 	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
 	this->_body = content;

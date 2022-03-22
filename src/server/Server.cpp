@@ -51,13 +51,10 @@ void	Server::config(const char * conf_file)
 int	Server::setup(void)
 {
 	struct pollfd		listening_fd;
-	// std::vector<int>	ports = this->getPorts();
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
-	// size_t				ports_size = ports.size();
 
-	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
-	// for (size_t i = 0; i < ports_size; i++)
+	this->_pollfds.reserve(200);
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
@@ -131,18 +128,14 @@ bool	Server::accept_connections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		std::cout << "Creation of new Client (which will have Requests and to which we will send Responses)" << std::endl;
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd)));
 	} while (new_socket != -1);
 	return (false);
 }
 
-/* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-	if (r.getRawResponse().size() < 3)
-		return (0);
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{
@@ -160,18 +153,20 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			buffer[90000];
+	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	rc = recv(it->fd, buffer, 90000, 0);
 	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
+		free(buffer);
 		return (1);
 	}
 	else if (rc == 0)
 	{
 		this->close_connection(it);
+		free(buffer);
 		return (1);
 	}
 	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
@@ -179,6 +174,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	{
 		found->second.createRequest(&buffer[0], rc); // The Client object creates a Request
 	}
+	free(buffer);
 	return (0);
 }
 

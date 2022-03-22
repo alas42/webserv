@@ -128,11 +128,13 @@ bool	Server::accept_connections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd)));
+		std::cout << "Creation of new Client (which will have Requests and to which we will send Responses)" << std::endl;
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
 	} while (new_socket != -1);
 	return (false);
 }
 
+/* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;

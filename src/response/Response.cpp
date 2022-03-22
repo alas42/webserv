@@ -115,7 +115,6 @@ void	Response::binary(std::string filename)
 	std::size_t length;
 	std::string header;
 	std::stringstream ss;
-
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
@@ -168,6 +167,93 @@ void	Response::create_bad_request(void)
 	std::ifstream f("data/error_pages/400.html");
 	std::stringstream ss;
 	std::string header("HTTP/1.1 400 Bad Request\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	if (f)
+	{
+		header.append("Content-Length: ");
+		while (f.good())
+		{
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else // didn't find
+	{
+		return ;
+	}
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
+void	Response::create_Forbidden(void)
+{
+	std::ifstream f("data/error_pages/403.html");
+	std::stringstream ss;
+	std::string header("HTTP/1.1 400 Forbidden\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	if (f)
+	{
+		header.append("Content-Length: ");
+		while (f.good())
+		{
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else // didn't find
+	{
+		return ;
+	}
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
+void	Response::create_not_found(void)
+{
+	std::ifstream f("data/error_pages/404.html");
+	std::stringstream ss;
+	std::string header("HTTP/1.1 404 Not Found\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	if (f)
+	{
+		header.append("Content-Length: ");
+		while (f.good())
+		{
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else // didn't find
+	{
+		return ;
+	}
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
+void	Response::create_internal_error(void)
+{
+	std::ifstream f("data/error_pages/500.html");
+	std::stringstream ss;
+	std::string header("HTTP/1.1 500 Internal Server Error\r\nConnection: keep-alive\r\n");
 	std::string str, body;
 	if (f)
 	{

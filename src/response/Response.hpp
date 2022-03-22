@@ -28,6 +28,9 @@ class Response
 		void	binary(std::string filename);
 		void	setting_mimes(void);
 		void	create_bad_request(void);
+		void	create_not_found(void);
+		void	create_Forbidden(void);
+		void	create_internal_error(void);
 
 	private:
 		std::string _header;

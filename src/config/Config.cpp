@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/22 12:53:23 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/22 13:18:47 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -190,7 +190,7 @@ void Config::_setCgiPass(std::vector<std::string> line) {
 
 	if (line.size() != 2)
 		throw std::runtime_error("Bad cgi_pass config\n");
-	this->_cgiPass = atoi(line[1].c_str());
+	this->_cgiPass = line[1].c_str();
 }
 
 void Config::_setAllowMethods(std::vector<std::string> line) {

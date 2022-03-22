@@ -1,28 +1,41 @@
-NAME = webserv
+NAME	=	webserv
 
-HEADER_FILES = 
+CC		=	clang++
 
-SOURCES_FILES =	main.cpp
+RM		=	rm -f
 
-OBJS = $(SOURCES_FILES:.cpp=.o)
+# CFLAGS	=	-Wall -Wextra -Werror -std=c++98
+CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
-CPPFLAGS = -Wall -Werror -Wextra 
-CC = clang++ -std=c++98
+SRCS =	src/webserv.cpp \
+	src/config/Config.cpp \
+	src/server/Server.cpp \
+	src/request/Request.cpp \
+	src/response/Response.cpp \
+	src/execution_requests/Exec.cpp \
+	src/listen/Listen.cpp \
+	src/client/Client.cpp \
+	src/utils/utils.cpp
 
-all: $(NAME)
 
-$(NAME): $(OBJS) $(HEADER_FILES)
-	$(CC) $(CPPFLAGS) $(SOURCES_FILES) -o $(NAME)
+INCLUDES	= -I src/webserv.hpp
+
+OBJS	:=	${SRCS:.cpp=.o}
+
+.PHONY: clean fclean re
+
+all: ${NAME}
+
+${NAME}: ${OBJS}
+	$(CC) $(CFLAGS) -o $(NAME) $^
 
 %.o: %.cpp
-	$(CC) $(CPPFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 clean:
-	rm -f $(OBJS)
+	$(RM) ${OBJS}
 
 fclean: clean
-	rm -f $(NAME)
+	$(RM) ${NAME}
 
 re: fclean all
-
-.PHONY: all clean fclean re

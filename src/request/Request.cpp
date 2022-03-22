@@ -3,27 +3,33 @@
 /*
 ** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
 **
-**	when REQUEST received :
-		1. Check the url demanded and the method
-		2. Is a CGI called ?
-			a. GET -> send the data in QUERY_STRING env var ! IT WORKS
-			b. POST -> send the data via the CGI stdin (use of pipe)
-** when cgi called :
+**
+TODO LIST :
+	1. Check the url demanded and the method (WIP)
+	2.a CGI called
+		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
+		b. POST -> send the data via the CGI stdin (use of pipe) (done)
+			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
+			b.2 -> sending binary data into the pipe should not break (WIP)
+	2.b CGI not called
+		a. GET -> (done)
+		b. POST -> (not done)
+		c. DELETE -> (not done)
 **	
 **
 */
-Request::Request(void): _method(), _raw_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
+Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
 {}
 
 Request::~Request(void)
 {}
 
 Request::Request(const Request & other):
-	_method(other._method), _raw_request(other._raw_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
-	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header)
+	_method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
+	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str): _method(), _raw_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
+Request::Request(const char * request_str, int rc): _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
 {
 	std::string env_var[] = {
 		"REDIRECT_STATUS",
@@ -52,21 +58,24 @@ Request::Request(const char * request_str): _method(), _raw_request(request_str)
 		"HTTP_USER_AGENT",
 		"0"
 	};
+	std::cout << rc << std::endl;
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	this->parse_output_client(this->_raw_request);
+	this->parse_output_client(this->_string_request);
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
 	this->_env_vars["SERVER_NAME"] = "webserv";
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
+	/*this->_raw_request = (char *)malloc(sizeof(char) * rc);
+	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);*/
 }
 
 Request & Request::operator=(const Request & other)
 {
 	if (this != &other)
 	{
-		this->_raw_request = other._raw_request;
+		this->_string_request = other._string_request;
 		this->_complete = other._complete;
 		this->_method = other._method;
 		this->_postdata = other._postdata;
@@ -74,6 +83,7 @@ Request & Request::operator=(const Request & other)
 		this->_content_type = other._content_type;
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
+		this->_length_body = other._length_body;
 	}
 	return (*this);
 }
@@ -184,6 +194,7 @@ void	Request::execute_cgi(void)
 	int			status = 0, log;
 	bool		post = false;
 	char 		*a = NULL;
+	//FILE		*fp;
 
 	this->_env_vars["SCRIPT_NAME"] = "data" + this->_env_vars["REQUEST_URI"];
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
@@ -211,7 +222,7 @@ void	Request::execute_cgi(void)
 	if (post)
 	{
 		a = strdup(this->_postdata.c_str());
-		write(pipes[1], a, strlen(a));
+		write(pipes[1], this->_postdata.c_str(), this->_postdata.size());
 	}
 	c_pid = fork();
 	if (c_pid == 0)
@@ -245,10 +256,10 @@ void	Request::execute_cgi(void)
 		close(log);
 	}
 	for(size_t i = 0; tab[i]; i++)
-		free(tab[i++]);
+		free(tab[i]);
 	free(tab);
 	for(size_t i = 0; env_tab[i]; i++)
-		free(env_tab[i++]);
+		free(env_tab[i]);
 	free(env_tab);
 }
 
@@ -371,11 +382,13 @@ void	Request::parse_content_length(std::string & output)
 		i += 16;
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
+		this->_length_body = atoi(_content_length.c_str());
 		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else
 	{
 		this->_content_length = "0";
+		this->_env_vars["CONTENT_LENGTH"] = "0";
 		std::cout << "content length not found" << std::endl;
 	}
 }
@@ -419,7 +432,6 @@ void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
 	size_t length_content = 0;
-
 	std::stringstream ss;
 
 	if (output.find("\r\n\r\n") != std::string::npos)
@@ -438,17 +450,24 @@ void Request::parse_output_client(std::string & output)
 	{
 		parse_content_length(output);
 		parse_content_type(output);
-		if (this->_content_length.compare("0"))
+		if (this->_content_type.find("image") != std::string::npos
+			&& this->_content_type.find("application") != std::string::npos)
 		{
-			ss << _content_length;
-			ss >> length_content;
-			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
+			if (this->_content_length.compare("0"))
+			{
+				ss << _content_length;
+				ss >> length_content;
+				this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
+			}
 		}
 		else
 		{
-			this->_env_vars["CONTENT_LENGTH"] = "0";
-		}	
+			std::cout << "image or application" << std::endl;
+		}
 	}
 	else
+	{
+		this->_length_body = 0;
 		this->_env_vars["CONTENT_LENGTH"] = "0";
+	}
 }

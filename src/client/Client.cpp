@@ -28,9 +28,9 @@ struct pollfd Client::getClientFd(void)
 	return this->_client_fd;
 }
 
-void	Client::createRequest(const char *str)
+void	Client::createRequest(const char *str, int rc)
 {
-	this->_http_request = Request(str);
+	this->_http_request = Request(str, rc);
 }
 
 Request & Client::getRequest(void)

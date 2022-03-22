@@ -5,7 +5,7 @@ CC		=	clang++
 RM		=	rm -f
 
 # CFLAGS	=	-Wall -Wextra -Werror -std=c++98
-CFLAGS	=	-Wall -Wextra -Werror -std=c++98 -g -fno-limit-debug-info
+CFLAGS	=	-Wall -Wextra -Werror -g -fno-limit-debug-info
 
 SRCS =	src/webserv.cpp \
 	src/config/Config.cpp \
@@ -16,7 +16,7 @@ SRCS =	src/webserv.cpp \
 	src/listen/Listen.cpp \
 	src/client/Client.cpp \
 	src/utils/utils.cpp
-	# src/parser.cpp \
+
 
 INCLUDES	= -I src/webserv.hpp
 

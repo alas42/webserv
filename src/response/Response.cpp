@@ -114,7 +114,6 @@ void	Response::binary(std::string filename)
 {
 	std::size_t length;
 	std::string header;
-	std::stringstream ss;
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
@@ -125,7 +124,7 @@ void	Response::binary(std::string filename)
 	f.seekg(0, std::ios::beg);
 	// header.append(std::to_string(length));
 
-	std::string content( (std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
+	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
 	this->_body = content;
 	this->_header = header;
 	this->_raw_response = this->_header;
@@ -141,21 +140,22 @@ void	Response::binary(std::string filename)
 */
 void	Response::setting_mimes(void)
 {
-	this->_mimes[".avi"] = "video/x-msvideo";
-	this->_mimes[".bmp"] = "image/bmp";
-	this->_mimes[".csv"] = "text/csv";
+	this->_mimes[".avi"] = 	"video/x-msvideo";
+	this->_mimes[".bmp"] = 	"image/bmp";
+	this->_mimes[".csv"] = 	"text/csv";
 	this->_mimes[".epub"] = "application/epub+zib";
-	this->_mimes[".gif"] = "image/gif";
+	this->_mimes[".gif"] = 	"image/gif";
 	this->_mimes[".html"] = "text/html";
-	this->_mimes[".htm"] = "text/html";
-	this->_mimes[".jpg"] = "image/jpg";
+	this->_mimes[".htm"] = 	"text/html";
+	this->_mimes[".php"] = 	"text/plain";
+	this->_mimes[".jpg"] = 	"image/jpg";
 	this->_mimes[".jpeg"] = "image/jpeg";
 	this->_mimes[".json"] = "application/json";
 	this->_mimes[".mpeg"] = "video/mpeg";
-	this->_mimes[".png"] = "image/png";
-	this->_mimes[".pdf"] = "application/pdf";
-	this->_mimes[".svg"] = "image/svg+xml";
-	this->_mimes[".xml"] = "application/xml";
-	this->_mimes[".zip"] = "application/zip";
-	this->_mimes[".*"] = "application/octet-stream";
+	this->_mimes[".png"] = 	"image/png";
+	this->_mimes[".pdf"] = 	"application/pdf";
+	this->_mimes[".svg"] = 	"image/svg+xml";
+	this->_mimes[".xml"] = 	"application/xml";
+	this->_mimes[".zip"] = 	"application/zip";
+	this->_mimes[".*"] = 	"application/octet-stream";
 }

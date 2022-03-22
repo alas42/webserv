@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/21 19:17:51 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/22 12:53:23 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -113,7 +113,7 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 
 	for (; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("}") == 0)
-			break;
+			return i;
 		if (confFile[i][0].compare("listen") == 0)
 			this->_setListen(confFile[i]);
 		if (confFile[i][0].compare("server_name") == 0)
@@ -135,7 +135,7 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
 	}
-	return i;
+	throw std::runtime_error("Error: server{} not closed\n");
 }
 
 // SET
@@ -181,7 +181,7 @@ void Config::_setErrorPage(std::vector<std::string> line) {
 
 void Config::_setClientMaxBodySize(std::vector<std::string> line) {
 
-	if (line.size() != 2 || line[1].find_first_not_of("0123456789") == std::string::npos)
+	if (line.size() != 2 || line[1].find_first_not_of("0123456789") != std::string::npos)
 		throw std::runtime_error("Bad client_max_body_size config\n");
 	this->_clientMaxBodySize = atoi(line[1].c_str());
 }
@@ -203,30 +203,27 @@ void Config::_setAllowMethods(std::vector<std::string> line) {
 
 int Config::_setLocation(std::vector<std::vector<std::string> > confFile, size_t i) {
 
-	Config location;
+	Config		location;
+	std::string	path = confFile[i][1];
 
-	size_t j = 1;
-	if (confFile[i][j].compare("=") == 0)
-		j++;
-	std::string path = confFile[i][j];
-
-	for (; i < confFile.size(); i++) {
-		if (confFile[i][0].compare("location") == 0 && confFile[i][j + 1].compare("{") == 0) {
+	if (confFile[i].size() == 3){
+		if (confFile[i][0].compare("location") == 0 && confFile[i][2].compare("{") == 0) {
 			i = location._parseLocationDeep(confFile, i);
 			this->_location[path] = location;
 		}
-		if (confFile[i][0].compare("}") == 0)
-			return i;
-		throw std::runtime_error("Error: Need server }}}}}} configuration\n");
+		else
+			throw std::runtime_error("Error: Bad location configuration\n");
 	}
-	return 0;
+	else
+		throw std::runtime_error("Error: Bad location configuration\n");
+	return i;
 }
 
 int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (i++; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("}") == 0)
-			break;
+			return i;
 		if (confFile[i][0].compare("error_page") == 0)
 			this->_setErrorPage(confFile[i]);
 		if (confFile[i][0].compare("client_max_body_size") == 0)
@@ -244,7 +241,7 @@ int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, 
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
 	}
-	return i;
+	throw std::runtime_error("Error: location{} not closed\n");
 }
 
 void Config::_setRoot(std::vector<std::string> line) {

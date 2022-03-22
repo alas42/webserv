@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/21 18:52:49 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/22 12:24:17 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -292,21 +292,22 @@ std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) 
 void	Server::_fileToServer(const char *conf_file) {
 
 	std::vector<std::vector<std::string> > confFile;
-	std::stringstream out;
 
 	confFile = this->_getConfOfFile(conf_file);
 	for (size_t i = 0; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("server") == 0 && confFile[i][1].compare("{") == 0) {
+			std::stringstream out;
 			Config block;
 
 			i = block.parseServer(confFile, i);
 			out << block.getPorts();
+			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));
-			// break; // break after 1 block, remove it to parse multiple block server {}
 		}
-		else
-			throw std::runtime_error("Error: Need server configuration\n");
+		else if (confFile[i][0].compare("#") != 0)
+			throw std::runtime_error("Error: Bad server{} configuration\n");
 	}
+
 }
 
 

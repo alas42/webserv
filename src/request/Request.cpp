@@ -67,8 +67,15 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 	this->_env_vars["SERVER_NAME"] = "webserv";
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
-	/*this->_raw_request = (char *)malloc(sizeof(char) * rc);
-	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);*/
+	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+	if (this->_length_body > 0)
+	{
+		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body);
+		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
+		write(1, "\n$$$$\n", 6);
+		write(1, _raw_request, this->_length_body);
+		write(1, "\n$$$$\n", 6);
+	}
 }
 
 Request & Request::operator=(const Request & other)
@@ -84,6 +91,7 @@ Request & Request::operator=(const Request & other)
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
+		this->_raw_request = other._raw_request;
 	}
 	return (*this);
 }
@@ -194,8 +202,6 @@ void	Request::execute_cgi(void)
 	pid_t		c_pid;
 	int			status = 0, log;
 	bool		post = false;
-	char 		*a = NULL;
-	//FILE		*fp;
 
 	this->_env_vars["SCRIPT_NAME"] = "data" + this->_env_vars["REQUEST_URI"];
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
@@ -222,8 +228,7 @@ void	Request::execute_cgi(void)
 
 	if (post)
 	{
-		a = strdup(this->_postdata.c_str());
-		write(pipes[1], this->_postdata.c_str(), this->_postdata.size());
+		write(pipes[1], this->_raw_request, this->_length_body);
 	}
 	c_pid = fork();
 	if (c_pid == 0)
@@ -252,7 +257,7 @@ void	Request::execute_cgi(void)
 		if (post)
 		{
 			close(pipes[1]);
-			free(a);
+			free(this->_raw_request);
 		}
 		close(log);
 	}
@@ -262,6 +267,7 @@ void	Request::execute_cgi(void)
 	for(size_t i = 0; env_tab[i]; i++)
 		free(env_tab[i]);
 	free(env_tab);
+	std::cout << "already done with cgi execution" << std::endl;
 }
 
 bool	Request::isComplete(void)
@@ -439,7 +445,6 @@ void Request::parse_output_client(std::string & output)
 		this->_header = output.substr(0, output.find("\r\n\r\n"));
 	else
 		this->_header = output;
-	std::cout << this->_header << std::endl;
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
@@ -451,18 +456,17 @@ void Request::parse_output_client(std::string & output)
 	{
 		parse_content_length(output);
 		parse_content_type(output);
-		if (this->_content_type.find("image") != std::string::npos
-			&& this->_content_type.find("application") != std::string::npos)
+		ss << _content_length;
+		ss >> length_content;
+		if (this->_content_type.find("image") == std::string::npos
+			&& this->_content_type.find("application") == std::string::npos)
 		{
 			if (this->_content_length.compare("0"))
-			{
-				ss << _content_length;
-				ss >> length_content;
 				this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
-			}
 		}
 		else
 		{
+			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content);
 			std::cout << "image or application" << std::endl;
 		}
 	}

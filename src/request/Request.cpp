@@ -3,12 +3,18 @@
 /*
 ** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
 **
-**	when REQUEST received :
-		1. Check the url demanded and the method
-		2. Is a CGI called ?
-			a. GET -> send the data in QUERY_STRING env var ! IT WORKS
-			b. POST -> send the data via the CGI stdin (use of pipe)
-** when cgi called :
+**
+TODO LIST :
+	1. Check the url demanded and the method (WIP)
+	2.a CGI called
+		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
+		b. POST -> send the data via the CGI stdin (use of pipe) (done)
+			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
+			b.2 -> sending binary data into the pipe should not break (WIP)
+	2.b CGI not called
+		a. GET -> (done)
+		b. POST -> (not done)
+		c. DELETE -> (not done)
 **	
 **
 */
@@ -61,10 +67,8 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 	this->_env_vars["SERVER_NAME"] = "webserv";
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
-	this->_raw_request = (char *)malloc(sizeof(char) * rc);
-	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);
-	write(1, _raw_request, rc);
-	free(_raw_request);
+	/*this->_raw_request = (char *)malloc(sizeof(char) * rc);
+	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);*/
 }
 
 Request & Request::operator=(const Request & other)
@@ -428,7 +432,6 @@ void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
 	size_t length_content = 0;
-
 	std::stringstream ss;
 
 	if (output.find("\r\n\r\n") != std::string::npos)

@@ -151,7 +151,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			*buffer = (char *)malloc(sizeof(char) * (90000 + 1));
+	char   			buffer[90000];
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, sizeof(buffer), 0);
@@ -170,7 +170,6 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	{
 		found->second.createRequest(&buffer[0], rc); // The Client object creates a Request
 	}
-	free(buffer);
 	return (0);
 }
 

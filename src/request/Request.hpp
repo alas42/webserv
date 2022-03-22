@@ -59,7 +59,7 @@ class Request
 		std::map<std::string, std::string>	_env_vars;
 		std::string							_header;
 		size_t								_length_body;
-		char *								_raw_request;
+		//char *								_raw_request;
 };
 
 #endif

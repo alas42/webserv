@@ -159,3 +159,32 @@ void	Response::setting_mimes(void)
 	this->_mimes[".zip"] = 	"application/zip";
 	this->_mimes[".*"] = 	"application/octet-stream";
 }
+
+void	Response::create_bad_request(void)
+{
+	std::ifstream f("data/error_pages/400.html");
+	std::stringstream ss;
+	std::string header("HTTP/1.1 400 Bad Request\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	if (f)
+	{
+		header.append("Content-Length: ");
+		while (f.good())
+		{
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else // didn't find
+	{
+		return ;
+	}
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}

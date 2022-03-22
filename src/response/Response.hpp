@@ -27,6 +27,7 @@ class Response
 		void	create_get(std::string filename);
 		void	binary(std::string filename);
 		void	setting_mimes(void);
+		void	create_bad_request(void);
 
 	private:
 		std::string _header;

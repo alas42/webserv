@@ -15,7 +15,7 @@ TODO LIST :
 		a. GET -> (done)
 		b. POST -> (not done)
 		c. DELETE -> (not done)
-**	
+**
 **
 */
 Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
@@ -98,7 +98,7 @@ char	**Request::create_env_tab(void)
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
 	size_t		length = 0;
-	size_t i = 0; 
+	size_t i = 0;
 
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
 	std::cout << "{" << std::endl;
@@ -131,13 +131,13 @@ char	**Request::create_env_tab(void)
 Response	Request::execute(void)
 {
 	Response r;
-	
+
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 	/*
 	** A prendre avec des pincette, les chemins seront d'abord mappes avec ceux de la conf
 	*/
-	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos 
+	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
@@ -155,6 +155,7 @@ Response	Request::execute(void)
 		/*it is another method we dont have PUT - HEAD - etc.*/
 		std::cerr << "What are you trying to do ?" << std::endl;
 		/*preparer une reponse d erreur */
+		r.create_bad_request();
 	}
 	return (r);
 }
@@ -362,7 +363,7 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
-	{	
+	{
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{

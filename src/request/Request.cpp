@@ -267,7 +267,6 @@ void	Request::execute_cgi(void)
 	for(size_t i = 0; env_tab[i]; i++)
 		free(env_tab[i]);
 	free(env_tab);
-	std::cout << "already done with cgi execution" << std::endl;
 }
 
 bool	Request::isComplete(void)

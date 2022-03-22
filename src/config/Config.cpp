@@ -6,17 +6,23 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/18 16:58:51 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/22 13:18:47 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.hpp"
 
-Config::Config(void): _ipAddress("127.0.0.1"), _ports(), _clientMaxBodySize(0), _autoIndex(false) {}
+Config::Config(void): _ipAddress(), _ports(), _serverNames(), _errorPages(), \
+						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
+						_root(), _index(), _autoIndex(false) {}
 
 Config::~Config(void) {}
 
-Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other._ports), _clientMaxBodySize(other._clientMaxBodySize), _autoIndex(other._autoIndex) {}
+Config::Config(Config const & other): _ipAddress(other._ipAddress), _ports(other._ports), \
+										_serverNames(other._serverNames), _errorPages(other._errorPages), \
+										_clientMaxBodySize(other._clientMaxBodySize), _cgiPass(other._cgiPass), \
+										_allowMethods(other._allowMethods), _location(other._location), \
+										_root(other._root), _index(other._index), _autoIndex(other._autoIndex) {}
 
 Config & Config::operator=(Config const & other) {
 
@@ -54,24 +60,6 @@ void	printVectorOfString(std::vector<std::string> server) {
 	std::cout << std::endl;
 }
 
-void	Config::parseServer(const char *conf_file) {
-
-	std::vector<std::vector<std::string> > confFile;
-
-	confFile = this->_getConfOfFile(conf_file);
-	for (size_t i = 0; i < confFile.size(); i++) {
-		if (confFile[i][0].compare("server") == 0 && confFile[i][1].compare("{") == 0) {
-			i = this->_parseServerDeep(confFile, i);
-			break; // break after 1 block, remove it to parse multiple block server {}
-		}
-		throw std::runtime_error("Error: Need server configuration\n");
-	}
-
-	// setenv("GATEWAY_INTERFACE", "CGI/1.1", 1); //variable : must be set to the dialect of CGI being used by the servre to communicate with the script
-	// setenv("SERVER_SOFTWARE", "webserv/1.0)", 1); // meta-variable : must be set to the name and version of the information server software
-	// setenv("DOCUMENT_ROOT", "mnt/nfs/homes/avogt/sgoinfre/webserv/data", 1);
-}
-
 // GET
 
 std::string & Config::getIpAddress(void) {
@@ -79,7 +67,7 @@ std::string & Config::getIpAddress(void) {
 
 }
 
-std::vector<int> & Config::getPorts(void) {
+int	& Config::getPorts(void) {
 	return this->_ports;
 }
 
@@ -119,31 +107,13 @@ bool							& Config::getAutoIndex(void) {
 	return this->_autoIndex;
 }
 
-std::vector<std::vector<std::string> >	Config::_getConfOfFile(const char *conf) {
 
-	std::ifstream file(conf);
-	std::string line;
-	std::vector<std::vector<std::string> > confFile;
-	std::vector<std::string> tmp;
 
-	if (file.is_open()) {
-		while (getline(file, line)) {
-			tmp = this->_split(line, " \n\t");
-			if (!tmp.empty())
-				confFile.push_back(tmp);
-			tmp.clear();
-		}
-	}
-	else
-		throw std::runtime_error("Error: Cannot open conf file\n");
-	return confFile;
-}
-
-int	Config::_parseServerDeep(std::vector<std::vector<std::string> > confFile, size_t i) {
+int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("}") == 0)
-			break;
+			return i;
 		if (confFile[i][0].compare("listen") == 0)
 			this->_setListen(confFile[i]);
 		if (confFile[i][0].compare("server_name") == 0)
@@ -165,7 +135,7 @@ int	Config::_parseServerDeep(std::vector<std::vector<std::string> > confFile, si
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
 	}
-	return i;
+	throw std::runtime_error("Error: server{} not closed\n");
 }
 
 // SET
@@ -178,14 +148,14 @@ void Config::_setListen(std::vector<std::string> line) {
 		throw std::runtime_error("Bad listen config\n");
 	if ((cut = line[1].find(":")) == std::string::npos) {
 		if (isdigit(atoi(line[1].c_str())) == 0)
-			this->_ports.push_back(atoi(line[1].c_str()));
+			this->_ports = atoi(line[1].c_str());
 		else
 			throw std::runtime_error("Bad listen config\n" + line[1]);
 	}
 	else {
 		this->_ipAddress = line[1].substr(0, cut);
 		if (isdigit(atoi(line[1].substr(cut).c_str())) == 0)
-			this->_ports.push_back(atoi(line[1].substr(cut + 1).c_str()));
+			this->_ports = atoi(line[1].substr(cut + 1).c_str());
 		else
 			throw std::runtime_error("Bad listen config\n");
 	}
@@ -211,7 +181,7 @@ void Config::_setErrorPage(std::vector<std::string> line) {
 
 void Config::_setClientMaxBodySize(std::vector<std::string> line) {
 
-	if (line.size() != 2 || line[1].find_first_not_of("0123456789") == std::string::npos)
+	if (line.size() != 2 || line[1].find_first_not_of("0123456789") != std::string::npos)
 		throw std::runtime_error("Bad client_max_body_size config\n");
 	this->_clientMaxBodySize = atoi(line[1].c_str());
 }
@@ -220,7 +190,7 @@ void Config::_setCgiPass(std::vector<std::string> line) {
 
 	if (line.size() != 2)
 		throw std::runtime_error("Bad cgi_pass config\n");
-	this->_cgiPass = atoi(line[1].c_str());
+	this->_cgiPass = line[1].c_str();
 }
 
 void Config::_setAllowMethods(std::vector<std::string> line) {
@@ -233,30 +203,27 @@ void Config::_setAllowMethods(std::vector<std::string> line) {
 
 int Config::_setLocation(std::vector<std::vector<std::string> > confFile, size_t i) {
 
-	Config location;
+	Config		location;
+	std::string	path = confFile[i][1];
 
-	size_t j = 1;
-	if (confFile[i][j].compare("=") == 0)
-		j++;
-	std::string path = confFile[i][j];
-
-	for (; i < confFile.size(); i++) {
-		if (confFile[i][0].compare("location") == 0 && confFile[i][j + 1].compare("{") == 0) {
+	if (confFile[i].size() == 3){
+		if (confFile[i][0].compare("location") == 0 && confFile[i][2].compare("{") == 0) {
 			i = location._parseLocationDeep(confFile, i);
 			this->_location[path] = location;
 		}
-		if (confFile[i][0].compare("}") == 0)
-			return i;
-		throw std::runtime_error("Error: Need server }}}}}} configuration\n");
+		else
+			throw std::runtime_error("Error: Bad location configuration\n");
 	}
-	return 0;
+	else
+		throw std::runtime_error("Error: Bad location configuration\n");
+	return i;
 }
 
 int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (i++; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("}") == 0)
-			break;
+			return i;
 		if (confFile[i][0].compare("error_page") == 0)
 			this->_setErrorPage(confFile[i]);
 		if (confFile[i][0].compare("client_max_body_size") == 0)
@@ -274,7 +241,7 @@ int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, 
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
 	}
-	return i;
+	throw std::runtime_error("Error: location{} not closed\n");
 }
 
 void Config::_setRoot(std::vector<std::string> line) {
@@ -300,22 +267,7 @@ void Config::_setAutoIndex(std::vector<std::string> line) {
 		this->_autoIndex = true;
 }
 
-std::vector<std::string> Config::_split(std::string str, std::string charset){
 
-	std::vector<std::string> ret;
-	std::string::size_type start;
-	std::string::size_type end = 0;
-	std::string tmp;
-
-	str.push_back(charset[0]);
-	start = str.find_first_not_of(charset, 0);
-	while ((start = str.find_first_not_of(charset, end)) != std::string::npos) {
-		end = str.find_first_of(charset, start);
-		tmp = str.substr(start, end - start);
-		ret.push_back(tmp);
-	}
-	return (ret);
-}
 
 // void	Config::_setEnv(std::vector<std::vector<std::string> > confOut) {
 

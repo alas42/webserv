@@ -117,12 +117,12 @@ void	Response::binary(std::string filename)
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
-	
+
 	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
-	header.append(std::to_string(length));
+	// header.append(std::to_string(length));
 
 	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
 	this->_body = content;
@@ -158,4 +158,33 @@ void	Response::setting_mimes(void)
 	this->_mimes[".xml"] = 	"application/xml";
 	this->_mimes[".zip"] = 	"application/zip";
 	this->_mimes[".*"] = 	"application/octet-stream";
+}
+
+void	Response::create_bad_request(void)
+{
+	std::ifstream f("data/error_pages/400.html");
+	std::stringstream ss;
+	std::string header("HTTP/1.1 400 Bad Request\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	if (f)
+	{
+		header.append("Content-Length: ");
+		while (f.good())
+		{
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else // didn't find
+	{
+		return ;
+	}
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
 }

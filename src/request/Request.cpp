@@ -3,13 +3,19 @@
 /*
 ** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
 **
-**	when REQUEST received :
-		1. Check the url demanded and the method
-		2. Is a CGI called ?
-			a. GET -> send the data in QUERY_STRING env var ! IT WORKS
-			b. POST -> send the data via the CGI stdin (use of pipe)
-** when cgi called :
-**	
+**
+TODO LIST :
+	1. Check the url demanded and the method (WIP)
+	2.a CGI called
+		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
+		b. POST -> send the data via the CGI stdin (use of pipe) (done)
+			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
+			b.2 -> sending binary data into the pipe should not break (WIP)
+	2.b CGI not called
+		a. GET -> (done)
+		b. POST -> (not done)
+		c. DELETE -> (not done)
+**
 **
 */
 Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
@@ -133,13 +139,13 @@ char	**Request::create_env_tab(void)
 Response	Request::execute(void)
 {
 	Response r;
-	
+
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 	/*
 	** A prendre avec des pincette, les chemins seront d'abord mappes avec ceux de la conf
 	*/
-	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos 
+	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
@@ -157,6 +163,7 @@ Response	Request::execute(void)
 		/*it is another method we dont have PUT - HEAD - etc.*/
 		std::cerr << "What are you trying to do ?" << std::endl;
 		/*preparer une reponse d erreur */
+		r.create_bad_request();
 	}
 	return (r);
 }
@@ -362,7 +369,7 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos)
-	{	
+	{
 		i += 1;
 		while (!std::isspace(output.at(i + length_port)))
 		{
@@ -432,7 +439,6 @@ void Request::parse_output_client(std::string & output)
 {
 	size_t i = 0;
 	size_t length_content = 0;
-
 	std::stringstream ss;
 
 	if (output.find("\r\n\r\n") != std::string::npos)

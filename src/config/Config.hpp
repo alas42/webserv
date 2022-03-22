@@ -10,11 +10,10 @@ class Config
 		~Config(void);
 		Config(Config const & other);
 		Config & operator=(Config const & other);
-		void	parseServer(const char *conf_file);
 
 		//GET
 		std::string						& getIpAddress(void);
-		std::vector<int>				& getPorts(void);
+		int								& getPorts(void);
 		std::vector<std::string>		& getServerNames(void);
 		std::map<int, std::string>		& getErrorPages(void);
 		int								& getClientMaxBodySize(void);
@@ -24,10 +23,11 @@ class Config
 		std::string						& getRoot(void);
 		std::vector<std::string>		& getIndex(void);
 		bool							& getAutoIndex(void);
+		int	parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
 
 	private:
 		std::string						_ipAddress;
-		std::vector<int>				_ports;
+		int								_ports;
 		std::vector<std::string>		_serverNames;
 		std::map<int, std::string>		_errorPages;
 		int								_clientMaxBodySize;
@@ -39,8 +39,6 @@ class Config
 		bool							_autoIndex;
 
 		// Parse file .conf
-		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
-		int	_parseServerDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 
 		// SET
@@ -56,7 +54,6 @@ class Config
 		void	_setAutoIndex(std::vector<std::string> line);
 
 		// Util
-		std::vector<std::string>		_split(std::string s, std::string charset);
 
 		// void							_setEnv(std::vector<std::vector<std::string> > confOut);
 

@@ -1,12 +1,8 @@
 #ifndef RESPONSE_HPP
 # define RESPONSE_HPP
 
-# include <iostream>
-# include <string>
-# include <fstream>
-# include <sstream>
-# include <map>
-# include <algorithm>
+# include "./../../inc/webserv.hpp"
+
 /*
 ** Response to Client's Request
 */

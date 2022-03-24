@@ -1,20 +1,11 @@
 #ifndef SERVER_HPP
 # define SERVER_HPP
 
-# include <iostream>
-# include <fstream>
-# include <sstream>
-# include <string>
 # include "../config/Config.hpp"
-# include <sys/poll.h>
 # include "../client/Client.hpp"
 # include "../request/Request.hpp"
 # include "../response/Response.hpp"
-# include <algorithm>
-# include <map>
-# include <sys/types.h>
-# include <sys/stat.h>
-#include "../config/ConfigServer.hpp"
+# include "./../../inc/webserv.hpp"
 
 class Server
 {
@@ -37,6 +28,8 @@ class Server
 
 		std::map<std::string, Config> & getConfig(void);
 		std::vector<int> getPorts();
+		std::string getHostInConfig(std::string buffer);
+		void verifyHost(std::string & host);
 
 	private:
 		std::map<std::string, Config>	_config;

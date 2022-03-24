@@ -1,20 +1,9 @@
 #ifndef REQUEST_HPP
 # define REQUEST_HPP
 
-# include <iostream>
-# include <string>
-# include <sstream>
-# include <sys/wait.h>
-# include <sys/types.h>
-# include <sys/stat.h>
-# include <stdlib.h>
-# include <stdio.h>
-# include <unistd.h>
-# include <fcntl.h>
-# include <cstring>
-# include <map>
-# include <algorithm>
-# include "../response/Response.hpp"
+#include "../response/Response.hpp"
+#include "../config/Config.hpp"
+#include "../../inc/webserv.hpp"
 
 class Request
 {
@@ -23,7 +12,7 @@ class Request
 		~Request(void);
 		Request(const Request & other);
 		Request & operator=(const Request & other);
-		Request(const char * request_str, int rc);
+		Request(const char * request_str, int rc, Config &block);
 
 		void parse_output_client(std::string & output);
 		void parse_server_port(std::string & output, std::size_t & pos);
@@ -46,8 +35,9 @@ class Request
 
 	public:
 		std::string	_method;
-		
+
 	private:
+		Config								_block;
 		std::string							_string_request;
 		std::string							_path_to_cgi;
 		std::string							_postdata;

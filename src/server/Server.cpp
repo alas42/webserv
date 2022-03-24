@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/22 12:24:17 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/24 16:06:54 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,6 +27,8 @@ Server & Server::operator=(const Server & other)
 		{
 			this->_config = other._config;
 			this->_timeout = other._timeout;
+			this->_pollfds = other._pollfds;
+			this->_clients = other._clients;
 		}
 		return (*this);
 }
@@ -39,8 +41,23 @@ std::vector<int> Server::getPorts() {
 	std::vector<int> ports;
 
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
-		ports.push_back(it->second.getPorts());
+		ports.push_back(it->second.getPort());
 	return ports;
+}
+std::string Server::getHostInConfig(std::string buffer) {
+	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
+
+	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++) {
+		if (it->compare("Host:") == 0)
+			return (it + 1)->c_str();
+	}
+	return "NULL";
+}
+
+void Server::verifyHost(std::string & host) {
+
+	if (host.find("localhost") != std::string::npos)
+		host.replace(0, 9, "127.0.0.1");
 }
 
 void	Server::config(const char * conf_file)
@@ -54,7 +71,7 @@ int	Server::setup(void)
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
 
-	this->_pollfds.reserve(200);
+	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
@@ -78,12 +95,11 @@ int	Server::setup(void)
 		}
 
 		sock_structs.sin_family = AF_INET;
-		sock_structs.sin_port = htons(it->second.getPorts());
+		sock_structs.sin_port = htons(it->second.getPort());
 		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
-
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 		{
-			std::cerr << "bind error" << std::endl;
+			std::cerr << "bind error " << it->second.getServerNames()[0].c_str() << std::endl;
 			return (1);
 		}
 
@@ -168,7 +184,9 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
 	if (found != this->_clients.end())
 	{
-		found->second.createRequest(buffer, rc); // The Client object creates a Request
+		std::string host = this->getHostInConfig(buffer);
+		this->verifyHost(host);
+		found->second.createRequest(&buffer[0], rc, _config.at(host)); // The Client object creates a Request
 	}
 	free(buffer);
 	return (0);
@@ -300,7 +318,7 @@ void	Server::_fileToServer(const char *conf_file) {
 			Config block;
 
 			i = block.parseServer(confFile, i);
-			out << block.getPorts();
+			out << block.getPort();
 			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));
 		}

@@ -1,6 +1,6 @@
 #include "Request.hpp"
 
-Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
+Request::Request(void): _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _complete()
 {}
 
 Request::~Request(void)
@@ -11,8 +11,9 @@ Request::Request(const Request & other):
 	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str, int rc): _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
+Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
 {
+	std::cout << "request_str ================== " << request_str << std::endl;
 	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
@@ -34,10 +35,10 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 	this->parse_output_client(this->_string_request);
 
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
-	this->_env_vars["SERVER_NAME"] = "webserv";
+	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
+	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
-
+  
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
 	if (this->_method.compare("POST") == 0)
@@ -55,11 +56,11 @@ Request & Request::operator=(const Request & other)
 	if (this != &other)
 	{
 		this->_string_request = other._string_request;
-		this->_complete = other._complete;
-		this->_method = other._method;
+		this->_path_to_cgi = other._path_to_cgi;
 		this->_postdata = other._postdata;
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
+		this->_complete = other._complete;
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
@@ -68,6 +69,7 @@ Request & Request::operator=(const Request & other)
 		this->_chuncked = other._chuncked;
 		this->_cgi = other._cgi;
 		this->_post = other._post;
+		this->_method = other._method;
 	}
 	return (*this);
 }
@@ -146,9 +148,13 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	std::string root = "data";
-	root.append(this->_env_vars["REQUEST_URI"]);
-	r.create_get(root);
+	// std::string root = "data";
+	//chargement d'une page ou ressource (json, image etc)
+	//check droits//
+	//on part du principe qu'il les a pour test
+	// root.append(this->_env_vars["REQUEST_URI"]);
+	// r.create_get(root);
+	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);
 }
 
@@ -289,7 +295,7 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 	else
 	{
 		this->_env_vars["REQUEST_URI"] = "/index.html";
-	}
+  }
 }
 
 /*
@@ -420,8 +426,8 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept-Language:");
 
 
-	this->_env_vars["SCRIPT_NAME"] = "data" + this->_env_vars["REQUEST_URI"];
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))

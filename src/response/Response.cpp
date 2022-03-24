@@ -110,6 +110,11 @@ void	Response::create_get(std::string filename)
 	this->_raw_response.append(this->_body);
 }
 
+void	Response::create_post(std::string filename)
+{
+	(void)filename;
+}
+
 void	Response::binary(std::string filename)
 {
 	std::size_t length;

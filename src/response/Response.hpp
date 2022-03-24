@@ -25,6 +25,8 @@ class Response
 		void	setRawResponse(std::string new_raw_response);
 		void	create_cgi_base(void);
 		void	create_get(std::string filename);
+		void	create_post(std::string filename);
+		void	create_delete(std::string filename);
 		void	binary(std::string filename);
 		void	setting_mimes(void);
 		void	create_bad_request(void);

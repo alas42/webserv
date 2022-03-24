@@ -58,7 +58,6 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 		"HTTP_USER_AGENT",
 		"0"
 	};
-	std::cout << rc << std::endl;
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_string_request);
@@ -67,13 +66,15 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 	this->_env_vars["SERVER_NAME"] = "webserv";
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
+
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	if (this->_length_body > 0)
 	{
-		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body);
+		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
 		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
+		this->_raw_request[this->_length_body] = '\0';
 		write(1, "\n$$$$\n", 6);
-		write(1, _raw_request, this->_length_body);
+		//write(1, _raw_request, this->_length_body);
 		write(1, "\n$$$$\n", 6);
 	}
 }
@@ -189,9 +190,13 @@ Response	Request::execute_get(void)
 
 Response	Request::execute_post(void)
 {
-	//upload ?
+	Response r;
+	std::string root = "data/upload";
+
+	root.append(this->_env_vars["REQUEST_URI"]);
+	r.create_post(root);
 	std::cout << "uploading" << std::endl;
-	return Response();
+	return (r);
 }
 
 void	Request::execute_cgi(void)
@@ -228,7 +233,8 @@ void	Request::execute_cgi(void)
 
 	if (post)
 	{
-		write(pipes[1], this->_raw_request, this->_length_body);
+		std::cout << this->_length_body << std::endl;
+		write(pipes[1], this->_raw_request, this->_length_body + 1);
 	}
 	c_pid = fork();
 	if (c_pid == 0)
@@ -394,6 +400,7 @@ void	Request::parse_content_length(std::string & output)
 	else
 	{
 		this->_content_length = "0";
+		this->_length_body = 0;
 		this->_env_vars["CONTENT_LENGTH"] = "0";
 		std::cout << "content length not found" << std::endl;
 	}
@@ -457,17 +464,7 @@ void Request::parse_output_client(std::string & output)
 		parse_content_type(output);
 		ss << _content_length;
 		ss >> length_content;
-		if (this->_content_type.find("image") == std::string::npos
-			&& this->_content_type.find("application") == std::string::npos)
-		{
-			if (this->_content_length.compare("0"))
-				this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
-		}
-		else
-		{
-			this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content);
-			std::cout << "image or application" << std::endl;
-		}
+		std::cout << _length_body << std::endl;
 	}
 	else
 	{

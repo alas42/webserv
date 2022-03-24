@@ -174,7 +174,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
 	if (found != this->_clients.end())
 	{
-		found->second.createRequest(&buffer[0], rc); // The Client object creates a Request
+		found->second.createRequest(buffer, rc); // The Client object creates a Request
 	}
 	free(buffer);
 	return (0);

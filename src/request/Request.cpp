@@ -13,7 +13,7 @@ Request::Request(const Request & other):
 
 Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
 {
-	std::cout << "request_str ==================\n" << request_str << std::endl;
+	//std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
@@ -37,6 +37,7 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
+
 	this->parse_output_client(this->_string_request);
   
 	std::cout << "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot() << std::endl;
@@ -422,8 +423,10 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
 
-	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"].substr(1);
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))
@@ -434,7 +437,6 @@ void Request::parse_output_client(std::string & output)
 		ss << _content_length;
 		ss >> length_content;
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
 	}
 	else
 	{

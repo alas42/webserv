@@ -13,7 +13,7 @@ Request::Request(const Request & other):
 
 Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
 {
-	std::cout << "request_str ================== " << request_str << std::endl;
+	std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
@@ -32,13 +32,15 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	this->parse_output_client(this->_string_request);
-
+	
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
+	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
+	this->parse_output_client(this->_string_request);
   
+	std::cout << "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot() << std::endl;
+
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
 	if (this->_method.compare("POST") == 0)
@@ -87,6 +89,7 @@ char	**Request::create_env_tab(void)
 	size_t 		i = 0;
 
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
+	std::cout << "[" << std::endl;
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
 	for(;it != this->_env_vars.end(); it++)
 	{
@@ -103,10 +106,12 @@ char	**Request::create_env_tab(void)
 			env_tab[i] = strcat(env_tab[i], tmp);
 		}
 		env_tab[i][length - 1] = '\0';
+		std::cout << env_tab[i] << std::endl;
 		if (tmp)
 			free(tmp);
 		i++;
 	}
+	std::cout << "]" << std::endl;
 	env_tab[this->_env_vars.size()] = 0;
 	return env_tab;
 }
@@ -154,7 +159,9 @@ Response	Request::execute_get(void)
 	//on part du principe qu'il les a pour test
 	// root.append(this->_env_vars["REQUEST_URI"]);
 	// r.create_get(root);
+	std::cout << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]<< std::endl;
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
+
 	return (r);
 }
 
@@ -276,13 +283,14 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 	std::size_t i = 0, length_uri = 0;
 	std::string request_uri;
 
-	i = output.find("/") + 1;
+	i = output.find("/");
 	while (!std::isspace(output.at(i + length_uri)))
 	{
 		length_uri++;
 	}
 	request_uri = output.substr(i, length_uri);
 	this->_env_vars["REQUEST_URI"] = request_uri;
+	std::cout << this->_env_vars["REQUEST_URI"] << std::endl;
 	pos += (i - pos) + length_uri;
 	parse_query_string(request_uri);
 }
@@ -413,7 +421,6 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
-
 
 	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];

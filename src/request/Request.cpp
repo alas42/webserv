@@ -276,26 +276,15 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 	std::size_t i = 0, length_uri = 0;
 	std::string request_uri;
 
-	if ((i = output.find("/")) != std::string::npos)
+	i = output.find("/") + 1;
+	while (!std::isspace(output.at(i + length_uri)))
 	{
-		while (!std::isspace(output.at(i + length_uri)))
-		{
-			length_uri++;
-		}
-		if (length_uri == 1)
-		{
-			this->_env_vars["REQUEST_URI"] = "/index.html";
-			return ;
-		}
-		request_uri = output.substr(i, length_uri);
-		this->_env_vars["REQUEST_URI"] = request_uri;
-		pos += (i - pos) + length_uri;
-		parse_query_string(request_uri);
+		length_uri++;
 	}
-	else
-	{
-		this->_env_vars["REQUEST_URI"] = "/index.html";
-  }
+	request_uri = output.substr(i, length_uri);
+	this->_env_vars["REQUEST_URI"] = request_uri;
+	pos += (i - pos) + length_uri;
+	parse_query_string(request_uri);
 }
 
 /*

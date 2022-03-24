@@ -59,7 +59,6 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 		"HTTP_USER_AGENT",
 		"0"
 	};
-	std::cout << rc << std::endl;
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_string_request);
@@ -157,6 +156,7 @@ Response	Request::execute(void)
 		/*it is another method we dont have PUT - HEAD - etc.*/
 		std::cerr << "What are you trying to do ?" << std::endl;
 		/*preparer une reponse d erreur */
+		r.create_bad_request();
 	}
 	return (r);
 }
@@ -183,9 +183,13 @@ Response	Request::execute_get(void)
 
 Response	Request::execute_post(void)
 {
-	//upload ?
+	Response r;
+	std::string root = "data/upload";
+
+	root.append(this->_env_vars["REQUEST_URI"]);
+	r.create_post(root);
 	std::cout << "uploading" << std::endl;
-	return Response();
+	return (r);
 }
 
 void	Request::execute_cgi(void)
@@ -196,8 +200,6 @@ void	Request::execute_cgi(void)
 	pid_t		c_pid;
 	int			status = 0, log;
 	bool		post = false;
-	char 		*a = NULL;
-	//FILE		*fp;
 
 	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
@@ -223,8 +225,8 @@ void	Request::execute_cgi(void)
 
 	if (post)
 	{
-		a = strdup(this->_postdata.c_str());
-		write(pipes[1], this->_postdata.c_str(), this->_postdata.size());
+		std::cout << this->_length_body << std::endl;
+		write(pipes[1], this->_raw_request, this->_length_body + 1);
 	}
 	c_pid = fork();
 	if (c_pid == 0)
@@ -253,7 +255,7 @@ void	Request::execute_cgi(void)
 		if (post)
 		{
 			close(pipes[1]);
-			free(a);
+			free(this->_raw_request);
 		}
 		close(log);
 	}
@@ -383,6 +385,7 @@ void	Request::parse_content_length(std::string & output)
 	else
 	{
 		this->_content_length = "0";
+		this->_length_body = 0;
 		this->_env_vars["CONTENT_LENGTH"] = "0";
 		std::cout << "content length not found" << std::endl;
 	}
@@ -433,7 +436,6 @@ void Request::parse_output_client(std::string & output)
 		this->_header = output.substr(0, output.find("\r\n\r\n"));
 	else
 		this->_header = output;
-	std::cout << this->_header << std::endl;
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
@@ -445,19 +447,9 @@ void Request::parse_output_client(std::string & output)
 	{
 		parse_content_length(output);
 		parse_content_type(output);
-		if (this->_content_type.find("image") == std::string::npos)
-		{
-			if (this->_content_length.compare("0"))
-			{
-				ss << _content_length;
-				ss >> length_content;
-				this->_postdata = output.substr(output.find("\r\n\r\n", 0) + 4, length_content); //save body
-			}
-		}
-		else
-		{
-			std::cout << "image or application" << std::endl;
-		}
+		ss << _content_length;
+		ss >> length_content;
+		std::cout << _length_body << std::endl;
 	}
 	else
 	{

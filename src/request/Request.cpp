@@ -11,7 +11,7 @@ Request::Request(const Request & other):
 	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
+Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
 {
 	//std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] = {
@@ -39,12 +39,10 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 
 	this->parse_output_client(this->_string_request);
-  
-	std::cout << "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot() << std::endl;
 
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
-	if (this->_method.compare("POST") == 0)
+	if (this->_post)
 	{
 		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
 		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
@@ -189,6 +187,7 @@ void	Request::execute_cgi(void)
 		perror("pipe");
 
 	env_tab = create_env_tab();
+	std::cout << this->_path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
@@ -374,7 +373,7 @@ void Request::parse_content_type (std::string & output)
 	}
 	else
 	{
-		this->_content_type = "text/plain";
+		this->_content_type = "text/html";
 	}
 	this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 }
@@ -419,14 +418,13 @@ void Request::parse_output_client(std::string & output)
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
 	parse_transfer_encoding(output);
+	parse_content_type(output);
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
 
-	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"].substr(1);
+	this->_env_vars["SCRIPT_NAME"] = this->_block.getRoot() + "/" + this->_env_vars["REQUEST_URI"].substr(1);
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
-	this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-	this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))
@@ -437,6 +435,7 @@ void Request::parse_output_client(std::string & output)
 		ss << _content_length;
 		ss >> length_content;
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
 	}
 	else
 	{

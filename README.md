@@ -146,3 +146,22 @@ https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reusepor
 
 HTTP 1.1 : RFC 7230 to 7237
 https://datatracker.ietf.org/doc/html/rfc7230#section-1
+
+/*
+** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
+**
+**
+TODO LIST :
+	1. Check the url demanded and the method (WIP)
+	2.a CGI called
+		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
+		b. POST -> send the data via the CGI stdin (use of pipe) (done)
+			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
+			b.2 -> sending binary data into the pipe should not break (WIP)
+	2.b CGI not called
+		a. GET -> (done)
+		b. POST -> (not done)
+		c. DELETE -> (not done)
+**
+**
+*/

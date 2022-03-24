@@ -26,12 +26,12 @@ Response & Response::operator=(const Response & other)
 	return (*this);
 }
 
-void	Response::setHeader(std::string new_header) {this->_header = new_header;}
-void	Response::setBody(std::string new_body) {this->_body= new_body;}
-void	Response::setRawResponse(std::string new_raw_response) {this->_raw_response = new_raw_response;}
-std::string & Response::getHeader(void){ return this->_header; }
-std::string & Response::getBody(void) {return this->_body; }
-std::string & Response::getRawResponse(void){ return this->_raw_response; }
+void			Response::setHeader(std::string new_header) {this->_header = new_header;}
+void			Response::setBody(std::string new_body) {this->_body= new_body;}
+void			Response::setRawResponse(std::string new_raw_response) {this->_raw_response = new_raw_response;}
+std::string &	Response::getHeader(void){ return this->_header; }
+std::string &	Response::getBody(void) {return this->_body; }
+std::string &	Response::getRawResponse(void){ return this->_raw_response; }
 
 void	Response::create_cgi_base(void)
 {
@@ -78,7 +78,7 @@ void	Response::create_get(std::string filename)
 	** First check mime_type of request
 	** Binary of text ?
 	*/
-	if (filename.find(".png") != std::string::npos)
+	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
 		this->binary(filename);
 		return ;
@@ -183,7 +183,7 @@ void	Response::create_bad_request(void)
 			body.append("\r\n");
 		}
 	}
-	else // didn't find
+	else
 	{
 		return ;
 	}
@@ -198,9 +198,13 @@ void	Response::create_bad_request(void)
 
 void	Response::create_Forbidden(void)
 {
+	//creer un fd
+	//ajouter a la liste des polls dans Server.cpp
+	//une fois qu'on passe (boucle suivante) dedans
+	//lire le fichier et continuer la preparation de la reponse
 	std::ifstream f("data/error_pages/403.html");
 	std::stringstream ss;
-	std::string header("HTTP/1.1 400 Forbidden\r\nConnection: keep-alive\r\n");
+	std::string header("HTTP/1.1 403 Forbidden\r\nConnection: keep-alive\r\n");
 	std::string str, body;
 	if (f)
 	{
@@ -212,7 +216,7 @@ void	Response::create_Forbidden(void)
 			body.append("\r\n");
 		}
 	}
-	else // didn't find
+	else
 	{
 		return ;
 	}

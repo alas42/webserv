@@ -5,9 +5,6 @@
 #include "../config/Config.hpp"
 #include "../../inc/webserv.hpp"
 
-/*
-** FOR HTTP REQUEST WE GET FROM USER
-*/
 class Request
 {
 	public:
@@ -26,6 +23,7 @@ class Request
 		void parse_content_length(std::string & output);
 		void parse_content_type (std::string & output);
 		void parse_http_accept(std::string &output, std::string tofind);
+		void parse_transfer_encoding(std::string & output);
 		bool isComplete(void);
 		Response execute(void);
 		void execute_cgi(void);
@@ -50,6 +48,10 @@ class Request
 		std::string							_header;
 		size_t								_length_body;
 		char *								_raw_request;
+		size_t								_length_received; // to check when it is complete
+		bool								_cgi;
+		bool								_chuncked;
+		bool								_post;
 };
 
 #endif

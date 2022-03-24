@@ -1,23 +1,5 @@
 #include "Request.hpp"
 
-/*
-** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
-**
-**
-TODO LIST :
-	1. Check the url demanded and the method (WIP)
-	2.a CGI called
-		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
-		b. POST -> send the data via the CGI stdin (use of pipe) (done)
-			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
-			b.2 -> sending binary data into the pipe should not break (WIP)
-	2.b CGI not called
-		a. GET -> (done)
-		b. POST -> (not done)
-		c. DELETE -> (not done)
-**
-**
-*/
 Request::Request(void): _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _complete()
 {}
 
@@ -33,42 +15,40 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 {
 	std::cout << "request_str ================== " << request_str << std::endl;
 	std::string env_var[] = {
-		"REDIRECT_STATUS",
-		"DOCUMENT_ROOT",
-		"SERVER_SOFTWARE",
-		"SERVER_NAME",
-		"GATEWAY_INTERFACE",
-		"SERVER_PROTOCOL",
-		"SERVER_PORT",
-		"REQUEST_URI",
-		"REQUEST_METHOD",
-		"CONTENT_TYPE",
-		"CONTENT_LENGTH",
-		"PATH_INFO",
-		"PATH_TRANSLATED",
-		"SCRIPT_NAME",
-		"SCRIPT_FILENAME",
-		"QUERY_STRING",
-		"REMOTE_HOST",
-		"REMOTE_ADDR",
-		"AUTH_TYPE",
-		"REMOTE_USER",
-		"REMOTE_IDENT",
-		"HTTP_ACCEPT",
-		"HTTP_ACCEPT_LANGUAGE",
-		"HTTP_USER_AGENT",
+		"REDIRECT_STATUS", "DOCUMENT_ROOT",
+		"SERVER_SOFTWARE", "SERVER_NAME",
+		"GATEWAY_INTERFACE", "SERVER_PROTOCOL",
+		"SERVER_PORT", "REQUEST_URI",
+		"REQUEST_METHOD", "CONTENT_TYPE",
+		"CONTENT_LENGTH", "PATH_INFO",
+		"PATH_TRANSLATED", "SCRIPT_NAME",
+		"SCRIPT_FILENAME", "QUERY_STRING",
+		"REMOTE_HOST", "REMOTE_ADDR",
+		"AUTH_TYPE", "REMOTE_USER",
+		"REMOTE_IDENT", "HTTP_ACCEPT",
+		"HTTP_ACCEPT_LANGUAGE", "HTTP_USER_AGENT",
 		"0"
 	};
+
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_string_request);
+
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
+  
+	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+
+	if (this->_method.compare("POST") == 0)
+	{
+		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
+		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
+		this->_raw_request[this->_length_body] = '\0';
+	}
+	this->_cgi = false;
 	this->_complete = true;
-	this->_raw_request = (char *)malloc(sizeof(char) * rc);
-	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);
 }
 
 Request & Request::operator=(const Request & other)
@@ -84,6 +64,11 @@ Request & Request::operator=(const Request & other)
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
+		this->_raw_request = other._raw_request;
+		this->_length_received = other._length_received;
+		this->_chuncked = other._chuncked;
+		this->_cgi = other._cgi;
+		this->_post = other._post;
 		this->_method = other._method;
 	}
 	return (*this);
@@ -99,10 +84,9 @@ char	**Request::create_env_tab(void)
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
 	size_t		length = 0;
-	size_t i = 0;
+	size_t 		i = 0;
 
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
-	std::cout << "{" << std::endl;
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
 	for(;it != this->_env_vars.end(); it++)
 	{
@@ -121,11 +105,9 @@ char	**Request::create_env_tab(void)
 		env_tab[i][length - 1] = '\0';
 		if (tmp)
 			free(tmp);
-		std::cout << env_tab[i] << "$"<< std::endl;
 		i++;
 	}
 	env_tab[this->_env_vars.size()] = 0;
-	std::cout << "}\n" << std::endl;
 	return env_tab;
 }
 
@@ -135,9 +117,8 @@ Response	Request::execute(void)
 
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
-	/*
-	** A prendre avec des pincette, les chemins seront d'abord mappes avec ceux de la conf
-	*/
+
+	//if (this->_cgi) -> this->_cgi should be set to true if based on the conf a script has been called
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
@@ -153,9 +134,6 @@ Response	Request::execute(void)
 				return (this->*ptr[i])();
 			}
 		}
-		/*it is another method we dont have PUT - HEAD - etc.*/
-		std::cerr << "What are you trying to do ?" << std::endl;
-		/*preparer une reponse d erreur */
 		r.create_bad_request();
 	}
 	return (r);
@@ -163,7 +141,6 @@ Response	Request::execute(void)
 
 Response	Request::execute_delete(void)
 {
-	//suppression d'une image etc (au prealable uploaded ?)
 	std::cout << "deletion" << std::endl;
 	return Response();
 }
@@ -181,7 +158,7 @@ Response	Request::execute_get(void)
 	return (r);
 }
 
-Response	Request::execute_post(void)
+Response	Request::execute_post(void) // -> BAD REQUEST (SCRIPT NOT SPECIFIED)
 {
 	Response r;
 	std::string root = "data/upload";
@@ -199,39 +176,23 @@ void	Request::execute_cgi(void)
 	char		**env_tab = NULL;
 	pid_t		c_pid;
 	int			status = 0, log;
-	bool		post = false;
 
-	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
-	this->_env_vars["REDIRECT_STATUS"] = "200";
-
-	if (!this->_method.compare("POST"))
-	{
-		post = true;
-		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
-		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		if (pipe(pipes) == -1)
-			perror("pipe");
-	}
-	else
-		this->_env_vars["CONTENT_TYPE"] = "text/html";
+	if (this->_post && pipe(pipes) == -1)
+		perror("pipe");
 
 	env_tab = create_env_tab();
-
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
-	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 
-	if (post)
-	{
-		std::cout << this->_length_body << std::endl;
+	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	if (this->_post)
 		write(pipes[1], this->_raw_request, this->_length_body + 1);
-	}
+
 	c_pid = fork();
 	if (c_pid == 0)
 	{
-		if (post)
+		if (this->_post)
 		{
 			close(pipes[1]);
 			if (dup2(pipes[0], STDIN_FILENO) == -1)
@@ -249,10 +210,10 @@ void	Request::execute_cgi(void)
 	}
 	else
 	{
-		if (post)
+		if (this->_post)
 			close(pipes[0]);
 		waitpid(c_pid, &status, 0);
-		if (post)
+		if (this->_post)
 		{
 			close(pipes[1]);
 			free(this->_raw_request);
@@ -312,18 +273,29 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 
 void Request::parse_request_uri(std::string & output, std::size_t & pos)
 {
-	std::size_t i = 0, length_uri = i;
+	std::size_t i = 0, length_uri = 0;
 	std::string request_uri;
 
-	i = output.find("/") + 1;
-	while (!std::isspace(output.at(i + length_uri)))
+	if ((i = output.find("/")) != std::string::npos)
 	{
-		length_uri++;
+		while (!std::isspace(output.at(i + length_uri)))
+		{
+			length_uri++;
+		}
+		if (length_uri == 1)
+		{
+			this->_env_vars["REQUEST_URI"] = "/index.html";
+			return ;
+		}
+		request_uri = output.substr(i, length_uri);
+		this->_env_vars["REQUEST_URI"] = request_uri;
+		pos += (i - pos) + length_uri;
+		parse_query_string(request_uri);
 	}
-	request_uri = output.substr(i, length_uri);
-	this->_env_vars["REQUEST_URI"] = request_uri;
-	pos += (i - pos) + length_uri;
-	parse_query_string(request_uri);
+	else
+	{
+		this->_env_vars["REQUEST_URI"] = "/index.html";
+  }
 }
 
 /*
@@ -380,15 +352,13 @@ void	Request::parse_content_length(std::string & output)
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
-		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else
 	{
 		this->_content_length = "0";
 		this->_length_body = 0;
-		this->_env_vars["CONTENT_LENGTH"] = "0";
-		std::cout << "content length not found" << std::endl;
 	}
+	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 }
 
 void Request::parse_content_type (std::string & output)
@@ -403,27 +373,36 @@ void Request::parse_content_type (std::string & output)
 			length_content_type++;
 		}
 		this->_content_type = output.substr(i, length_content_type);
-		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 	}
 	else
 	{
-		this->_content_type = "";
-		std::cout << "content type not found" << std::endl;
+		this->_content_type = "text/plain";
 	}
+	this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 }
 
 void Request::parse_http_accept(std::string &output, std::string tofind)
 {
 	std::size_t i = 0;
 	std::size_t length = 0;
+
 	if ((i = output.find(tofind, 0)) != std::string::npos)
 	{
-		i += tofind.size() + 2;
+		i += tofind.size() + 1;
 		std::transform(tofind.begin(), tofind.end(), tofind.begin(), ::toupper);
 		std::replace(tofind.begin(), tofind.end(), '-', '_');
 		length = output.find("\r\n", i);
+		tofind.pop_back();
 		this->_env_vars["HTTP_" + tofind] = output.substr(i, length - i);
 	}
+}
+
+void Request::parse_transfer_encoding(std::string & output)
+{
+	if (output.find("Transfer-Encoding: chunked") != std::string::npos)
+		this->_chuncked = true;
+	else
+		this->_chuncked = false;
 }
 
 void Request::parse_output_client(std::string & output)
@@ -436,23 +415,34 @@ void Request::parse_output_client(std::string & output)
 		this->_header = output.substr(0, output.find("\r\n\r\n"));
 	else
 		this->_header = output;
+
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
-	parse_http_accept(output, "Accept");
-	parse_http_accept(output, "Accept-Encoding");
-	parse_http_accept(output, "Accept-Language");
+	parse_transfer_encoding(output);
+	parse_http_accept(output, "Accept:");
+	parse_http_accept(output, "Accept-Encoding:");
+	parse_http_accept(output, "Accept-Language:");
+
+
+	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["REDIRECT_STATUS"] = "200";
+
 	if (!this->_method.compare("POST"))
 	{
+		this->_post = true;
 		parse_content_length(output);
 		parse_content_type(output);
 		ss << _content_length;
 		ss >> length_content;
-		std::cout << _length_body << std::endl;
+		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
 	}
 	else
 	{
+		this->_post = false;
 		this->_length_body = 0;
 		this->_env_vars["CONTENT_LENGTH"] = "0";
 	}

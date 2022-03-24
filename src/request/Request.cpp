@@ -18,7 +18,7 @@ TODO LIST :
 **
 **
 */
-Request::Request(void): _method(), _string_request(), _path_to_cgi("cgi/php-cgi"), _postdata(), _content_length(), _content_type(), _complete()
+Request::Request(void): _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _complete()
 {}
 
 Request::~Request(void)
@@ -29,8 +29,9 @@ Request::Request(const Request & other):
 	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str, int rc): _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
+Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
 {
+	std::cout << "request_str ================== " << request_str << std::endl;
 	std::string env_var[] = {
 		"REDIRECT_STATUS",
 		"DOCUMENT_ROOT",
@@ -62,21 +63,12 @@ Request::Request(const char * request_str, int rc): _method(), _string_request(r
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->parse_output_client(this->_string_request);
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = "mnt/nfs/homes/avogt/sgoinfre/webserv/data";
-	this->_env_vars["SERVER_NAME"] = "webserv";
+	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
+	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 	this->_complete = true;
-
-	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
-	if (this->_length_body > 0)
-	{
-		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
-		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
-		this->_raw_request[this->_length_body] = '\0';
-		write(1, "\n$$$$\n", 6);
-		//write(1, _raw_request, this->_length_body);
-		write(1, "\n$$$$\n", 6);
-	}
+	this->_raw_request = (char *)malloc(sizeof(char) * rc);
+	this->_raw_request = (char *)memcpy(_raw_request, request_str, (size_t)rc);
 }
 
 Request & Request::operator=(const Request & other)
@@ -84,15 +76,15 @@ Request & Request::operator=(const Request & other)
 	if (this != &other)
 	{
 		this->_string_request = other._string_request;
-		this->_complete = other._complete;
-		this->_method = other._method;
+		this->_path_to_cgi = other._path_to_cgi;
 		this->_postdata = other._postdata;
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
+		this->_complete = other._complete;
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
-		this->_raw_request = other._raw_request;
+		this->_method = other._method;
 	}
 	return (*this);
 }
@@ -179,12 +171,13 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	std::string root = "data";
+	// std::string root = "data";
 	//chargement d'une page ou ressource (json, image etc)
 	//check droits//
 	//on part du principe qu'il les a pour test
-	root.append(this->_env_vars["REQUEST_URI"]);
-	r.create_get(root);
+	// root.append(this->_env_vars["REQUEST_URI"]);
+	// r.create_get(root);
+	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);
 }
 
@@ -208,8 +201,8 @@ void	Request::execute_cgi(void)
 	int			status = 0, log;
 	bool		post = false;
 
-	this->_env_vars["SCRIPT_NAME"] = "data" + this->_env_vars["REQUEST_URI"];
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))
@@ -217,7 +210,6 @@ void	Request::execute_cgi(void)
 		post = true;
 		this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
 		if (pipe(pipes) == -1)
 			perror("pipe");
 	}
@@ -323,22 +315,15 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 	std::size_t i = 0, length_uri = i;
 	std::string request_uri;
 
-	if ((i = output.find("/")) != std::string::npos)
+	i = output.find("/") + 1;
+	while (!std::isspace(output.at(i + length_uri)))
 	{
-		while (!std::isspace(output.at(i + length_uri)))
-		{
-			length_uri++;
-		}
-		request_uri = output.substr(i, length_uri);
-		this->_env_vars["REQUEST_URI"] = request_uri;
-		pos += (i - pos) + length_uri;
-		parse_query_string(request_uri);
+		length_uri++;
 	}
-	else
-	{
-		this->_env_vars["REQUEST_URI"] = "index.html";
-		std::cerr << "/ not found (for request_uri)" << std::endl;
-	}
+	request_uri = output.substr(i, length_uri);
+	this->_env_vars["REQUEST_URI"] = request_uri;
+	pos += (i - pos) + length_uri;
+	parse_query_string(request_uri);
 }
 
 /*

@@ -12,6 +12,8 @@
 #include <cstring>
 #include <cstdlib>
 #include <string>
+#include <algorithm>
+#include <sstream>
 
 // C Headers
 #include <unistd.h>

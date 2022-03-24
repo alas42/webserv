@@ -154,8 +154,6 @@ bool	Server::accept_connections(int server_fd)
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-	if (r.getRawResponse().size() < 3)
-		return (0);
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{
@@ -173,18 +171,20 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator found;
 	int 			rc = -1;
-	char   			buffer[90000];
+	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, sizeof(buffer), 0);
+	rc = recv(it->fd, buffer, 90000, 0);
 	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
+		free(buffer);
 		return (1);
 	}
 	else if (rc == 0)
 	{
 		this->close_connection(it);
+		free(buffer);
 		return (1);
 	}
 	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
@@ -194,6 +194,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 		this->verifyHost(host);
 		found->second.createRequest(&buffer[0], rc, _config.at(host)); // The Client object creates a Request
 	}
+	free(buffer);
 	return (0);
 }
 

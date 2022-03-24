@@ -1,5 +1,4 @@
 <?php
-	echo "You are in\n";
 	$target_dir = "uploads/";
 	$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
 	$uploadOk = 1;
@@ -8,16 +7,7 @@
 	// Check if image file is a actual image or fake image
 	if(isset($_POST["submit"]))
 	{
-		$check = getimagesize($_FILES["fileToUpload"]["tmp_name"]);
-		if($check !== false)
-		{
-			$uploadOk = 1;
-		}
-		else
-		{
-			echo "File is not an image.";
-			$uploadOk = 0;
-		}
+		$uploadOk = 1;
 	}
 	else
 	{
@@ -40,9 +30,9 @@
 
 	// Allow certain file formats
 	if($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg"
-	&& $imageFileType != "gif" )
+	&& $imageFileType != "gif" && $imageFileType != 'html' && $imageFileType != "txt")
 	{
-		echo "Sorry, only JPG, JPEG, PNG & GIF files are allowed.\n";
+		echo "Sorry, only JPG, JPEG, PNG, GIF, HTML & TXT files are allowed.\n";
 		$uploadOk = 0;
 	}
 
@@ -50,7 +40,6 @@
 	if ($uploadOk == 0)
 	{
 		echo "Sorry, your file was not uploaded.\n";
-	// if everything is ok, try to upload file
 	}
 	else
 	{

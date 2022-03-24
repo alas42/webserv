@@ -87,7 +87,7 @@ int	Server::setup(void)
 			return (1);
 		}
 
-		if (listen(server_fd, 42) < 0)
+		if (listen(server_fd, 150) < 0)
 		{
 			std::cerr << "listen error" << std::endl;
 			return (1);
@@ -124,11 +124,9 @@ bool	Server::accept_connections(int server_fd)
 			}
 			break ;
 		}
-		printf("  New incoming connection - %d\n", new_socket);
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		std::cout << "Creation of new Client (which will have Requests and to which we will send Responses)" << std::endl;
 		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
 	} while (new_socket != -1);
 	return (false);
@@ -143,10 +141,6 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 	{
 		perror("send error");
 		return (1);
-	}
-	else if (i > 0)
-	{
-		std::cout << i << " bytes sent/" <<  r.getRawResponse().size() << " total bytes" << std::endl;
 	}
 	return (0);
 }
@@ -182,18 +176,20 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 
 void	Server::print_revents(pollfd fd)
 {
-	printf("\n*************************************************\nfd=%d->revents: %s%s%s\n", fd.fd,
+	printf("\n*************************************************\nfd=%d->revents: %s%s%s%s\n", fd.fd,
 		(fd.revents & POLLIN)  ? "POLLIN "  : "",
+		(fd.revents & POLLOUT) ? "POLLOUT " : "",
 		(fd.revents & POLLHUP) ? "POLLHUP " : "",
 		(fd.revents & POLLERR) ? "POLLERR " : "");
 }
 
 bool	Server::checking_revents(void)
 {
-	bool							end = false; //should be global or static singleton because signals should interrupt the server
+	bool							end = false;
 	std::vector<int>::iterator		find = this->_server_fds.end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
+	std::map<int, Client>::iterator client;
 
 	for (; it != ite; it++)
 	{
@@ -212,17 +208,23 @@ bool	Server::checking_revents(void)
 			{
 				if (this->receiving(it))
 					break;
-				std::map<int, Client>::iterator client = this->_clients.find(it->fd);
-				if (client != this->_clients.end())// in all logic, this should never fail
+				client = this->_clients.find(it->fd);
+				if (client != this->_clients.end())
 				{
-					if (client->second.getRequest().isComplete()) // request from client is ready
-					{
-						Response r = client->second.getRequest().execute(); // execute it
-						/* Creation of Response*/
-						if (this->sending(it, r))
-							break;
-					}
+					if (client->second.getRequest().isComplete())
+						it->events = POLLOUT;
 				}
+			}
+		}
+		else if (it->revents & POLLOUT)
+		{
+			client = this->_clients.find(it->fd);
+			if (client != this->_clients.end())
+			{
+				Response r = client->second.getRequest().execute();
+				if (this->sending(it, r))
+					break;
+				it->events = POLLIN;
 			}
 		}
 		else if (it->revents & POLLERR)
@@ -307,23 +309,3 @@ void	Server::_fileToServer(const char *conf_file) {
 	}
 
 }
-
-
-/*
-**	Simplification of code :
-**
-**	listen to fds
-**	if (event is on server side)
-**		accept->new Client
-**	if (event is on client side)
-**	{
-**		recv -> new Request
-**		fork(process cgi);
-**		get hold on answer;
-**		send (new Response(info to transmit))
-**	}
-*/
-
-/*
-** POLLOUT usage : https://stackoverflow.com/questions/12170037/when-to-use-the-pollout-event-of-the-poll-c-function
-*/

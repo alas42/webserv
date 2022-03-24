@@ -1,8 +1,7 @@
 #ifndef LISTEN_HPP
 # define LISTEN_HPP
 
-# include <iostream>
-# include <string>
+# include "./../../inc/webserv.hpp"
 
 class Listen
 {

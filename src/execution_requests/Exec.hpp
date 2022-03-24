@@ -3,18 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Exec.hpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
+/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 17:54:33 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/10 17:54:36 by ymehdi           ###   ########.fr       */
+/*   Updated: 2022/03/24 18:28:02 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef EXEC_HPP
 # define EXEC_HPP
 
-# include <iostream>
-# include <string>
+# include "./../../inc/webserv.hpp"
 
 class Exec
 {

@@ -19,6 +19,7 @@ Client & Client::operator=(Client const & other)
 	if (this != &other)
 	{
 		this->_client_fd = other._client_fd;
+		this->_http_request = other._http_request;
 	}
 	return (*this);
 }
@@ -28,9 +29,9 @@ struct pollfd Client::getClientFd(void)
 	return this->_client_fd;
 }
 
-void	Client::createRequest(const char *str, int rc)
+void	Client::createRequest(const char *str, int rc, Config block)
 {
-	this->_http_request = Request(str, rc);
+	this->_http_request = Request(str, rc, block);
 }
 
 Request & Client::getRequest(void)

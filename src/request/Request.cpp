@@ -11,9 +11,9 @@ Request::Request(const Request & other):
 	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi(), _postdata(),_content_length(), _content_type(), _complete(false)
+Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
 {
-	std::cout << "request_str ================== " << request_str << std::endl;
+	//std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
@@ -32,16 +32,16 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	this->parse_output_client(this->_string_request);
-
+	
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
+	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 
+	this->parse_output_client(this->_string_request);
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
-	if (this->_method.compare("POST") == 0)
+	if (this->_post)
 	{
 		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
 		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
@@ -87,6 +87,7 @@ char	**Request::create_env_tab(void)
 	size_t 		i = 0;
 
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
+	std::cout << "[" << std::endl;
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
 	for(;it != this->_env_vars.end(); it++)
 	{
@@ -103,10 +104,12 @@ char	**Request::create_env_tab(void)
 			env_tab[i] = strcat(env_tab[i], tmp);
 		}
 		env_tab[i][length - 1] = '\0';
+		std::cout << env_tab[i] << std::endl;
 		if (tmp)
 			free(tmp);
 		i++;
 	}
+	std::cout << "]" << std::endl;
 	env_tab[this->_env_vars.size()] = 0;
 	return env_tab;
 }
@@ -152,6 +155,7 @@ Response	Request::execute_get(void)
 	//check droits//
 	//on part du principe qu'il les a pour test
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
+
 	return (r);
 }
 
@@ -178,6 +182,7 @@ void	Request::execute_cgi(void)
 		perror("pipe");
 
 	env_tab = create_env_tab();
+	std::cout << this->_path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
@@ -365,7 +370,7 @@ void Request::parse_content_type (std::string & output)
 	}
 	else
 	{
-		this->_content_type = "text/plain";
+		this->_content_type = "text/html";
 	}
 	this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 }
@@ -410,6 +415,7 @@ void Request::parse_output_client(std::string & output)
 	parse_server_protocol(output, i);
 	parse_server_port(output, i);
 	parse_transfer_encoding(output);
+	parse_content_type(output);
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
@@ -426,7 +432,7 @@ void Request::parse_output_client(std::string & output)
 		ss << _content_length;
 		ss >> length_content;
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] =  "/mnt/nfs/homes/avogt/sgoinfre/avogt/" + this->_env_vars["PATH_INFO"];
+		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
 	}
 	else
 	{

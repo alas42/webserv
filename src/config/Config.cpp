@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/24 17:01:44 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/24 19:33:18 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -108,7 +108,6 @@ bool							& Config::getAutoIndex(void) {
 }
 
 
-
 int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (; i < confFile.size(); i++) {
@@ -136,6 +135,13 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 			this->_setAutoIndex(confFile[i]);
 	}
 	throw std::runtime_error("Error: server{} not closed\n");
+}
+
+void Config::checkBlock() {
+	if (this->_serverNames.empty())
+		this->_serverNames.push_back("");
+	if (this->_index.empty())
+		this->_index.push_back("index.html");
 }
 
 // SET

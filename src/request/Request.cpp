@@ -39,7 +39,6 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 
 	this->parse_output_client(this->_string_request);
-
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
 	if (this->_post)
@@ -152,13 +151,9 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	// std::string root = "data";
 	//chargement d'une page ou ressource (json, image etc)
 	//check droits//
 	//on part du principe qu'il les a pour test
-	// root.append(this->_env_vars["REQUEST_URI"]);
-	// r.create_get(root);
-	std::cout << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]<< std::endl;
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 
 	return (r);
@@ -280,17 +275,19 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 
 void Request::parse_request_uri(std::string & output, std::size_t & pos)
 {
-	std::size_t i = 0, length_uri = 0;
+	std::size_t i = 0, length_uri = i;
 	std::string request_uri;
 
-	i = output.find("/");
+	i = output.find("/") + 1;
 	while (!std::isspace(output.at(i + length_uri)))
 	{
 		length_uri++;
 	}
 	request_uri = output.substr(i, length_uri);
-	this->_env_vars["REQUEST_URI"] = request_uri;
-	std::cout << this->_env_vars["REQUEST_URI"] << std::endl;
+	if (request_uri.empty() || request_uri[request_uri.length() - 1] == '/')
+		this->_env_vars["REQUEST_URI"] = _block.getIndex()[0];
+	else
+		this->_env_vars["REQUEST_URI"] = request_uri;
 	pos += (i - pos) + length_uri;
 	parse_query_string(request_uri);
 }
@@ -423,8 +420,8 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
 
-	this->_env_vars["SCRIPT_NAME"] = this->_block.getRoot() + "/" + this->_env_vars["REQUEST_URI"].substr(1);
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["REQUEST_URI"];
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))

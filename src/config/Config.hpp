@@ -24,6 +24,7 @@ class Config
 		std::vector<std::string>		& getIndex(void);
 		bool							& getAutoIndex(void);
 		int	parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
+		void checkBlock();
 
 	private:
 		std::string						_ipAddress;

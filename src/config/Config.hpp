@@ -54,10 +54,6 @@ class Config
 		void	_setIndex(std::vector<std::string> line);
 		void	_setAutoIndex(std::vector<std::string> line);
 
-		// Util
-
-		// void							_setEnv(std::vector<std::vector<std::string> > confOut);
-
 };
 
 #endif

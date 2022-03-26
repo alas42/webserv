@@ -61,6 +61,7 @@ void	Response::create_cgi_base(void)
 			i++;
 		}
 	}
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());
@@ -77,15 +78,17 @@ void	Response::create_get(std::string filename)
 	** First check mime_type of request
 	** Binary of text ?
 	*/
+	std::cout << "Response.create_get(" << filename << ")" << std::endl;
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
 		this->binary(filename);
 		return ;
 	}
-	std::ifstream f(filename.c_str());
-	std::stringstream ss;
-	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
-	std::string str, body;
+	std::ifstream 		f(filename.c_str());
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
 	if (f)
 	{
 		header.append("Content-Length: ");
@@ -96,10 +99,10 @@ void	Response::create_get(std::string filename)
 			body.append("\r\n");
 		}
 	}
-	else // didn't find
-	{
+	else
 		return ;
-	}
+
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());
@@ -122,11 +125,11 @@ void	Response::binary(std::string filename)
 	std::ifstream f(filename.c_str(), std::ios::binary);
 	if (!f)
 		return ;
-
 	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
+	f.close();
 	ss << length;
 	header.append(ss.str());
 
@@ -186,6 +189,7 @@ void	Response::create_bad_request(void)
 	{
 		return ;
 	}
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());
@@ -219,6 +223,7 @@ void	Response::create_Forbidden(void)
 	{
 		return ;
 	}
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());
@@ -248,6 +253,7 @@ void	Response::create_not_found(void)
 	{
 		return ;
 	}
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());
@@ -277,6 +283,7 @@ void	Response::create_internal_error(void)
 	{
 		return ;
 	}
+	f.close();
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());

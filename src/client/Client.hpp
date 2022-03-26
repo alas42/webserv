@@ -12,10 +12,12 @@ class Client
 		~Client(void);
 		Client(Client const & other);
 		Client(struct pollfd fd);
-		Client & operator=(Client const & other);
-		struct pollfd getClientFd(void);
-		Request & getRequest(void);
-		void	createRequest(const char *str, int rc, Config block);
+		Client &  operator=(Client const & other);
+
+		struct pollfd 	getClientFd(void);
+		Request 	& 	getRequest(void);
+		void			createRequest(const char *str, int rc, Config & block);
+		void			addToRequest(const char *str, int rc, Config & block);
 
 	private:
 		struct pollfd	_client_fd;

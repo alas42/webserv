@@ -24,34 +24,43 @@ class Request
 		void parse_content_type (std::string & output);
 		void parse_http_accept(std::string &output, std::string tofind);
 		void parse_transfer_encoding(std::string & output);
+
 		bool isComplete(void);
+		bool hasHeader(void);
+	
+		void addToLengthReceived(size_t length_to_add);
+		void addToBody(const char * request_str, int rc);
+
 		Response execute(void);
 		void execute_cgi(void);
 		Response execute_get(void);
 		Response execute_post(void);
 		Response execute_delete(void);
+
 		char **create_env_tab(void);
 		std::map<std::string,std::string> const & getEnvVars(void) const;
-
-	public:
-		std::string	_method;
+		Config &	getConf(void);
+		void	reset(void);
 
 	private:
 		Config								_block;
+		std::string							_method;
 		std::string							_string_request;
 		std::string							_path_to_cgi;
 		std::string							_postdata;
 		std::string 						_content_length;
 		std::string							_content_type;
-		bool								_complete;
+		bool								_completed;
 		std::map<std::string, std::string>	_env_vars;
 		std::string							_header;
 		size_t								_length_body;
+		size_t								_length_header;
 		char *								_raw_request;
-		size_t								_length_received; // to check when it is complete
+		size_t								_length_received;
 		bool								_cgi;
 		bool								_chuncked;
 		bool								_post;
+		bool								_header_completed;
 };
 
 #endif

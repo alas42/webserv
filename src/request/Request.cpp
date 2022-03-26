@@ -1,20 +1,29 @@
 #include "Request.hpp"
 
-Request::Request(void): _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _complete()
-{}
+Request::Request(void): _block(), _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _completed()
+{
+	this->_header_completed = false;
+	this->_completed = false;
+	this->_cgi = false;
+	this->_chuncked = false;
+	this->_post = false;
+	this->_header_completed = false;
+}
 
 Request::~Request(void)
 {}
 
 Request::Request(const Request & other):
-	_method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
-	_content_type(other._content_type), _complete(other._complete), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
+	_block(other._block), _method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
+	_content_type(other._content_type), _completed(other._completed), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-Request::Request(const char * request_str, int rc, Config &block): _method(), _block(block), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _complete(false)
+/* Ici, on part du principe que l'on recoit tout le header d'un coup soit en meme temps ou non que le body */
+Request::Request(const char * request_str, int rc, Config & block): _block(block), _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _completed(false)
 {
 	//std::cout << "request_str ==================\n" << request_str << std::endl;
-	std::string env_var[] = {
+	std::string env_var[] =
+	{
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
 		"GATEWAY_INTERFACE", "SERVER_PROTOCOL",
@@ -32,7 +41,7 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	
+	this->_raw_request = 0;
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
@@ -44,17 +53,26 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 
 	if (this->_post)
 	{
-		this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
-		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
-		this->_raw_request[this->_length_body] = '\0';
-	}
-	this->_cgi = false; // find if a cgi is called (do not know if necessary)
-	/*
-	** if chuncked request, true isn't set directly,
-	** same if we don't read the full requesti in one time
-	*/
-	this->_complete = true;
 
+	/*	this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
+		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
+		this->_raw_request[this->_length_body] = '\0';*/
+		if (this->_chuncked) //check if last one was read directly
+		{
+			
+		}
+		else
+		{
+			this->_length_received = rc - _length_header;
+			std::cout << _length_received << std::endl;
+		}
+	}
+	else
+	{
+		this->_completed = true;
+	}
+	this->_header_completed = true;
+	this->_cgi = false; // find if a cgi is called (do not know if necessary)
 }
 
 Request & Request::operator=(const Request & other)
@@ -66,7 +84,7 @@ Request & Request::operator=(const Request & other)
 		this->_postdata = other._postdata;
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
-		this->_complete = other._complete;
+		this->_completed = other._completed;
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
@@ -76,13 +94,47 @@ Request & Request::operator=(const Request & other)
 		this->_cgi = other._cgi;
 		this->_post = other._post;
 		this->_method = other._method;
+		this->_header_completed = other._header_completed;
+		this->_length_header = other._length_header;
 	}
 	return (*this);
+}
+
+void Request::addToBody(const char * request_str, int rc)
+{
+
+	(void)request_str;
+	this->addToLengthReceived(rc);
 }
 
 std::map<std::string,std::string> const &  Request::getEnvVars(void) const
 {
 	return this->_env_vars;
+}
+
+Config &	Request::getConf(void)
+{
+	return this->_block;
+}
+
+void	Request::addToLengthReceived(size_t length_to_add)
+{
+	this->_length_received += length_to_add;
+	std::cout << _length_received << std::endl;
+	if (this->_length_received >= this->_length_body)
+	{
+		std::cout << "completed" << std::endl;
+	}
+}
+
+bool	Request::isComplete(void)
+{
+	return this->_completed;
+}
+
+bool	Request::hasHeader(void)
+{
+	return this->_header_completed;
 }
 
 char	**Request::create_env_tab(void)
@@ -120,6 +172,18 @@ char	**Request::create_env_tab(void)
 	return env_tab;
 }
 
+void	Request::reset()
+{
+	this->_header_completed = false;
+	this->_completed = false;
+	this->_cgi = false;
+	this->_chuncked = false;
+	this->_post = false;
+	this->_header_completed = false;
+	if (this->_raw_request != 0)
+		free(_raw_request);
+}
+
 Response	Request::execute(void)
 {
 	Response r;
@@ -139,9 +203,7 @@ Response	Request::execute(void)
 		for(size_t i = 0; methods[i].compare("0"); i++)
 		{
 			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
-			{
 				return (this->*ptr[i])();
-			}
 		}
 		r.create_bad_request();
 	}
@@ -157,15 +219,8 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	// std::string root = "data";
-	//chargement d'une page ou ressource (json, image etc)
-	//check droits//
-	//on part du principe qu'il les a pour test
-	// root.append(this->_env_vars["REQUEST_URI"]);
-	// r.create_get(root);
 	std::cout << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]<< std::endl;
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
-
 	return (r);
 }
 
@@ -238,11 +293,6 @@ void	Request::execute_cgi(void)
 	for(size_t i = 0; env_tab[i]; i++)
 		free(env_tab[i]);
 	free(env_tab);
-}
-
-bool	Request::isComplete(void)
-{
-	return this->_complete;
 }
 
 /*
@@ -354,13 +404,13 @@ void	Request::parse_content_length(std::string & output)
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
+		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else
 	{
-		this->_content_length = "0";
-		this->_length_body = 0;
+		this->_content_length = "-1";
+		this->_length_body = -1;
 	}
-	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 }
 
 void Request::parse_content_type (std::string & output)
@@ -413,10 +463,14 @@ void Request::parse_output_client(std::string & output)
 	size_t length_content = 0;
 	std::stringstream ss;
 
-	if (output.find("\r\n\r\n") != std::string::npos)
+	this->_length_header = output.find("\r\n\r\n");
+	if (this->_length_header != std::string::npos)
 		this->_header = output.substr(0, output.find("\r\n\r\n"));
 	else
+	{
 		this->_header = output;
+		this->_length_header = this->_header.size();
+	}
 
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
@@ -446,6 +500,5 @@ void Request::parse_output_client(std::string & output)
 	{
 		this->_post = false;
 		this->_length_body = 0;
-		this->_env_vars["CONTENT_LENGTH"] = "0";
 	}
 }

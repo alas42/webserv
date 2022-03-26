@@ -161,9 +161,9 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 	return (0);
 }
 
-int	Server::receiving(std::vector<pollfd>::iterator	it)
+int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	std::map<int, Client>::iterator found;
+	std::string		host; 
 	int 			rc = -1;
 	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
 
@@ -181,12 +181,15 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 		free(buffer);
 		return (1);
 	}
-	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
-	if (found != this->_clients.end())
+	if (client->second.getRequest().hasHeader())
 	{
-		std::string host = this->getHostInConfig(buffer);
+		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
+	}
+	else
+	{
+		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
-		found->second.createRequest(&buffer[0], rc, _config.at(host)); // The Client object creates a Request
+		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);
 	return (0);
@@ -224,11 +227,11 @@ bool	Server::checking_revents(void)
 			}
 			else
 			{
-				if (this->receiving(it))
-					break;
 				client = this->_clients.find(it->fd);
 				if (client != this->_clients.end())
 				{
+					if (this->receiving(it, client))
+						break;
 					if (client->second.getRequest().isComplete())
 						it->events = POLLOUT;
 				}
@@ -243,6 +246,7 @@ bool	Server::checking_revents(void)
 				if (this->sending(it, r))
 					break;
 				it->events = POLLIN;
+				client->second.getRequest().reset();
 			}
 		}
 		else if (it->revents & POLLERR)

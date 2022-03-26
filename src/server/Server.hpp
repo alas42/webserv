@@ -21,7 +21,7 @@ class Server
 		int		listen_poll(void);
 		bool 	checking_revents(void);
 		void	print_revents(pollfd fd);
-		int		receiving(std::vector<pollfd>::iterator	it);
+		int		receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client);
 		bool	sending(std::vector<pollfd>::iterator	it, Response & r);
 		bool	accept_connections(int server_fd);
 		void	close_connection(std::vector<pollfd>::iterator	it);
@@ -33,14 +33,13 @@ class Server
 
 	private:
 		std::map<std::string, Config>	_config;
-
 		int								_timeout;
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
 		std::map<int, Client>			_clients;
 
 
-		void	_fileToServer(const char *conf_file);
+		void									_fileToServer(const char *conf_file);
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 
 };

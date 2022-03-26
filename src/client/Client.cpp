@@ -29,9 +29,19 @@ struct pollfd Client::getClientFd(void)
 	return this->_client_fd;
 }
 
-void	Client::createRequest(const char *str, int rc, Config block)
+void	Client::createRequest(const char *str, int rc, Config & block)
 {
 	this->_http_request = Request(str, rc, block);
+}
+
+void	Client::addToRequest(const char *str, int rc, Config & block)
+{
+	if (this->_http_request.hasHeader())
+	{
+		this->_http_request.addToBody(str, rc);
+	}
+	else
+		this->_http_request = Request(str, rc, block);
 }
 
 Request & Client::getRequest(void)

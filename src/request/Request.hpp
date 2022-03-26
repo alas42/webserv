@@ -29,7 +29,7 @@ class Request
 		bool hasHeader(void);
 	
 		void addToLengthReceived(size_t length_to_add);
-		void addToBody(const char * request_str, int rc);
+		void addToBody(const char * request_str, int pos, int len);
 
 		Response execute(void);
 		void execute_cgi(void);
@@ -61,6 +61,7 @@ class Request
 		bool								_chuncked;
 		bool								_post;
 		bool								_header_completed;
+		std::string							_tmp_file; //"tmp_request_" + id_client ?
 };
 
 #endif

@@ -53,18 +53,17 @@ Request::Request(const char * request_str, int rc, Config & block): _block(block
 
 	if (this->_post)
 	{
-
-	/*	this->_raw_request = (char *)malloc(sizeof(char) * this->_length_body + 1);
-		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
-		this->_raw_request[this->_length_body] = '\0';*/
 		if (this->_chuncked) //check if last one was read directly
 		{
 			
 		}
 		else
 		{
-			this->_length_received = rc - _length_header;
-			std::cout << _length_received << std::endl;
+			this->_length_received = 0;
+			std::cout << "length_body = " << _length_body
+				<< ", rc = " << rc
+				<< ", length_header = " << _length_header << std::endl;
+			addToBody(request_str, _length_header, rc - _length_header);
 		}
 	}
 	else
@@ -96,15 +95,21 @@ Request & Request::operator=(const Request & other)
 		this->_method = other._method;
 		this->_header_completed = other._header_completed;
 		this->_length_header = other._length_header;
+		this->_tmp_file = other._tmp_file;
 	}
 	return (*this);
 }
 
-void Request::addToBody(const char * request_str, int rc)
+void Request::addToBody(const char * request_str, int pos, int len)
 {
-
-	(void)request_str;
-	this->addToLengthReceived(rc);
+	FILE *fp = fopen("tmp_test", "a");
+	this->_raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	this->_raw_request = (char *)memcpy(_raw_request, &request_str[pos], len);
+	this->_raw_request[len] = '\0';
+	fwrite(this->_raw_request, 1, len, fp);
+	fclose(fp);
+	free(_raw_request);
+	this->addToLengthReceived(len);
 }
 
 std::map<std::string,std::string> const &  Request::getEnvVars(void) const
@@ -120,11 +125,9 @@ Config &	Request::getConf(void)
 void	Request::addToLengthReceived(size_t length_to_add)
 {
 	this->_length_received += length_to_add;
-	std::cout << _length_received << std::endl;
-	if (this->_length_received >= this->_length_body)
-	{
-		std::cout << "completed" << std::endl;
-	}
+	std::cout << _length_received << "/" << this->_content_length << std::endl;
+	if (_length_received == this->_length_body)
+		this->_completed = true;
 }
 
 bool	Request::isComplete(void)
@@ -183,6 +186,10 @@ void	Request::reset()
 	if (this->_raw_request != 0)
 		free(_raw_request);
 }
+
+/*********************************************************/
+/***********************EXECUTION*************************/
+/*********************************************************/
 
 Response	Request::execute(void)
 {
@@ -293,6 +300,55 @@ void	Request::execute_cgi(void)
 	for(size_t i = 0; env_tab[i]; i++)
 		free(env_tab[i]);
 	free(env_tab);
+}
+
+/*********************************************************/
+/***********************PARSING***************************/
+/*********************************************************/
+
+void Request::parse_output_client(std::string & output)
+{
+	size_t i = 0;
+
+	this->_length_header = output.find("\r\n\r\n");
+	if (this->_length_header != std::string::npos)
+	{
+		this->_header = output.substr(0, output.find("\r\n\r\n"));
+		this->_length_header += 4;
+	}
+	else
+	{
+		this->_header = output;
+		this->_length_header = this->_header.size();
+	}
+
+	parse_request_method(output, i);
+	parse_request_uri(output, i);
+	parse_server_protocol(output, i);
+	parse_server_port(output, i);
+	parse_transfer_encoding(output);
+	parse_content_type(output);
+	parse_http_accept(output, "Accept:");
+	parse_http_accept(output, "Accept-Encoding:");
+	parse_http_accept(output, "Accept-Language:");
+
+	this->_env_vars["SCRIPT_NAME"] = this->_block.getRoot() + "/" + this->_env_vars["REQUEST_URI"].substr(1);
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+	this->_env_vars["REDIRECT_STATUS"] = "200";
+
+	if (!this->_method.compare("POST"))
+	{
+		this->_post = true;
+		parse_content_length(output);
+		parse_content_type(output);
+		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
+	}
+	else
+	{
+		this->_post = false;
+		this->_length_body = 0;
+	}
 }
 
 /*
@@ -455,50 +511,4 @@ void Request::parse_transfer_encoding(std::string & output)
 		this->_chuncked = true;
 	else
 		this->_chuncked = false;
-}
-
-void Request::parse_output_client(std::string & output)
-{
-	size_t i = 0;
-	size_t length_content = 0;
-	std::stringstream ss;
-
-	this->_length_header = output.find("\r\n\r\n");
-	if (this->_length_header != std::string::npos)
-		this->_header = output.substr(0, output.find("\r\n\r\n"));
-	else
-	{
-		this->_header = output;
-		this->_length_header = this->_header.size();
-	}
-
-	parse_request_method(output, i);
-	parse_request_uri(output, i);
-	parse_server_protocol(output, i);
-	parse_server_port(output, i);
-	parse_transfer_encoding(output);
-	parse_content_type(output);
-	parse_http_accept(output, "Accept:");
-	parse_http_accept(output, "Accept-Encoding:");
-	parse_http_accept(output, "Accept-Language:");
-
-	this->_env_vars["SCRIPT_NAME"] = this->_block.getRoot() + "/" + this->_env_vars["REQUEST_URI"].substr(1);
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
-	this->_env_vars["REDIRECT_STATUS"] = "200";
-
-	if (!this->_method.compare("POST"))
-	{
-		this->_post = true;
-		parse_content_length(output);
-		parse_content_type(output);
-		ss << _content_length;
-		ss >> length_content;
-		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
-	}
-	else
-	{
-		this->_post = false;
-		this->_length_body = 0;
-	}
 }

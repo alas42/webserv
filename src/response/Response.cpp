@@ -39,23 +39,22 @@ void	Response::create_cgi_base(void)
 	std::ifstream f(filename);
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
-	std::string str, body;
+	std::string str(""), body("");
 	size_t i = 0;
 
 	if (f)
 	{
 		while (f.good())
 		{
+			getline(f, str);
 			if (i == 0) // first-line = content type line (for php-cgi)
 			{
-				getline(f, str);
 				header.append(str);
-				header.append("\r\nContent-Length: ");
+				header.append("\nContent-Length: ");
 				str.clear();
 			}
-			else
+			else if (i > 1)
 			{
-				getline(f, str);
 				body.append(str);
 				body.append("\r\n");
 			}

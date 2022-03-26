@@ -2,7 +2,7 @@
 
 <html>
 	<body>
-		<form action="/post_form.php" method="post">
+		<form action="/form.php" method="post">
 			Name: <input type="text" name="name"><br><br>
 			Age: <input type="text" name="age"><br><br>
 			Date of birth: <input type="text" name="date_of_birth"><br><br>

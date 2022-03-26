@@ -48,8 +48,13 @@ Request::Request(const char * request_str, int rc, Config &block): _method(), _b
 		this->_raw_request = (char *)memcpy(_raw_request, &request_str[rc - this->_length_body], this->_length_body);
 		this->_raw_request[this->_length_body] = '\0';
 	}
-	this->_cgi = false;
+	this->_cgi = false; // find if a cgi is called (do not know if necessary)
+	/*
+	** if chuncked request, true isn't set directly,
+	** same if we don't read the full requesti in one time
+	*/
 	this->_complete = true;
+
 }
 
 Request & Request::operator=(const Request & other)

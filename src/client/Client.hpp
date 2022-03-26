@@ -18,10 +18,13 @@ class Client
 		Request 	& 	getRequest(void);
 		void			createRequest(const char *str, int rc, Config & block);
 		void			addToRequest(const char *str, int rc, Config & block);
+		int								getId(void);
+		void							setId(int new_id);
 
 	private:
 		struct pollfd	_client_fd;
 		Request			_http_request;
+		int				_id;
 };
 
 #endif

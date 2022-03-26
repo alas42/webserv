@@ -12,13 +12,13 @@
 
 #include "Server.hpp"
 
-Server::Server(void): _config(), _timeout(0.5 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(0.5 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
 Server::~Server(void)
 {}
 
-Server::Server(const Server & other): _config(other._config), _timeout(other._timeout)
+Server::Server(const Server & other): _config(other._config), _timeout(other._timeout), _total_clients(other._total_clients)
 {}
 
 Server & Server::operator=(const Server & other)
@@ -29,6 +29,7 @@ Server & Server::operator=(const Server & other)
 			this->_timeout = other._timeout;
 			this->_pollfds = other._pollfds;
 			this->_clients = other._clients;
+			this->_total_clients = other._total_clients;
 		}
 		return (*this);
 }
@@ -143,7 +144,9 @@ bool	Server::accept_connections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
+		Client new_client(client_fd);
+		new_client.setId(this->_total_clients++);
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client)); // adds a new Client Object
 	} while (new_socket != -1);
 	return (false);
 }

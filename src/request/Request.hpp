@@ -12,7 +12,7 @@ class Request
 		~Request(void);
 		Request(const Request & other);
 		Request & operator=(const Request & other);
-		Request(const char * request_str, int rc, Config &block);
+		Request(const char * request_str, int rc, Config &block, int id);
 
 		void parse_output_client(std::string & output);
 		void parse_server_port(std::string & output, std::size_t & pos);

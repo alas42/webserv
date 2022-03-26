@@ -18,8 +18,7 @@ Request::Request(const Request & other):
 	_content_type(other._content_type), _completed(other._completed), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
 {}
 
-/* Ici, on part du principe que l'on recoit tout le header d'un coup soit en meme temps ou non que le body */
-Request::Request(const char * request_str, int rc, Config & block): _block(block), _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _completed(false)
+Request::Request(const char * request_str, int rc, Config & block, int id): _block(block), _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _completed(false)
 {
 	//std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] =
@@ -42,6 +41,7 @@ Request::Request(const char * request_str, int rc, Config & block): _block(block
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->_raw_request = 0;
+	this->_tmp_file = "";
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
@@ -59,10 +59,10 @@ Request::Request(const char * request_str, int rc, Config & block): _block(block
 		}
 		else
 		{
+			std::stringstream ss;
+			ss << id;
+			this->_tmp_file = "tmp_" + this->_method + "_" + ss.str();
 			this->_length_received = 0;
-			std::cout << "length_body = " << _length_body
-				<< ", rc = " << rc
-				<< ", length_header = " << _length_header << std::endl;
 			addToBody(request_str, _length_header, rc - _length_header);
 		}
 	}
@@ -102,7 +102,7 @@ Request & Request::operator=(const Request & other)
 
 void Request::addToBody(const char * request_str, int pos, int len)
 {
-	FILE *fp = fopen("tmp_test", "a");
+	FILE *fp = fopen(this->_tmp_file.c_str(), "a");
 	this->_raw_request = (char *)malloc(sizeof(char) * (len + 1));
 	this->_raw_request = (char *)memcpy(_raw_request, &request_str[pos], len);
 	this->_raw_request[len] = '\0';
@@ -125,7 +125,6 @@ Config &	Request::getConf(void)
 void	Request::addToLengthReceived(size_t length_to_add)
 {
 	this->_length_received += length_to_add;
-	std::cout << _length_received << "/" << this->_content_length << std::endl;
 	if (_length_received == this->_length_body)
 		this->_completed = true;
 }
@@ -185,6 +184,8 @@ void	Request::reset()
 	this->_header_completed = false;
 	if (this->_raw_request != 0)
 		free(_raw_request);
+	if (this->_tmp_file.size() > 0)
+		remove(this->_tmp_file.c_str());
 }
 
 /*********************************************************/
@@ -226,14 +227,14 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	std::cout << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]<< std::endl;
+
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);
 }
 
 Response	Request::execute_post(void) // -> BAD REQUEST (SCRIPT NOT SPECIFIED)
 {
-	Response r;
+	Response 	r;
 	std::string root = "data/upload";
 
 	root.append(this->_env_vars["REQUEST_URI"]);
@@ -500,7 +501,7 @@ void Request::parse_http_accept(std::string &output, std::string tofind)
 		std::transform(tofind.begin(), tofind.end(), tofind.begin(), ::toupper);
 		std::replace(tofind.begin(), tofind.end(), '-', '_');
 		length = output.find("\r\n", i);
-		tofind.pop_back();
+		tofind.erase(tofind.size()-1);
 		this->_env_vars["HTTP_" + tofind] = output.substr(i, length - i);
 	}
 }

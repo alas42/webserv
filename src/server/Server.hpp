@@ -34,10 +34,10 @@ class Server
 	private:
 		std::map<std::string, Config>	_config;
 		int								_timeout;
+		int								_total_clients;
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
 		std::map<int, Client>			_clients;
-
 
 		void									_fileToServer(const char *conf_file);
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);

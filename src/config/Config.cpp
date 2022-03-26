@@ -22,7 +22,7 @@ Config::Config(Config const & other): _ipAddress(other._ipAddress), _port(other.
 										_serverNames(other._serverNames), _errorPages(other._errorPages), \
 										_clientMaxBodySize(other._clientMaxBodySize), _cgiPass(other._cgiPass), \
 										_allowMethods(other._allowMethods), _location(other._location), \
-										_root(other._root), _index(other._index), _autoIndex(other._autoIndex) {}
+										_root(other._root), _index(other._index), _autoIndex(other._autoIndex){}
 
 Config & Config::operator=(Config const & other) {
 
@@ -106,8 +106,6 @@ std::vector<std::string>		& Config::getIndex(void) {
 bool							& Config::getAutoIndex(void) {
 	return this->_autoIndex;
 }
-
-
 
 int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t i) {
 

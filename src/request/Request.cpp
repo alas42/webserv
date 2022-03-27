@@ -184,12 +184,11 @@ void	Request::execute_cgi(void)
 		perror("pipe");
 
 	env_tab = create_env_tab();
-	std::cout << this->_path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
 
-	log = open("execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
+	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	if (this->_post)
 		write(pipes[1], this->_raw_request, this->_length_body + 1);
 
@@ -437,7 +436,7 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept-Language:");
 
 	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
-	this->_env_vars["SCRIPT_NAME"] = this->_env_vars["SCRIPT_FILENAME"];
+	// this->_env_vars["SCRIPT_NAME"] = this->_env_vars["SCRIPT_FILENAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	std::cout << "REQUEST_URI " << this->_env_vars["REQUEST_URI"] << std::endl;

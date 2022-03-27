@@ -42,6 +42,8 @@ void	Response::create_cgi_base(const char *filename)
 	std::string str(""), body("");
 	size_t i = 0;
 
+	f.clear();
+	f.seekg(0, std::ios::beg);
 	if (f)
 	{
 		while (f.good())

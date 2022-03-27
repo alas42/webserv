@@ -178,8 +178,8 @@ void	Request::reset()
 {
 	if (this->_post)
 		remove(this->_tmp_file.c_str());
-	/*if (this->_cgi)
-		remove(std::string("cgi_" + this->_tmp_file).c_str());*/
+	if (this->_cgi)
+		remove(std::string("cgi_" + this->_tmp_file).c_str());
 	this->_header_completed = false;
 	this->_completed = false;
 	this->_cgi = false;
@@ -329,7 +329,6 @@ void Request::parse_output_client(std::string & output)
 	{
 		this->_post = true;
 		parse_content_length(output);
-		parse_content_type(output);
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
 		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	}

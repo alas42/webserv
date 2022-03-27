@@ -154,10 +154,10 @@ bool	Server::accept_connections(int server_fd)
 /* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
-	int i = 0;
-	printf("raw_response = %s\n", r.getRawResponse().c_str());
+	int i;
+
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
-	printf("%d bytes send\n", i);
+	//printf("%d bytes send\n", i);
 	if (i < 0)
 	{
 		perror("send error");

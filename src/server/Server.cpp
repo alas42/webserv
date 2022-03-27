@@ -12,13 +12,13 @@
 
 #include "Server.hpp"
 
-Server::Server(void): _config(), _timeout(0.5 * 60 * 1000) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(0.5 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
 Server::~Server(void)
 {}
 
-Server::Server(const Server & other): _config(other._config), _timeout(other._timeout)
+Server::Server(const Server & other): _config(other._config), _timeout(other._timeout), _total_clients(other._total_clients)
 {}
 
 Server & Server::operator=(const Server & other)
@@ -29,6 +29,7 @@ Server & Server::operator=(const Server & other)
 			this->_timeout = other._timeout;
 			this->_pollfds = other._pollfds;
 			this->_clients = other._clients;
+			this->_total_clients = other._total_clients;
 		}
 		return (*this);
 }
@@ -143,7 +144,9 @@ bool	Server::accept_connections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.push_back(client_fd);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, Client(client_fd))); // adds a new Client Object
+		Client new_client(client_fd);
+		new_client.setId(this->_total_clients++);
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client)); // adds a new Client Object
 	} while (new_socket != -1);
 	return (false);
 }
@@ -151,8 +154,10 @@ bool	Server::accept_connections(int server_fd)
 /* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
-	int i = 0;
+	int i;
+
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
+	//printf("%d bytes send\n", i);
 	if (i < 0)
 	{
 		perror("send error");
@@ -161,9 +166,9 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 	return (0);
 }
 
-int	Server::receiving(std::vector<pollfd>::iterator	it)
+int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	std::map<int, Client>::iterator found;
+	std::string		host; 
 	int 			rc = -1;
 	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
 
@@ -181,12 +186,15 @@ int	Server::receiving(std::vector<pollfd>::iterator	it)
 		free(buffer);
 		return (1);
 	}
-	found = this->_clients.find(it->fd); // in all logic, this should never fail (find which client is sending data)
-	if (found != this->_clients.end())
+	if (client->second.getRequest().hasHeader())
 	{
-		std::string host = this->getHostInConfig(buffer);
+		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
+	}
+	else
+	{
+		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
-		found->second.createRequest(&buffer[0], rc, _config.at(host)); // The Client object creates a Request
+		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);
 	return (0);
@@ -224,11 +232,11 @@ bool	Server::checking_revents(void)
 			}
 			else
 			{
-				if (this->receiving(it))
-					break;
 				client = this->_clients.find(it->fd);
 				if (client != this->_clients.end())
 				{
+					if (this->receiving(it, client))
+						break;
 					if (client->second.getRequest().isComplete())
 						it->events = POLLOUT;
 				}
@@ -243,6 +251,7 @@ bool	Server::checking_revents(void)
 				if (this->sending(it, r))
 					break;
 				it->events = POLLIN;
+				client->second.getRequest().reset();
 			}
 		}
 		else if (it->revents & POLLERR)

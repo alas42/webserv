@@ -34,7 +34,7 @@
 
 #define TRUE             1
 #define FALSE            0
-#define DEFAULT_CONFIG "data/example.conf"
+#define DEFAULT_CONFIG 	"data/example.conf"
 
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);

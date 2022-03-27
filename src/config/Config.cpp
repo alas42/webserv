@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/24 17:01:44 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/27 16:18:28 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -134,6 +134,21 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 			this->_setAutoIndex(confFile[i]);
 	}
 	throw std::runtime_error("Error: server{} not closed\n");
+}
+
+void Config::checkBlock() {
+	if (this->_ipAddress.compare("localhost") == 0)
+		this->_ipAddress = "127.0.0.1";
+	if (this->_root.find_last_of('/') == this->_root.size() - 1)
+		this->_root.erase(this->_root.size() - 1, 1);
+	if (this->_serverNames.empty())
+		this->_serverNames.push_back("");
+	if (this->_index.empty())
+		this->_index.push_back("index.html");
+	if (!this->_location.empty()) {
+		for (std::map<std::string, Config>::iterator it = _location.begin(); it != _location.end(); it++)
+			it->second.checkBlock();
+	}
 }
 
 // SET
@@ -264,26 +279,3 @@ void Config::_setAutoIndex(std::vector<std::string> line) {
 	if (line[1].compare("on") == 0)
 		this->_autoIndex = true;
 }
-
-
-
-// void	Config::_setEnv(std::vector<std::vector<std::string> > confOut) {
-
-// 	std::string listEnv[4] = {"listen", "server_name", "root", "location"};
-
-// 	for(std::vector<std::vector<std::string> >::iterator itVector = confOut.begin(); itVector != confOut.end(); itVector++) {
-// 		for (int i = 0; i != 5 ; i++) {
-// 			if (itVector.base()->begin()->find(listEnv[i]) != std::string::npos) {
-// 				switch (i) {
-// 					case 0:
-// 						this->_port.push_back(atoi(((itVector.base()->begin()) + 1)->c_str()));
-// 						std::cout << ((itVector.base()->begin()) + 1)->c_str() << std::endl;
-
-// 				}
-// 			}
-// 		}
-// 	}
-// 		for(size_t i=0; i < _port.size(); i++)
-// 			std::cout << _port.at(i) << ' ';
-
-// }

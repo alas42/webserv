@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/24 16:06:54 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/25 19:03:49 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -327,6 +327,7 @@ void	Server::_fileToServer(const char *conf_file) {
 			Config block;
 
 			i = block.parseServer(confFile, i);
+			block.checkBlock();
 			out << block.getPort();
 			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));

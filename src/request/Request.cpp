@@ -41,12 +41,11 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 	this->_tmp_file = "";
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
-	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
+	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 
 	this->parse_output_client(this->_string_request);
-
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 
 	if (this->_post)
@@ -200,7 +199,7 @@ Response	Request::execute(void)
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
 	//if (this->_cgi) -> this->_cgi should be set to true if based on the conf a script has been called
-	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
+	if (this->_env_vars["SCRIPT_NAME"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
@@ -320,9 +319,8 @@ void Request::parse_output_client(std::string & output)
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 
-	this->_env_vars["SCRIPT_NAME"] = this->_block.getRoot() + "/" + this->_env_vars["REQUEST_URI"].substr(1);
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST"))
@@ -344,7 +342,7 @@ void Request::parse_output_client(std::string & output)
 ** string; it provides information to the CGI script to affect or refine
 ** the document to be returned by the script.
 */
-void    Request::parse_query_string(std::string & request_uri)
+void	Request::parse_query_string(std::string & request_uri)
 {
 	std::size_t i = 0;
 	if ((i = request_uri.find("?")) != std::string::npos)
@@ -359,7 +357,7 @@ void    Request::parse_query_string(std::string & request_uri)
 /*
 ** The REQUEST_METHOD meta-variable MUST be set to the method which should be used by the script to process the request
 */
-void Request::parse_request_method(std::string & output, std::size_t & pos)
+void	Request::parse_request_method(std::string & output, std::size_t & pos)
 {
 	std::size_t i = 0;
 	std::string methods[4] = {"GET", "POST", "DELETE", "0"};
@@ -376,6 +374,24 @@ void Request::parse_request_method(std::string & output, std::size_t & pos)
 		i++;
 	}
 }
+void	Request::parse_sript(std::string & request_uri ) {
+	std::size_t i;
+	std::size_t j;
+	std::string script;
+
+	if ((i = request_uri.find_first_of(".")) != std::string::npos) {
+		i += 1;
+		j = i;
+		while (request_uri[j] != '/')
+			j--;
+		script = request_uri.substr(j, i - j);
+		while (std::isalpha(request_uri[i]))
+			script.push_back(request_uri[i++]);
+		this->_env_vars["SCRIPT_NAME"] = script;
+	}
+	else
+		this->_env_vars["SCRIPT_NAME"] = "";
+}
 
 void Request::parse_request_uri(std::string & output, std::size_t & pos)
 {
@@ -384,14 +400,12 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 
 	i = output.find("/");
 	while (!std::isspace(output.at(i + length_uri)))
-	{
 		length_uri++;
-	}
 	request_uri = output.substr(i, length_uri);
 	this->_env_vars["REQUEST_URI"] = request_uri;
-	std::cout << this->_env_vars["REQUEST_URI"] << std::endl;
 	pos += (i - pos) + length_uri;
-	parse_query_string(request_uri);
+	this->parse_query_string(request_uri);
+	this->parse_sript(request_uri);
 }
 
 /*

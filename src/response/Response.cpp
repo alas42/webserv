@@ -3,14 +3,16 @@
 Response::Response(void): _header("s"), _body(""), _raw_response("")
 {
 	this->_binary = false;
+	setting_mimes();
 }
 
 Response::~Response(void)
 {}
 
-Response::Response(const Response & other): _header(other._body), _body(other._body), _raw_response(other._raw_response)
+Response::Response(const Response & other): _header(other._header), _body(other._body), _raw_response(other._raw_response)
 {
 	this->_binary = other._binary;
+	this->_mimes = other._mimes;
 }
 
 Response & Response::operator=(const Response & other)
@@ -74,11 +76,6 @@ void	Response::create_cgi_base(const char *filename)
 
 void	Response::create_get(std::string filename)
 {
-	/*
-	** Checks for the file (existing etc)
-	** First check mime_type of request
-	** Binary of text ?
-	*/
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
 		std::cout << "binary" << std::endl;
@@ -118,19 +115,29 @@ void	Response::create_post(std::string filename)
 	(void)filename;
 }
 
+/*
+** To do list : Content-type : set to correct one
+*/
 void	Response::binary(std::string filename)
 {
-	std::size_t 		length;
-	std::string			header;
+	std::size_t 		length, found;
+	std::string			header, extension;
 	std::stringstream 	ss;
 	std::ifstream 		f(filename.c_str(), std::ios::binary);
 
+	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: *\r\nContent-Length: ";
+	found = filename.find_last_of(".");
+	extension = filename.substr(found);
+	std::map<std::string, std::string>::iterator it = this->_mimes.find(extension);
+
+	if (it != this->_mimes.end())
+		header.replace(header.find("*"), 1, it->second);
+	else
+		header.replace(header.find("*"), 1, "application/octet-stream");
 	if (!f)
-	{
 		return ;
-	}
+
 	f.clear();
-	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: application/pdf\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);

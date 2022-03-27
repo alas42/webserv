@@ -195,6 +195,9 @@ Response	Request::execute(void)
 {
 	Response r;
 
+	/*
+	** 
+	*/
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
@@ -226,6 +229,8 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
+	//std::string 	filename;
+	//size_t			found = this->_env_vars["REQUEST_URI"].find("?");
 
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);

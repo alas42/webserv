@@ -14,8 +14,13 @@ Content-type: text/html; charset=UTF-8
 		<br>
 
 		<br>
+		<img src="imgs/bonjour.png">
 		Array
 (
+    [name] => 76ki65
+    [age] => 57i
+    [date_of_birth] => 5i
+    [faction] => 5i
 )
 	</body>
 </html>

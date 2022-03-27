@@ -20,6 +20,7 @@ class Request
 		void parse_request_uri(std::string & output, std::size_t & pos);
 		void parse_request_method(std::string & output, std::size_t & pos);
 		void parse_query_string(std::string & request_uri);
+		void parse_sript(std::string & request_uri);
 		void parse_content_length(std::string & output);
 		void parse_content_type (std::string & output);
 		void parse_http_accept(std::string &output, std::string tofind);

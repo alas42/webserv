@@ -36,7 +36,6 @@ std::string &	Response::getRawResponse(void){ return this->_raw_response; }
 void	Response::create_cgi_base(const char *filename)
 {
 	std::ifstream f(filename);
-	std::cout << f.rdbuf()<< "[stop]" <<std::endl;
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
 	std::string str(""), body("");
@@ -80,9 +79,9 @@ void	Response::create_get(std::string filename)
 	** First check mime_type of request
 	** Binary of text ?
 	*/
-	std::cout << "Response.create_get(" << filename << ")" << std::endl;
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
+		std::cout << "binary" << std::endl;
 		this->binary(filename);
 		return ;
 	}
@@ -121,17 +120,20 @@ void	Response::create_post(std::string filename)
 
 void	Response::binary(std::string filename)
 {
-	std::size_t length;
-	std::string header;
-	std::stringstream ss;
-	std::ifstream f(filename.c_str(), std::ios::binary);
+	std::size_t 		length;
+	std::string			header;
+	std::stringstream 	ss;
+	std::ifstream 		f(filename.c_str(), std::ios::binary);
+
 	if (!f)
+	{
 		return ;
-	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: image/png\r\nContent-Length: ";
+	}
+	f.clear();
+	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: application/pdf\r\nContent-Length: ";
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
-	f.close();
 	ss << length;
 	header.append(ss.str());
 
@@ -141,6 +143,7 @@ void	Response::binary(std::string filename)
 	this->_raw_response = this->_header;
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
+	f.close();
 }
 
 /*

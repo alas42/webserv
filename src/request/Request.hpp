@@ -4,6 +4,7 @@
 #include "../response/Response.hpp"
 #include "../config/Config.hpp"
 #include "../../inc/webserv.hpp"
+#include <algorithm>
 
 class Request
 {
@@ -55,13 +56,12 @@ class Request
 		std::string							_header;
 		size_t								_length_body;
 		size_t								_length_header;
-		char *								_raw_request;
 		size_t								_length_received;
 		bool								_cgi;
 		bool								_chuncked;
 		bool								_post;
 		bool								_header_completed;
-		std::string							_tmp_file; //"tmp_request_" + id_client ?
+		std::string							_tmp_file;
 };
 
 #endif

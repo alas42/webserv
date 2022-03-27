@@ -19,7 +19,7 @@ class Response
 		void	setHeader(std::string new_header);
 		void	setBody(std::string new_body);
 		void	setRawResponse(std::string new_raw_response);
-		void	create_cgi_base(void);
+		void	create_cgi_base(const char *filename);
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
 		void	create_delete(std::string filename);
@@ -31,11 +31,11 @@ class Response
 		void	create_internal_error(void);
 
 	private:
-		std::string _header;
-		std::string _body;
-		std::string _raw_response;
-		std::map<std::string, std::string> _mimes;
-		bool		_binary;
+		std::string							_header;
+		std::string							_body;
+		std::string							_raw_response;
+		std::map<std::string, std::string>	_mimes;
+		bool								_binary;
 };
 
 #endif

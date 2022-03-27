@@ -20,7 +20,6 @@ Request::Request(const Request & other):
 
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block), _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _completed(false)
 {
-	//std::cout << "request_str ==================\n" << request_str << std::endl;
 	std::string env_var[] =
 	{
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
@@ -40,7 +39,6 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	this->_raw_request = 0;
 	this->_tmp_file = "";
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = "/mnt/nfs/homes/avogt/sgoinfre/avogt/" +_block.getRoot();
@@ -61,7 +59,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 		{
 			std::stringstream ss;
 			ss << id;
-			this->_tmp_file = "tmp_" + this->_method + "_" + ss.str();
+			this->_tmp_file = "request_" + this->_method + "_" + ss.str();
 			this->_length_received = 0;
 			addToBody(request_str, _length_header, rc - _length_header);
 		}
@@ -87,7 +85,6 @@ Request & Request::operator=(const Request & other)
 		this->_env_vars = other._env_vars;
 		this->_header = other._header;
 		this->_length_body = other._length_body;
-		this->_raw_request = other._raw_request;
 		this->_length_received = other._length_received;
 		this->_chuncked = other._chuncked;
 		this->_cgi = other._cgi;
@@ -102,13 +99,16 @@ Request & Request::operator=(const Request & other)
 
 void Request::addToBody(const char * request_str, int pos, int len)
 {
+	char	*raw_request = NULL;
 	FILE *fp = fopen(this->_tmp_file.c_str(), "a");
-	this->_raw_request = (char *)malloc(sizeof(char) * (len + 1));
-	this->_raw_request = (char *)memcpy(_raw_request, &request_str[pos], len);
-	this->_raw_request[len] = '\0';
-	fwrite(this->_raw_request, 1, len, fp);
+
+	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	raw_request = (char *)memcpy(raw_request, &request_str[pos], len);
+	raw_request[len] = '\0';
+	fwrite(raw_request, 1, len, fp);
 	fclose(fp);
-	free(_raw_request);
+	if (raw_request)
+		free(raw_request);
 	this->addToLengthReceived(len);
 }
 
@@ -176,16 +176,16 @@ char	**Request::create_env_tab(void)
 
 void	Request::reset()
 {
+	if (this->_post)
+		remove(this->_tmp_file.c_str());
+	/*if (this->_cgi)
+		remove(std::string("cgi_" + this->_tmp_file).c_str());*/
 	this->_header_completed = false;
 	this->_completed = false;
 	this->_cgi = false;
 	this->_chuncked = false;
 	this->_post = false;
 	this->_header_completed = false;
-	if (this->_raw_request != 0)
-		free(_raw_request);
-	if (this->_tmp_file.size() > 0)
-		remove(this->_tmp_file.c_str());
 }
 
 /*********************************************************/
@@ -204,7 +204,7 @@ Response	Request::execute(void)
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
-		r.create_cgi_base();
+		r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
 	}
 	else
 	{
@@ -245,36 +245,32 @@ Response	Request::execute_post(void) // -> BAD REQUEST (SCRIPT NOT SPECIFIED)
 
 void	Request::execute_cgi(void)
 {
-	int 		pipes[2];
 	char 		**tab = (char **)malloc(sizeof(char *) * 3);
 	char		**env_tab = NULL;
 	pid_t		c_pid;
-	int			status = 0, log;
+	FILE 		*fi, *fo;
+	int			status = 0, fdi, fdo;
 
-	if (this->_post && pipe(pipes) == -1)
-		perror("pipe");
-
+	this->_cgi = true;
 	env_tab = create_env_tab();
-	std::cout << this->_path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
 
-	log = open("data/execve.log", O_WRONLY|O_CREAT|O_TRUNC, 0666);
-	if (this->_post)
-		write(pipes[1], this->_raw_request, this->_length_body + 1);
-
 	c_pid = fork();
 	if (c_pid == 0)
 	{
+		fo = fopen(std::string("cgi_" + this->_tmp_file).c_str(), "a");
+		fdo = fileno(fo);
+		if (dup2(fdo, STDOUT_FILENO) == -1)
+			perror("dup2");
 		if (this->_post)
 		{
-			close(pipes[1]);
-			if (dup2(pipes[0], STDIN_FILENO) == -1)
+			fi = fopen(this->_tmp_file.c_str(), "r");
+			fdi = fileno(fi);
+			if (dup2(fdi, STDIN_FILENO) == -1)
 				perror("dup2");
 		}
-		if (dup2(log, STDOUT_FILENO) == -1)
-			perror("dup2");
 		execve(this->_path_to_cgi.c_str(), tab, env_tab);
 		exit(EXIT_SUCCESS);
 	}
@@ -285,15 +281,7 @@ void	Request::execute_cgi(void)
 	}
 	else
 	{
-		if (this->_post)
-			close(pipes[0]);
 		waitpid(c_pid, &status, 0);
-		if (this->_post)
-		{
-			close(pipes[1]);
-			free(this->_raw_request);
-		}
-		close(log);
 	}
 	for(size_t i = 0; tab[i]; i++)
 		free(tab[i]);
@@ -343,7 +331,7 @@ void Request::parse_output_client(std::string & output)
 		parse_content_length(output);
 		parse_content_type(output);
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
-		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + "/" + this->_env_vars["PATH_INFO"];
+		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	}
 	else
 	{

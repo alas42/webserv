@@ -33,10 +33,10 @@ std::string &	Response::getHeader(void){ return this->_header; }
 std::string &	Response::getBody(void) {return this->_body; }
 std::string &	Response::getRawResponse(void){ return this->_raw_response; }
 
-void	Response::create_cgi_base(void)
+void	Response::create_cgi_base(const char *filename)
 {
-	const char * filename = "data/execve.log"; //return of cgi processing for now
 	std::ifstream f(filename);
+	std::cout << f.rdbuf()<< "[stop]" <<std::endl;
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
 	std::string str(""), body("");
@@ -47,7 +47,7 @@ void	Response::create_cgi_base(void)
 		while (f.good())
 		{
 			getline(f, str);
-			if (i == 0) // first-line = content type line (for php-cgi)
+			if (i == 0)
 			{
 				header.append(str);
 				header.append("\nContent-Length: ");

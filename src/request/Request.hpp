@@ -15,6 +15,8 @@ class Request
 		Request & operator=(const Request & other);
 		Request(const char * request_str, int rc, Config &block, int id);
 
+		void init_post_request(const char *request_str, int rc, int id);
+		void init_env_map(void);
 		void parse_output_client(std::string & output);
 		void parse_server_port(std::string & output, std::size_t & pos);
 		void parse_server_protocol(std::string & output, std::size_t & pos);
@@ -29,9 +31,11 @@ class Request
 
 		bool isComplete(void);
 		bool hasHeader(void);
-	
+		bool isChuncked(void);
+
 		void addToLengthReceived(size_t length_to_add);
 		void addToBody(const char * request_str, int pos, int len);
+		void addToBodyChuncked(const char * request_str, int pos, int len);
 
 		Response execute(void);
 		void execute_cgi(void);
@@ -42,7 +46,7 @@ class Request
 		char **create_env_tab(void);
 		std::map<std::string,std::string> const & getEnvVars(void) const;
 		Config &	getConf(void);
-		void	reset(void);
+		void		reset(void);
 
 	private:
 		Config								_block;
@@ -52,17 +56,17 @@ class Request
 		std::string							_postdata;
 		std::string 						_content_length;
 		std::string							_content_type;
-		bool								_completed;
-		std::map<std::string, std::string>	_env_vars;
 		std::string							_header;
-		size_t								_length_body;
-		size_t								_length_header;
-		size_t								_length_received;
+		std::string							_tmp_file;
+		bool								_completed;
 		bool								_cgi;
 		bool								_chuncked;
 		bool								_post;
 		bool								_header_completed;
-		std::string							_tmp_file;
+		size_t								_length_body;
+		size_t								_length_header;
+		size_t								_length_received;
+		std::map<std::string, std::string>	_env_vars;
 };
 
 #endif

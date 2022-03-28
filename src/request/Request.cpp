@@ -1,24 +1,51 @@
 #include "Request.hpp"
 
-Request::Request(void): _block(), _method(), _string_request(), _path_to_cgi(), _postdata(), _content_length(), _content_type(), _completed()
+Request::Request(void): _block(),
+ _method(""), _string_request(""), _path_to_cgi(""), _postdata(""), _content_length(""), _content_type(""), _header(""), _tmp_file(""),
+ _completed(false), _cgi(false), _chuncked(false), _post(false), _header_completed(false),
+ _length_body(0), _length_header(0), _length_received(0)
+{}
+
+Request::~Request(void){}
+
+Request::Request(const Request & other): _block(other._block),
+	_method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi),
+	_postdata(other._postdata), _content_length(other._content_length), _content_type(other._content_type),
+	_header(other._header), _tmp_file(other._tmp_file),
+	_completed(other._completed), _cgi(other._cgi), _chuncked(other._chuncked), _post(other._post), _header_completed(other._header_completed),
+	_length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
+	_env_vars(other._env_vars)
+{}
+
+//std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
+	_method(""), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(""),_content_length(""),
+	_content_type(""), _header(""), _tmp_file(""),
+	_completed(false), _cgi(false), _chuncked(false), _post(false), _header_completed(false),
+	_length_body(0), _length_header(0), _length_received(0)
 {
-	this->_header_completed = false;
-	this->_completed = false;
-	this->_cgi = false;
-	this->_chuncked = false;
-	this->_post = false;
-	this->_header_completed = false;
+	this->init_env_map();
+	this->parse_output_client(this->_string_request);
+	if (this->_post)
+		this->init_post_request(request_str, rc, id);
+	else
+		this->_completed = true;
 }
 
-Request::~Request(void)
-{}
+void	Request::init_post_request(const char *request_str, int rc, int id)
+{
+	std::stringstream ss;
+	
+	ss << id;
+	this->_tmp_file = "request_" + this->_method + "_" + ss.str();
+	this->_length_received = 0;
+	if (this->_chuncked)
+		addToBodyChuncked(request_str, _length_header, rc - _length_header);
+	else
+		addToBody(request_str, _length_header, rc - _length_header);
+}
 
-Request::Request(const Request & other):
-	_block(other._block), _method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi), _postdata(other._postdata), _content_length(other._content_length),
-	_content_type(other._content_type), _completed(other._completed), _env_vars(other._env_vars), _header(other._header), _length_body(other._length_body)
-{}
-
-Request::Request(const char * request_str, int rc, Config & block, int id): _block(block), _method(), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(),_content_length(), _content_type(), _completed(false)
+void	Request::init_env_map(void)
 {
 	std::string env_var[] =
 	{
@@ -39,36 +66,10 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 
 	for (size_t i = 0; env_var[i].compare("0"); i++)
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
-	this->_tmp_file = "";
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
-
-	this->parse_output_client(this->_string_request);
-	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
-
-	if (this->_post)
-	{
-		if (this->_chuncked) //check if last one was read directly
-		{
-			
-		}
-		else
-		{
-			std::stringstream ss;
-			ss << id;
-			this->_tmp_file = "request_" + this->_method + "_" + ss.str();
-			this->_length_received = 0;
-			addToBody(request_str, _length_header, rc - _length_header);
-		}
-	}
-	else
-	{
-		this->_completed = true;
-	}
-	this->_header_completed = true;
-	this->_cgi = false; // find if a cgi is called (do not know if necessary)
 }
 
 Request & Request::operator=(const Request & other)
@@ -99,7 +100,7 @@ Request & Request::operator=(const Request & other)
 void Request::addToBody(const char * request_str, int pos, int len)
 {
 	char	*raw_request = NULL;
-	FILE *fp = fopen(this->_tmp_file.c_str(), "a");
+	FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
 
 	raw_request = (char *)malloc(sizeof(char) * (len + 1));
 	raw_request = (char *)memcpy(raw_request, &request_str[pos], len);
@@ -111,15 +112,28 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->addToLengthReceived(len);
 }
 
-std::map<std::string,std::string> const &  Request::getEnvVars(void) const
+void Request::addToBodyChuncked(const char * request_str, int pos, int len)
 {
-	return this->_env_vars;
+	//char	*raw_request = NULL;
+	std::cout << "chuncked; pos = " << pos << ", len = " << len << std::endl;
+	if (len == 0)
+	{
+		std::cout << "header first" << std::endl;
+		return ;
+	}
+	else
+	{
+		std::cout << "part of body" << std::endl;
+	}
+	//FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
+	(void)request_str;
+	(void)pos;
+	(void)len;
 }
 
-Config &	Request::getConf(void)
-{
-	return this->_block;
-}
+std::map<std::string,std::string> const &  Request::getEnvVars(void) const { return this->_env_vars; }
+
+Config &	Request::getConf(void) { return this->_block; }
 
 void	Request::addToLengthReceived(size_t length_to_add)
 {
@@ -128,15 +142,9 @@ void	Request::addToLengthReceived(size_t length_to_add)
 		this->_completed = true;
 }
 
-bool	Request::isComplete(void)
-{
-	return this->_completed;
-}
-
-bool	Request::hasHeader(void)
-{
-	return this->_header_completed;
-}
+bool	Request::isComplete(void) { return this->_completed; }
+bool	Request::isChuncked(void) { return this->_chuncked; }
+bool	Request::hasHeader(void) { return this->_header_completed; }
 
 char	**Request::create_env_tab(void)
 {
@@ -196,7 +204,7 @@ Response	Request::execute(void)
 	Response r;
 
 	/*
-	** 
+	** ICi, tout check !
 	*/
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
@@ -211,10 +219,8 @@ Response	Request::execute(void)
 	else
 	{
 		for(size_t i = 0; methods[i].compare("0"); i++)
-		{
 			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
 				return (this->*ptr[i])();
-		}
 		r.create_bad_request();
 	}
 	return (r);
@@ -229,21 +235,14 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void)
 {
 	Response r;
-	//std::string 	filename;
-	//size_t			found = this->_env_vars["REQUEST_URI"].find("?");
-
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);
 }
 
 Response	Request::execute_post(void) // -> BAD REQUEST (SCRIPT NOT SPECIFIED)
 {
-	Response 	r;
-	std::string root = "data/upload";
-
-	root.append(this->_env_vars["REQUEST_URI"]);
-	r.create_post(root);
-	std::cout << "uploading" << std::endl;
+	Response r;
+	r.create_bad_request();
 	return (r);
 }
 

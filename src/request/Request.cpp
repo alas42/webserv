@@ -3,7 +3,7 @@
 Request::Request(void): _block(),
  _method(""), _string_request(""), _path_to_cgi(""), _postdata(""), _content_length(""), _content_type(""), _header(""), _tmp_file(""),
  _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
- _length_body(0), _length_header(0), _length_received(0)
+ _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
 {}
 
 Request::~Request(void){}
@@ -14,7 +14,7 @@ Request::Request(const Request & other): _block(other._block),
 	_header(other._header), _tmp_file(other._tmp_file),
 	_completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
 	_sent_continue(other._sent_continue), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_env_vars(other._env_vars)
+	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _env_vars(other._env_vars)
 {}
 
 //std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
@@ -22,7 +22,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	_method(""), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(""),_content_length(""),
 	_content_type(""), _header(""), _tmp_file(""),
 	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
-	_length_body(0), _length_header(0), _length_received(0)
+	_length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
 {
 	this->init_env_map();
 	this->parse_output_client(this->_string_request);
@@ -96,6 +96,8 @@ Request & Request::operator=(const Request & other)
 		this->_header_completed = other._header_completed;
 		this->_length_header = other._length_header;
 		this->_tmp_file = other._tmp_file;
+		this->_length_of_chunk = other._length_of_chunk;
+		this->_length_of_chunk_received = other._length_of_chunk_received;
 	}
 	return (*this);
 }
@@ -117,44 +119,67 @@ void Request::addToBody(const char * request_str, int pos, int len)
 
 void Request::addToBodyChunked(const char * request_str, int len)
 {
-	char	*			raw_request = NULL;
+	char	*			raw_request = NULL, * hexa = NULL;
 	unsigned int		x = 0;
 	std::stringstream	ss;
-	std::string 		shexa, a;
-	char	*			hexa = NULL;
 	int 				i = 0;
 
 	std::cout << "chunked; len = " << len << std::endl;
 	if (len == 0)
 	{
-		std::cout << "header first" << std::endl;
-		return ;
+		return ; // return when only the header was received
 	}
-	if (len <= 2)
-	{
-		std::cout << "what is happening ?" << std::endl;
-		return ; 
-	}
+
+	FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
 	raw_request = (char *)malloc(sizeof(char) * (len + 1));
 	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
 	raw_request[len] = '\0';
 
-	while (raw_request[i] != '\r' && raw_request[i] != '\n')
-		i++;
-	hexa = (char *)malloc(sizeof(char) * (i + 1));
-	hexa = (char *)memcpy(hexa, &raw_request[0], i);
-	hexa[i] = '\0';
+/*
+** I don't understand how curl send the blocks, but well, this function has to change to make it work
+** EACH CHUNK HAS TO BE SEND in a particular way, it should not be too complicated ... 
+*/
+	if (this->_length_of_chunk == 0)
+	{
+		while (raw_request[i] != '\r' && raw_request[i] != '\n')
+			i++;
 
-	printf("hexa = %s\n", hexa);
-	shexa = std::string(hexa);
+		hexa = (char *)malloc(sizeof(char) * (i + 1));
+		hexa = (char *)memcpy(hexa, &raw_request[0], i);
+		hexa[i] = '\0';
 
-	ss << std::hex << shexa;
-	ss >> x;
-	std::cout << shexa << " = " << x << std::endl;
-	free(raw_request);
-	free(hexa);
+		printf("hexa = %s\n", hexa);
+
+		ss << std::hex << std::string(hexa);
+		ss >> x;
+
+		this->_length_of_chunk = (int)x;
+		if (this->_length_of_chunk == 0)
+		{
+			this->_completed = true;
+			return ;
+		}
+		std::cout << "length_of_chunk = " << x << std::endl;
+		this->_length_of_chunk_received = len -  (strlen(hexa) + 4);
+		fwrite(&raw_request[strlen(hexa) + 2], 1, len - (strlen(hexa) + 4), fp);
+	}
+	else
+	{
+		this->_length_of_chunk_received += len;
+		fwrite(raw_request, 1, len, fp);
+	}
+
+	if (this->_length_of_chunk_received >= this->_length_of_chunk)
+	{
+		this->_length_of_chunk_received = 0;
+		this->_length_of_chunk = 0;
+	}
+	fclose(fp);
+	if (raw_request != NULL)
+		free(raw_request);
+	if (hexa != NULL)
+		free(hexa);
 }
-
 
 void	Request::addToLengthReceived(size_t length_to_add)
 {

@@ -69,6 +69,8 @@ class Request
 		size_t								_length_body;
 		size_t								_length_header;
 		size_t								_length_received;
+		size_t								_length_of_chunk;
+		size_t								_length_of_chunk_received;
 		std::map<std::string, std::string>	_env_vars;
 };
 

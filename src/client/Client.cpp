@@ -39,10 +39,15 @@ void	Client::addToRequest(const char *str, int rc, Config & block)
 {
 	if (this->_http_request.hasHeader())
 	{
-		this->_http_request.addToBody(str, 0, rc);
+		if (!this->_http_request.isChuncked())
+			this->_http_request.addToBodyChuncked(str, 0, rc);
+		else
+			this->_http_request.addToBody(str, 0, rc);
 	}
 	else
+	{
 		this->_http_request = Request(str, rc, block, this->_id);
+	}
 }
 
 int							Client::getId(void)

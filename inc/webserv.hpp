@@ -36,6 +36,7 @@
 #define FALSE            0
 #define DEFAULT_CONFIG 	"data/example.conf"
 
+#define BUFFER_SIZE		1000000
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);
 

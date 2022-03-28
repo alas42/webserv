@@ -170,10 +170,11 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 {
 	std::string		host; 
 	int 			rc = -1;
-	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
+	//char   			*buffer = new char[BUFFER_SIZE]();
+	char			*buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 
 	strcpy(buffer, "");
-	rc = recv(it->fd, buffer, 90000, 0);
+	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
 	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
@@ -188,14 +189,17 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	}
 	if (client->second.getRequest().hasHeader())
 	{
+		std::cout << "has header" << std::endl;
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	}
 	else
 	{
+		std::cout << "has no header" << std::endl;
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
+	//delete [] buffer;
 	free(buffer);
 	return (0);
 }
@@ -237,7 +241,8 @@ bool	Server::checking_revents(void)
 				{
 					if (this->receiving(it, client))
 						break;
-					if (client->second.getRequest().isComplete())
+					Request & client_request = client->second.getRequest();
+					if (client_request.isComplete() || (client_request.isChunked() && !client_request.sentContinue()))
 						it->events = POLLOUT;
 				}
 			}
@@ -245,13 +250,25 @@ bool	Server::checking_revents(void)
 		else if (it->revents & POLLOUT)
 		{
 			client = this->_clients.find(it->fd);
+			Request & client_request = client->second.getRequest();
+			Response r;
 			if (client != this->_clients.end())
 			{
-				Response r = client->second.getRequest().execute();
+				if (client_request.isChunked() && !client_request.sentContinue())
+				{
+					std::cout << "execute_chuncked" << std::endl;
+					r = client_request.execute_chunked();
+				}
+				else
+				{
+					std::cout << "execute()" << std::endl;
+					r = client_request.execute();
+				}
 				if (this->sending(it, r))
 					break;
 				it->events = POLLIN;
-				client->second.getRequest().reset();
+				if (client_request.isComplete()) 
+					client_request.reset();
 			}
 		}
 		else if (it->revents & POLLERR)

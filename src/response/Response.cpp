@@ -74,6 +74,12 @@ void	Response::create_cgi_base(const char *filename)
 	this->_raw_response.append(this->_body);
 }
 
+void	Response::create_continue(void)
+{
+	std::string		header("HTTP/1.1 100 Continue\r\n\r\n");
+	this->_raw_response = header;
+}
+
 void	Response::create_get(std::string filename)
 {
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)

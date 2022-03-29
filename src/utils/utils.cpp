@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/21 17:35:47 by tpierre           #+#    #+#             */
-/*   Updated: 2022/03/21 18:34:17 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 11:41:21 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,10 +14,10 @@
 
 std::vector<std::string> mySplit(std::string str, std::string charset) {
 
-	std::vector<std::string> ret;
-	std::string::size_type start;
-	std::string::size_type end = 0;
-	std::string tmp;
+	std::vector<std::string>	ret;
+	std::string::size_type		start;
+	std::string::size_type		end = 0;
+	std::string					tmp;
 
 	str.push_back(charset[0]);
 	start = str.find_first_not_of(charset, 0);

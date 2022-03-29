@@ -32,10 +32,10 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 		this->_completed = true;
 }
 
-void	Request::init_post_request(const char *request_str, int rc, int id)
-{
+void	Request::init_post_request(const char *request_str, int rc, int id) {
+
 	std::stringstream ss;
-	
+
 	ss << id;
 	this->_tmp_file = "request_" + this->_method + "_" + ss.str();
 	this->_length_received = 0;
@@ -45,10 +45,9 @@ void	Request::init_post_request(const char *request_str, int rc, int id)
 		addToBody(request_str, _length_header, rc - _length_header);
 }
 
-void	Request::init_env_map(void)
-{
-	std::string env_var[] =
-	{
+void	Request::init_env_map(void) {
+
+	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
 		"SERVER_SOFTWARE", "SERVER_NAME",
 		"GATEWAY_INTERFACE", "SERVER_PROTOCOL",
@@ -72,10 +71,9 @@ void	Request::init_env_map(void)
 	this->_env_vars["SERVER_SOFTWARE"] = "webserv/1.0";
 }
 
-Request & Request::operator=(const Request & other)
-{
-	if (this != &other)
-	{
+Request & Request::operator=(const Request & other) {
+
+	if (this != &other) {
 		this->_string_request = other._string_request;
 		this->_path_to_cgi = other._path_to_cgi;
 		this->_postdata = other._postdata;
@@ -97,10 +95,10 @@ Request & Request::operator=(const Request & other)
 	return (*this);
 }
 
-void Request::addToBody(const char * request_str, int pos, int len)
-{
+void Request::addToBody(const char * request_str, int pos, int len) {
+
 	char	*raw_request = NULL;
-	FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
+	FILE	*fp = fopen(this->_tmp_file.c_str(), "a");
 
 	raw_request = (char *)malloc(sizeof(char) * (len + 1));
 	raw_request = (char *)memcpy(raw_request, &request_str[pos], len);
@@ -112,17 +110,15 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->addToLengthReceived(len);
 }
 
-void Request::addToBodyChuncked(const char * request_str, int pos, int len)
-{
+void Request::addToBodyChuncked(const char * request_str, int pos, int len) {
+
 	//char	*raw_request = NULL;
 	std::cout << "chuncked; pos = " << pos << ", len = " << len << std::endl;
-	if (len == 0)
-	{
+	if (len == 0) {
 		std::cout << "header first" << std::endl;
 		return ;
 	}
-	else
-	{
+	else {
 		std::cout << "part of body" << std::endl;
 	}
 	//FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
@@ -131,23 +127,35 @@ void Request::addToBodyChuncked(const char * request_str, int pos, int len)
 	(void)len;
 }
 
-std::map<std::string,std::string> const &  Request::getEnvVars(void) const { return this->_env_vars; }
+std::map<std::string,std::string> const &  Request::getEnvVars(void) const {
+	return this->_env_vars;
+}
 
-Config &	Request::getConf(void) { return this->_block; }
+Config &	Request::getConf(void) {
+	return this->_block;
+}
 
-void	Request::addToLengthReceived(size_t length_to_add)
-{
+void	Request::addToLengthReceived(size_t length_to_add) {
+
 	this->_length_received += length_to_add;
 	if (_length_received == this->_length_body)
 		this->_completed = true;
 }
 
-bool	Request::isComplete(void) { return this->_completed; }
-bool	Request::isChuncked(void) { return this->_chuncked; }
-bool	Request::hasHeader(void) { return this->_header_completed; }
+bool	Request::isComplete(void) {
+	return this->_completed;
+}
 
-char	**Request::create_env_tab(void)
-{
+bool	Request::isChuncked(void) {
+	return this->_chuncked;
+}
+
+bool	Request::hasHeader(void) {
+	return this->_header_completed;
+}
+
+char	**Request::create_env_tab(void) {
+
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
 	size_t		length = 0;
@@ -156,8 +164,7 @@ char	**Request::create_env_tab(void)
 	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
 	std::cout << "[" << std::endl;
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
-	for(;it != this->_env_vars.end(); it++)
-	{
+	for(;it != this->_env_vars.end(); it++) {
 		tmp = strdup(it->second.c_str());
 		if (tmp == NULL)
 			length = strlen(it->first.c_str()) + 1;
@@ -165,8 +172,7 @@ char	**Request::create_env_tab(void)
 			length = strlen(it->first.c_str()) + 2 + strlen(it->second.c_str());
 		env_tab[i] = (char *)malloc(sizeof(char) * (length));
 		env_tab[i] = strcpy(env_tab[i], it->first.c_str());
-		if (tmp)
-		{
+		if (tmp) {
 			env_tab[i] = strcat(env_tab[i], "=\0");
 			env_tab[i] = strcat(env_tab[i], tmp);
 		}
@@ -181,8 +187,8 @@ char	**Request::create_env_tab(void)
 	return env_tab;
 }
 
-void	Request::reset()
-{
+void	Request::reset() {
+
 	if (this->_post)
 		remove(this->_tmp_file.c_str());
 	if (this->_cgi)
@@ -199,8 +205,8 @@ void	Request::reset()
 /***********************EXECUTION*************************/
 /*********************************************************/
 
-Response	Request::execute(void)
-{
+Response	Request::execute(void) {
+
 	Response r;
 
 	/*
@@ -216,8 +222,7 @@ Response	Request::execute(void)
 		execute_cgi();
 		r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
 	}
-	else
-	{
+	else {
 		for(size_t i = 0; methods[i].compare("0"); i++)
 			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
 				return (this->*ptr[i])();
@@ -226,28 +231,29 @@ Response	Request::execute(void)
 	return (r);
 }
 
-Response	Request::execute_delete(void)
-{
+Response	Request::execute_delete(void) {
+
 	std::cout << "deletion" << std::endl;
 	return Response();
 }
 
-Response	Request::execute_get(void)
-{
+Response	Request::execute_get(void) {
+
 	Response r;
 	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
 	return (r);
 }
 
-Response	Request::execute_post(void) // -> BAD REQUEST (SCRIPT NOT SPECIFIED)
-{
+// -> BAD REQUEST (SCRIPT NOT SPECIFIED)
+Response	Request::execute_post(void) {
+
 	Response r;
 	r.create_bad_request();
 	return (r);
 }
 
-void	Request::execute_cgi(void)
-{
+void	Request::execute_cgi(void) {
+
 	char 		**tab = (char **)malloc(sizeof(char *) * 3);
 	char		**env_tab = NULL;
 	pid_t		c_pid;
@@ -261,14 +267,12 @@ void	Request::execute_cgi(void)
 	tab[2] = 0;
 
 	c_pid = fork();
-	if (c_pid == 0)
-	{
+	if (c_pid == 0) {
 		fo = fopen(std::string("cgi_" + this->_tmp_file).c_str(), "a");
 		fdo = fileno(fo);
 		if (dup2(fdo, STDOUT_FILENO) == -1)
 			perror("dup2");
-		if (this->_post)
-		{
+		if (this->_post) {
 			fi = fopen(this->_tmp_file.c_str(), "r");
 			fdi = fileno(fi);
 			if (dup2(fdi, STDIN_FILENO) == -1)
@@ -277,13 +281,11 @@ void	Request::execute_cgi(void)
 		execve(this->_path_to_cgi.c_str(), tab, env_tab);
 		exit(EXIT_SUCCESS);
 	}
-	else if (c_pid < 0)
-	{
+	else if (c_pid < 0) {
 		perror("fork");
 		exit(EXIT_FAILURE);
 	}
-	else
-	{
+	else {
 		waitpid(c_pid, &status, 0);
 	}
 	for(size_t i = 0; tab[i]; i++)
@@ -298,18 +300,16 @@ void	Request::execute_cgi(void)
 /***********************PARSING***************************/
 /*********************************************************/
 
-void Request::parse_output_client(std::string & output)
-{
+void Request::parse_output_client(std::string & output) {
+
 	size_t i = 0;
 
 	this->_length_header = output.find("\r\n\r\n");
-	if (this->_length_header != std::string::npos)
-	{
+	if (this->_length_header != std::string::npos) {
 		this->_header = output.substr(0, output.find("\r\n\r\n"));
 		this->_length_header += 4;
 	}
-	else
-	{
+	else {
 		this->_header = output;
 		this->_length_header = this->_header.size();
 	}
@@ -327,15 +327,13 @@ void Request::parse_output_client(std::string & output)
 
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
-	if (!this->_method.compare("POST"))
-	{
+	if (!this->_method.compare("POST")) {
 		this->_post = true;
 		parse_content_length(output);
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
 		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	}
-	else
-	{
+	else {
 		this->_post = false;
 		this->_length_body = 0;
 	}
@@ -346,13 +344,11 @@ void Request::parse_output_client(std::string & output)
 ** string; it provides information to the CGI script to affect or refine
 ** the document to be returned by the script.
 */
-void	Request::parse_query_string(std::string & request_uri)
-{
+void	Request::parse_query_string(std::string & request_uri) {
+
 	std::size_t i = 0;
-	if ((i = request_uri.find("?")) != std::string::npos)
-	{
-		if (i < request_uri.length())
-		{
+	if ((i = request_uri.find("?")) != std::string::npos) {
+		if (i < request_uri.length()) {
 			this->_env_vars["QUERY_STRING"] = request_uri.substr(i + 1, request_uri.length() - (i + 1));
 		}
 	}
@@ -361,15 +357,13 @@ void	Request::parse_query_string(std::string & request_uri)
 /*
 ** The REQUEST_METHOD meta-variable MUST be set to the method which should be used by the script to process the request
 */
-void	Request::parse_request_method(std::string & output, std::size_t & pos)
-{
-	std::size_t i = 0;
-	std::string methods[4] = {"GET", "POST", "DELETE", "0"};
+void	Request::parse_request_method(std::string & output, std::size_t & pos) {
 
-	while (methods[i].compare("0") != 0)
-	{
-		if (output.substr(0, methods[i].length()).compare(methods[i]) == 0)
-		{
+	std::size_t	i = 0;
+	std::string	methods[4] = {"GET", "POST", "DELETE", "0"};
+
+	while (methods[i].compare("0") != 0) {
+		if (output.substr(0, methods[i].length()).compare(methods[i]) == 0) {
 			this->_env_vars["REQUEST_METHOD"] = methods[i];
 			this->_method = methods[i];
 			pos += methods[i].length();
@@ -378,7 +372,9 @@ void	Request::parse_request_method(std::string & output, std::size_t & pos)
 		i++;
 	}
 }
+
 void	Request::parse_sript(std::string & request_uri ) {
+
 	std::size_t i;
 	std::size_t j;
 	std::string script;
@@ -397,8 +393,8 @@ void	Request::parse_sript(std::string & request_uri ) {
 		this->_env_vars["SCRIPT_NAME"] = "";
 }
 
-void Request::parse_request_uri(std::string & output, std::size_t & pos)
-{
+void Request::parse_request_uri(std::string & output, std::size_t & pos) {
+
 	std::size_t i = 0, length_uri = 0;
 	std::string request_uri;
 
@@ -416,17 +412,14 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos)
 ** The SERVER_PROTOCOL variable MUST be set to the name and version of
 ** the application protocol used for this CGI request.
 */
-void	Request::parse_server_protocol(std::string & output, std::size_t & pos)
-{
-	std::size_t i = 0, length_protocol = 0;
-	std::string protocols[4] = {"HTTP", "UDP", "FTP", "0"};
+void	Request::parse_server_protocol(std::string & output, std::size_t & pos) {
 
-	while (protocols[i].compare("0") != 0)
-	{
-		if ((i = output.find(protocols[i], pos)) != std::string::npos)
-		{
-			while (!std::isspace(output.at(i + length_protocol)))
-			{
+	std::size_t	i = 0, length_protocol = 0;
+	std::string	protocols[4] = {"HTTP", "UDP", "FTP", "0"};
+
+	while (protocols[i].compare("0") != 0) {
+		if ((i = output.find(protocols[i], pos)) != std::string::npos) {
+			while (!std::isspace(output.at(i + length_protocol))) {
 				length_protocol++;
 			}
 			this->_env_vars["SERVER_PROTOCOL"] = output.substr(i, length_protocol);
@@ -441,14 +434,12 @@ void	Request::parse_server_protocol(std::string & output, std::size_t & pos)
 ** The SERVER_PORT variable MUST be set to the TCP/IP port number on
 ** which this request is received from the client.
 */
-void	Request::parse_server_port(std::string & output, std::size_t & pos)
-{
+void	Request::parse_server_port(std::string & output, std::size_t & pos) {
+
 	std::size_t i = 0, length_port = 0;
-	if ((i = output.find(":", pos)) != std::string::npos)
-	{
+	if ((i = output.find(":", pos)) != std::string::npos) {
 		i += 1;
-		while (!std::isspace(output.at(i + length_port)))
-		{
+		while (!std::isspace(output.at(i + length_port))) {
 			length_port++;
 		}
 		this->_env_vars["SERVER_PORT"] = output.substr(i, length_port);
@@ -456,52 +447,46 @@ void	Request::parse_server_port(std::string & output, std::size_t & pos)
 	}
 }
 
-void	Request::parse_content_length(std::string & output)
-{
+void	Request::parse_content_length(std::string & output) {
+
 	std::size_t i = 0, length_content_length = 0;
 
-	if ((i = output.find("Content-Length: ", 0)) != std::string::npos)
-	{
+	if ((i = output.find("Content-Length: ", 0)) != std::string::npos) {
 		i += 16;
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
 		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
-	else
-	{
+	else {
 		this->_content_length = "-1";
 		this->_length_body = -1;
 	}
 }
 
-void Request::parse_content_type (std::string & output)
-{
+void Request::parse_content_type (std::string & output) {
+
 	std::size_t i = 0, length_content_type = 0;
 
-	if ((i = output.find("Content-Type: ", 0)) != std::string::npos)
-	{
+	if ((i = output.find("Content-Type: ", 0)) != std::string::npos) {
 		i += 14;
-		while (output.at(i + length_content_type) != '\r' && output.at(i + length_content_type) != '\n')
-		{
+		while (output.at(i + length_content_type) != '\r' && output.at(i + length_content_type) != '\n') {
 			length_content_type++;
 		}
 		this->_content_type = output.substr(i, length_content_type);
 	}
-	else
-	{
+	else {
 		this->_content_type = "text/html";
 	}
 	this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 }
 
-void Request::parse_http_accept(std::string &output, std::string tofind)
-{
+void Request::parse_http_accept(std::string &output, std::string tofind) {
+
 	std::size_t i = 0;
 	std::size_t length = 0;
 
-	if ((i = output.find(tofind, 0)) != std::string::npos)
-	{
+	if ((i = output.find(tofind, 0)) != std::string::npos) {
 		i += tofind.size() + 1;
 		std::transform(tofind.begin(), tofind.end(), tofind.begin(), ::toupper);
 		std::replace(tofind.begin(), tofind.end(), '-', '_');
@@ -511,8 +496,8 @@ void Request::parse_http_accept(std::string &output, std::string tofind)
 	}
 }
 
-void Request::parse_transfer_encoding(std::string & output)
-{
+void Request::parse_transfer_encoding(std::string & output) {
+
 	if (output.find("Transfer-Encoding: chunked") != std::string::npos)
 		this->_chuncked = true;
 	else

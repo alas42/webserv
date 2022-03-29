@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/27 16:18:28 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 11:25:21 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -64,7 +64,6 @@ void	printVectorOfString(std::vector<std::string> server) {
 
 std::string & Config::getIpAddress(void) {
 	return this->_ipAddress;
-
 }
 
 int	& Config::getPort(void) {
@@ -137,6 +136,7 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 }
 
 void Config::checkBlock() {
+
 	if (this->_ipAddress.compare("localhost") == 0)
 		this->_ipAddress = "127.0.0.1";
 	if (this->_root.find_last_of('/') == this->_root.size() - 1)

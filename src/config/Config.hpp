@@ -3,8 +3,8 @@
 
 # include "./../../inc/webserv.hpp"
 
-class Config
-{
+class Config {
+
 	public:
 		Config(void);
 		~Config(void);

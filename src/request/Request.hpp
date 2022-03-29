@@ -6,8 +6,8 @@
 #include "../../inc/webserv.hpp"
 #include <algorithm>
 
-class Request
-{
+class Request {
+
 	public:
 		Request(void);
 		~Request(void);

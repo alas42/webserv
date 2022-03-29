@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/25 19:03:49 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 11:20:17 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -168,7 +168,7 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 
 int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	std::string		host; 
+	std::string		host;
 	int 			rc = -1;
 	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
 

@@ -48,6 +48,11 @@ class Request
 		Config &	getConf(void);
 		void		reset(void);
 
+		int check_path(std::string path);
+		int check_read_rights(std::string path);
+		int check_wright_rights(std::string path);
+		int check_execute_rights(std::string path);
+
 	private:
 		Config								_block;
 		std::string							_method;

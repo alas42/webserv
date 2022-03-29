@@ -35,7 +35,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 void	Request::init_post_request(const char *request_str, int rc, int id)
 {
 	std::stringstream ss;
-	
+
 	ss << id;
 	this->_tmp_file = "request_" + this->_method + "_" + ss.str();
 	this->_length_received = 0;
@@ -228,14 +228,63 @@ Response	Request::execute(void)
 
 Response	Request::execute_delete(void)
 {
-	std::cout << "deletion" << std::endl;
-	return Response();
+    Response r;
+    int res;
+    std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
+
+    if (check_path(path) == -1)
+		r.create_not_found();
+	else if (check_path(path) == 4)
+	{
+		// en vrai faudrait checker les droits des fichers ou dossier a l'interieur
+		// de root.
+		if (check_execute_rights(path) && check_wright_rights(path))
+		{
+			res = rmdir(path.c_str());
+			if (res != 0)
+			{
+				// recuperer errno et le rajouter a la page d'erreur 400
+				r.create_bad_request();
+			}
+			r.create_delete(path);
+		}
+		else
+			r.create_Forbidden();
+	}
+	else if (check_execute_rights(path) && check_wright_rights(path))
+	{
+		res = remove(path.c_str());
+		if (res != 0)
+		{
+			// recuperer errno et le rajouter a la page d'erreur 400
+			r.create_bad_request();
+		}
+		r.create_delete(path);
+	}
+	return (r);
 }
 
 Response	Request::execute_get(void)
 {
 	Response r;
-	r.create_get(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]);
+    std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
+    if (check_path(path) == -1)
+		r.create_not_found();
+	else if (check_path(path) == 4)
+	{
+		std::cout << path << " is a directory\n" << std::endl;
+		if (check_read_rights(path) == 1)
+			r.print_directory(path, this->_env_vars["REQUEST_URI"]);
+		else
+			r.create_Forbidden();
+	}
+	else if (check_read_rights(path) == 1)
+		r.create_get(path);
+	else if (check_read_rights(path) == 0)
+		r.create_Forbidden();
+	else
+		r.create_internal_error();
+	//r.create_get(path);
 	return (r);
 }
 
@@ -517,4 +566,66 @@ void Request::parse_transfer_encoding(std::string & output)
 		this->_chuncked = true;
 	else
 		this->_chuncked = false;
+}
+
+int Request::check_path(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (S_ISDIR(buf.st_mode) != 0)
+	{
+		// on check l'auto index return 4 si off et 5 si on par default is off
+		return (4);
+	}
+
+	return (0);
+}
+
+int Request::check_read_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IROTH)
+	{
+		return (1);
+	}
+	return (0);
+}
+
+int Request::check_wright_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IWOTH)
+	{
+		return (1);
+	}
+	return (0);
+}
+
+int Request::check_execute_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IXOTH)
+	{
+		return (1);
+	}
+	return (0);
 }

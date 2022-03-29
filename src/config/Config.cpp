@@ -6,14 +6,14 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/29 11:25:21 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 11:51:34 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Config.hpp"
 
 Config::Config(void): _ipAddress("127.0.0.1"), _port(80), _serverNames(), _errorPages(), \
-						_clientMaxBodySize(0), _cgiPass("php/php-cgi"), _allowMethods(), _location(), \
+						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
 						_root("/"), _index(), _autoIndex(false) {}
 
 Config::~Config(void) {}

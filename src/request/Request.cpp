@@ -25,6 +25,10 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	_length_body(0), _length_header(0), _length_received(0)
 {
 	this->init_env_map();
+	if (this->_block.getCgiPass().empty())
+		this->_path_to_cgi = "cgi/php-cgi";
+	else
+		this->_path_to_cgi = this->_block.getCgiPass();
 	this->parse_output_client(this->_string_request);
 	if (this->_post)
 		this->init_post_request(request_str, rc, id);
@@ -209,9 +213,8 @@ Response	Request::execute(void) {
 
 	Response r;
 
-	/*
-	** ICi, tout check !
-	*/
+	std::cout << "11111111111111111111111" << std::endl;
+
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
@@ -262,6 +265,7 @@ void	Request::execute_cgi(void) {
 
 	this->_cgi = true;
 	env_tab = create_env_tab();
+	std::cout << _path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
@@ -303,6 +307,7 @@ void	Request::execute_cgi(void) {
 void Request::parse_output_client(std::string & output) {
 
 	size_t i = 0;
+	std::cout << "2222222222222222222222" << std::endl;
 
 	this->_length_header = output.find("\r\n\r\n");
 	if (this->_length_header != std::string::npos) {
@@ -323,8 +328,8 @@ void Request::parse_output_client(std::string & output) {
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 
+	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST")) {
@@ -373,18 +378,14 @@ void	Request::parse_request_method(std::string & output, std::size_t & pos) {
 	}
 }
 
-void	Request::parse_sript(std::string & request_uri ) {
+void	Request::parse_sript(std::string & request_uri) {
 
 	std::size_t i;
-	std::size_t j;
 	std::string script;
 
-	if ((i = request_uri.find_first_of(".")) != std::string::npos) {
+	if ((i = request_uri.find_last_of(".")) != std::string::npos) {
 		i += 1;
-		j = i;
-		while (request_uri[j] != '/')
-			j--;
-		script = request_uri.substr(j, i - j);
+		script = request_uri.substr(0, i);
 		while (std::isalpha(request_uri[i]))
 			script.push_back(request_uri[i++]);
 		this->_env_vars["SCRIPT_NAME"] = script;

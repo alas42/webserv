@@ -273,7 +273,7 @@ Response	Request::execute_get(void)
 	else if (check_path(path) == 4)
 	{
 		std::cout << path << " is a directory\n" << std::endl;
-		if (check_read_rights(path) == 1)
+		if (check_read_rights(path) == 1 && this->getConf().getAutoIndex() == true)
 			r.print_directory(path, this->_env_vars["REQUEST_URI"]);
 		else
 			r.create_Forbidden();

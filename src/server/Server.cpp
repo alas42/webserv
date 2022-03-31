@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/29 11:40:56 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/30 14:23:18 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -181,6 +181,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	else {
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
+		// set la bonne config en fonction du server name si le host correspond a 2 configs similaires
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);

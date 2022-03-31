@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:52:06 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/29 11:51:34 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/31 12:35:55 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 Config::Config(void): _ipAddress("127.0.0.1"), _port(80), _serverNames(), _errorPages(), \
 						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
-						_root("/"), _index(), _autoIndex(false) {}
+						_root(), _index(), _autoIndex(false) {}
 
 Config::~Config(void) {}
 
@@ -40,24 +40,6 @@ Config & Config::operator=(Config const & other) {
 		this->_autoIndex = other._autoIndex;
 	}
 	return (*this);
-}
-
-void	printVectorOfVectorOfString(std::vector<std::vector<std::string> > server) {
-
-	for (size_t i = 0; i < server.size(); i++) {
-		for (size_t j = 0; j < server[i].size(); j++) {
-			std::cout << server[i][j] << std::endl;
-		}
-		std::cout << std::endl;
-	}
-}
-
-void	printVectorOfString(std::vector<std::string> server) {
-
-	for (size_t i = 0; i < server.size(); i++) {
-		std::cout << server[i] << std::endl;
-	}
-	std::cout << std::endl;
 }
 
 // GET
@@ -139,12 +121,8 @@ void Config::checkBlock() {
 
 	if (this->_ipAddress.compare("localhost") == 0)
 		this->_ipAddress = "127.0.0.1";
-	if (this->_root.find_last_of('/') == this->_root.size() - 1)
-		this->_root.erase(this->_root.size() - 1, 1);
 	if (this->_serverNames.empty())
 		this->_serverNames.push_back("");
-	if (this->_index.empty())
-		this->_index.push_back("index.html");
 	if (!this->_location.empty()) {
 		for (std::map<std::string, Config>::iterator it = _location.begin(); it != _location.end(); it++)
 			it->second.checkBlock();
@@ -219,6 +197,7 @@ int Config::_setLocation(std::vector<std::vector<std::string> > confFile, size_t
 	Config		location;
 	std::string	path = confFile[i][1];
 
+	this->_removeLastSlashe(path);
 	if (confFile[i].size() == 3){
 		if (confFile[i][0].compare("location") == 0 && confFile[i][2].compare("{") == 0) {
 			i = location._parseLocationDeep(confFile, i);
@@ -262,6 +241,7 @@ void Config::_setRoot(std::vector<std::string> line) {
 	if (line.size() != 2)
 		throw std::runtime_error("Bad root config\n");
 	this->_root = line[1];
+	this->_removeLastSlashe(this->_root);
 }
 
 void Config::_setIndex(std::vector<std::string> line) {
@@ -278,4 +258,46 @@ void Config::_setAutoIndex(std::vector<std::string> line) {
 		throw std::runtime_error("Bad autoindex config\n");
 	if (line[1].compare("on") == 0)
 		this->_autoIndex = true;
+}
+
+void	Config::_removeLastSlashe(std::string & path) {
+
+	if (path.find_last_of('/') == path.size() - 1 && path.size() != 1)
+		path.erase(path.size() - 1, 1);
+}
+
+std::ostream	&operator<<(std::ostream &out, Config &conf) {
+
+	out << "IP = " << conf.getIpAddress() << std::endl;
+	out << "Port = " << conf.getPort() << std::endl;
+	out << "ServerNames = ";
+	for (size_t i = 0; i < conf.getServerNames().size(); i++) {
+		out << conf.getServerNames()[i];
+		if (i != conf.getServerNames().size() - 1)
+			out << " ";
+	}
+	out << std::endl;
+	for (std::map<int, std::string>::iterator it = conf.getErrorPages().begin(); it != conf.getErrorPages().end(); it++)
+		out << "Error = " << it->first << ": File = " << it->second << std::endl;
+	out << "ClientMaxBodySize = " << conf.getClientMaxBodySize() << std::endl;
+	out << "CgiPass = " << conf.getCgiPass() << std::endl;
+	out << "AlowMethods = ";
+	for (size_t i = 0; i < conf.getAlowMethods().size(); i++) {
+		out << conf.getAlowMethods()[i];
+		if (i != conf.getAlowMethods().size() - 1)
+			out << " ";
+	}
+	out << std::endl;
+	// for (std::map<std::string, Config>::iterator it = conf.getLocation().begin(); it != conf.getLocation().end(); it++)
+	// 	out << "Location " << it->first << " [\n" << it->second << "]" << std::endl;
+	out << "Root = " << conf.getRoot() << std::endl;
+	out << "Index = ";
+	for (size_t i = 0; i < conf.getIndex().size(); i++) {
+		out << conf.getIndex()[i];
+		if (i != conf.getIndex().size() - 1)
+			out << " ";
+	}
+	out << std::endl;
+	out << "AutoIndex = " << (conf.getAutoIndex() ? "true" : "false") << std::endl;
+	return out;
 }

@@ -78,23 +78,24 @@ void	Request::init_env_map(void) {
 Request & Request::operator=(const Request & other) {
 
 	if (this != &other) {
+		this->_block = other._block;
+		this->_method = other._method;
 		this->_string_request = other._string_request;
 		this->_path_to_cgi = other._path_to_cgi;
 		this->_postdata = other._postdata;
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
-		this->_completed = other._completed;
-		this->_env_vars = other._env_vars;
 		this->_header = other._header;
-		this->_length_body = other._length_body;
-		this->_length_received = other._length_received;
-		this->_chuncked = other._chuncked;
-		this->_cgi = other._cgi;
-		this->_post = other._post;
-		this->_method = other._method;
-		this->_header_completed = other._header_completed;
-		this->_length_header = other._length_header;
 		this->_tmp_file = other._tmp_file;
+		this->_completed = other._completed;
+		this->_cgi = other._cgi;
+		this->_chuncked = other._chuncked;
+		this->_post = other._post;
+		this->_header_completed = other._header_completed;
+		this->_length_body = other._length_body;
+		this->_length_header = other._length_header;
+		this->_length_received = other._length_received;
+		this->_env_vars = other._env_vars;
 	}
 	return (*this);
 }
@@ -213,7 +214,7 @@ Response	Request::execute(void) {
 
 	Response r;
 
-	std::cout << "11111111111111111111111" << std::endl;
+	this->chooseConfigBeforeExecution();
 
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
@@ -307,7 +308,6 @@ void	Request::execute_cgi(void) {
 void Request::parse_output_client(std::string & output) {
 
 	size_t i = 0;
-	std::cout << "2222222222222222222222" << std::endl;
 
 	this->_length_header = output.find("\r\n\r\n");
 	if (this->_length_header != std::string::npos) {
@@ -318,7 +318,6 @@ void Request::parse_output_client(std::string & output) {
 		this->_header = output;
 		this->_length_header = this->_header.size();
 	}
-
 	parse_request_method(output, i);
 	parse_request_uri(output, i);
 	parse_server_protocol(output, i);
@@ -328,8 +327,12 @@ void Request::parse_output_client(std::string & output) {
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
+	std::cout << "--------------------------------_______________________ \n";
+	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
+		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+	else
+		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
 
-	this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	this->_env_vars["REDIRECT_STATUS"] = "200";
 
 	if (!this->_method.compare("POST")) {
@@ -503,4 +506,73 @@ void Request::parse_transfer_encoding(std::string & output) {
 		this->_chuncked = true;
 	else
 		this->_chuncked = false;
+}
+
+void Request::chooseConfigBeforeExecution() {
+
+	std::string	path;
+	Config tmpBlock = this->_block;
+
+	if (this->_env_vars["SCRIPT_NAME"].empty())
+		path = this->_env_vars["REQUEST_URI"];
+	else
+		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/"));
+	while (path.compare("") != 0) {
+		Config		newConfig;
+		path = this->getLocationBeforeExecution(path, tmpBlock, newConfig);
+	}
+	this->addIndex();
+}
+
+std::string	Request::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
+
+	std::map<std::string, Config>::iterator	iter;
+	std::string	tmp = path;
+
+	while (!tmp.empty()) {
+		for (std::map<std::string, Config>::iterator it = tmpBlock.getLocation().begin(); it != tmpBlock.getLocation().end(); it++) {
+			if (it->first == tmp)
+			{
+				newConfig = it->second;
+				tmpBlock = newConfig;
+				this->changeBlockToNewConfig(newConfig);
+				return path.substr(tmp.length(), path.length() - tmp.length());
+			}
+		}
+		tmp = tmp.substr(0, tmp.find_last_of('/'));
+	}
+	return "";
+}
+
+void	Request::changeBlockToNewConfig(Config &newConfig) {
+
+	if (!newConfig.getErrorPages().empty()) {
+		for (std::map<int, std::string>::iterator itBlock = this->_block.getErrorPages().begin(); itBlock != this->_block.getErrorPages().end(); itBlock++) {
+			for (std::map<int, std::string>::iterator itNew = newConfig.getErrorPages().begin(); itNew != newConfig.getErrorPages().end(); itNew++) {
+				if (itBlock->first == itNew->first)
+					itBlock->second = itNew->second;
+				else
+					this->_block.getErrorPages().insert(std::pair<int, std::string>(itNew->first, itNew->second));
+			}
+		}
+	}
+	if (this->_block.getClientMaxBodySize() != newConfig.getClientMaxBodySize())
+		this->_block.getClientMaxBodySize() = newConfig.getClientMaxBodySize();
+	if (this->_block.getCgiPass() != newConfig.getCgiPass())
+		this->_block.getCgiPass() = newConfig.getCgiPass();
+	if (!newConfig.getAlowMethods().empty())
+		this->_block.getAlowMethods() = newConfig.getAlowMethods();
+	if (this->_block.getRoot() != newConfig.getRoot() && !newConfig.getRoot().empty()) {
+		this->_block.getRoot() = newConfig.getRoot();
+		this->_env_vars["DOCUMENT_ROOT"] = this->_block.getRoot();
+	}
+	if (!newConfig.getIndex().empty())
+		this->_block.getIndex().insert(this->_block.getIndex().begin(), newConfig.getIndex().begin(), newConfig.getIndex().end());
+	if (newConfig.getAutoIndex() == true)
+		this->_block.getAutoIndex() = newConfig.getAutoIndex();
+}
+
+void Request::addIndex() {
+
+
 }

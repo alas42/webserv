@@ -23,8 +23,9 @@ class Config {
 		std::string						& getRoot(void);
 		std::vector<std::string>		& getIndex(void);
 		bool							& getAutoIndex(void);
-		int	parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
-		void checkBlock();
+
+		int		parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
+		void	checkBlock();
 
 	private:
 		std::string						_ipAddress;
@@ -53,7 +54,9 @@ class Config {
 		void	_setRoot(std::vector<std::string> line);
 		void	_setIndex(std::vector<std::string> line);
 		void	_setAutoIndex(std::vector<std::string> line);
-
+		void	_removeLastSlashe(std::string & path);
 };
+
+std::ostream	&operator<<(std::ostream &out, Config &conf);
 
 #endif

@@ -28,6 +28,10 @@ class Request {
 		void parse_content_type (std::string & output);
 		void parse_http_accept(std::string &output, std::string tofind);
 		void parse_transfer_encoding(std::string & output);
+		void chooseConfigBeforeExecution();
+		std::string getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig);
+		void changeBlockToNewConfig(Config &newConfig);
+		void addIndex();
 
 		bool isComplete(void);
 		bool hasHeader(void);

@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/21 17:35:47 by tpierre           #+#    #+#             */
-/*   Updated: 2022/03/29 11:41:21 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/31 16:54:49 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,3 +28,20 @@ std::vector<std::string> mySplit(std::string str, std::string charset) {
 	}
 	return (ret);
 }
+
+bool	pathIsFile(const std::string& path) {
+
+	struct stat s;
+
+	if (stat(path.c_str(), &s) == 0 ) {
+		if (s.st_mode & S_IFDIR)
+			return false;
+		else if (s.st_mode & S_IFREG)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
+

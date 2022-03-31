@@ -410,6 +410,8 @@ void Request::parse_request_uri(std::string & output, std::size_t & pos) {
 	pos += (i - pos) + length_uri;
 	this->parse_query_string(request_uri);
 	this->parse_sript(request_uri);
+	if (this->_env_vars["SCRIPT_NAME"].empty() && this->_env_vars["REQUEST_URI"][this->_env_vars["REQUEST_URI"].size() - 1] != '/')
+		this->_env_vars["REQUEST_URI"].push_back('/');
 }
 
 /*
@@ -511,17 +513,18 @@ void Request::parse_transfer_encoding(std::string & output) {
 void Request::chooseConfigBeforeExecution() {
 
 	std::string	path;
-	Config tmpBlock = this->_block;
+	Config		tmpBlock = this->_block;
 
 	if (this->_env_vars["SCRIPT_NAME"].empty())
 		path = this->_env_vars["REQUEST_URI"];
 	else
 		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/"));
 	while (path.compare("") != 0) {
-		Config		newConfig;
+		Config newConfig;
 		path = this->getLocationBeforeExecution(path, tmpBlock, newConfig);
 	}
-	this->addIndex();
+	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
+		this->addIndex();
 }
 
 std::string	Request::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
@@ -546,16 +549,8 @@ std::string	Request::getLocationBeforeExecution(std::string path, Config &tmpBlo
 
 void	Request::changeBlockToNewConfig(Config &newConfig) {
 
-	if (!newConfig.getErrorPages().empty()) {
-		for (std::map<int, std::string>::iterator itBlock = this->_block.getErrorPages().begin(); itBlock != this->_block.getErrorPages().end(); itBlock++) {
-			for (std::map<int, std::string>::iterator itNew = newConfig.getErrorPages().begin(); itNew != newConfig.getErrorPages().end(); itNew++) {
-				if (itBlock->first == itNew->first)
-					itBlock->second = itNew->second;
-				else
-					this->_block.getErrorPages().insert(std::pair<int, std::string>(itNew->first, itNew->second));
-			}
-		}
-	}
+	if (!newConfig.getErrorPages().empty())
+		this->_block.getErrorPages() = newConfig.getErrorPages();
 	if (this->_block.getClientMaxBodySize() != newConfig.getClientMaxBodySize())
 		this->_block.getClientMaxBodySize() = newConfig.getClientMaxBodySize();
 	if (this->_block.getCgiPass() != newConfig.getCgiPass())
@@ -567,12 +562,22 @@ void	Request::changeBlockToNewConfig(Config &newConfig) {
 		this->_env_vars["DOCUMENT_ROOT"] = this->_block.getRoot();
 	}
 	if (!newConfig.getIndex().empty())
-		this->_block.getIndex().insert(this->_block.getIndex().begin(), newConfig.getIndex().begin(), newConfig.getIndex().end());
+		this->_block.getIndex() = newConfig.getIndex();
 	if (newConfig.getAutoIndex() == true)
 		this->_block.getAutoIndex() = newConfig.getAutoIndex();
 }
 
 void Request::addIndex() {
 
-
+	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
+		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i])) {
+			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);
+			this->parse_sript(this->_env_vars["REQUEST_URI"]);
+			if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
+				this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+			else
+				this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
+			return ;
+		}
+	}
 }

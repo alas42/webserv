@@ -6,8 +6,8 @@
 /*
 ** Response to Client's Request
 */
-class Response
-{
+class Response {
+
 	public:
 		Response(void);
 		~Response(void);

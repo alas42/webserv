@@ -124,8 +124,9 @@ void Request::addToBody(const char * request_str, int pos, int len)
 void Request::addToBodyChunked(const char * request_str, int len)
 {
 	char	*			raw_request = NULL, * hexa = NULL;
-	std::stringstream	ss, ss2;
+	std::stringstream	ss2;
 	int 				i = 0;
+	int					read = 0;
 
 	std::cout << "chunked; len = " << len << std::endl;
 	if (len == 0)
@@ -138,46 +139,82 @@ void Request::addToBodyChunked(const char * request_str, int len)
 	raw_request = (char *)malloc(sizeof(char) * (len));
 	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
 
-	if (this->_length_of_chunk == 0)
+
+	if (this->_length_of_chunk_received == 0)
 	{
-		while (raw_request[i] != '\r' && raw_request[i] != '\n')
-			i++;
-
-		hexa = (char *)malloc(sizeof(char) * (i + 1));
-		hexa = (char *)memcpy(hexa, &raw_request[0], i);
-		hexa[i] = '\0';
-
-		ss << std::hex << std::string(hexa);
-		ss >> this->_length_of_chunk;
-
-		if (this->_length_of_chunk == 0)
+		while (true)
 		{
-			this->_completed = true;
-			return ;
-		}
+			std::stringstream	ss;
+			i = 0;
+			if (read >= len)
+			{
+				std::cout << "break  " << std::endl;
+				break ;
+			}
+			while (read < len && (raw_request[read + i] != '\r' && raw_request[read + i] != '\n'))
+			{
+				printf("%c" , raw_request[read + i]);
+				i++;
+			}
+			std::cout << "\nread = " << read << std::endl;
 
-		std::cout << "length_of_chunk = " << this->_length_of_chunk << std::endl;
-		this->_length_of_chunk_received = len -  (strlen(hexa) + 4);
-		fwrite(&raw_request[strlen(hexa) + 2], 1, this->_length_of_chunk_received, fp);
+			hexa = (char *)malloc(sizeof(char) * (i + 1));
+			hexa = (char *)memcpy(hexa, &raw_request[read], i); // storing hexa number
+			hexa[i] = '\0';
+			printf("hexa = %s\n", hexa);
+
+			read +=  (i + 2);
+
+			ss << std::hex << std::string(hexa);
+			ss >> this->_length_of_chunk; // len of chunk that i have to read
+			std::cout << "_length_of_chunk : " << this->_length_of_chunk << std::endl;
+
+			if (this->_length_of_chunk == 0) //if 0 it means it is the last block
+			{
+				fwrite("\0", 1, 1, fp);
+
+				std::cout << "completed" << std::endl;
+
+				ss2 << this->_length_received;
+				this->_env_vars["CONTENT_LENGTH"] = ss2.str();
+				this->_completed = true;
+
+				if (raw_request != NULL)
+					free(raw_request);
+				free(hexa);
+				fclose(fp);
+
+				return ;
+			}
+			if (len >= (int)(read + _length_of_chunk + 2)) // if the buffer contains the entire chunk
+			{
+				fwrite(&raw_request[read], 1, this->_length_of_chunk, fp);
+
+				this->_length_received += this->_length_of_chunk;
+				read += this->_length_of_chunk + 2;
+
+				this->_length_of_chunk_received = 0;
+				this->_length_of_chunk = 0;
+			}
+			else
+			{
+				std::cout << "len - read = " << (len - read) << std::endl;
+				this->_length_of_chunk_received += len - read;
+				fwrite(&raw_request[read], 1, len - read, fp);
+				read = len;
+			}
+			free(hexa);
+		}
 	}
 	else
 	{
+		std::cout << "pas la normalement 2" << std::endl;
 		this->_length_of_chunk_received += len;
 		fwrite(raw_request, 1, len, fp);
-	}
-
-	if (this->_length_of_chunk_received >= this->_length_of_chunk)
-	{
-		std::cout << "this->_length_of_chunk_received = " << this->_length_of_chunk_received << std::endl;
-		ss2 << this->_length_of_chunk_received;
-		this->_completed = true;
-		this->_env_vars["CONTENT_LENGTH"] = ss2.str();
 	}
 	fclose(fp);
 	if (raw_request != NULL)
 		free(raw_request);
-	if (hexa != NULL)
-		free(hexa);
 }
 
 void	Request::addToLengthReceived(size_t length_to_add)

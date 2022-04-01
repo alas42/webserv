@@ -29,19 +29,19 @@ std::vector<std::string> mySplit(std::string str, std::string charset) {
 	return (ret);
 }
 
-bool	pathIsFile(const std::string& path) {
+int	pathIsFile(const std::string& path) {
 
 	struct stat s;
 
 	if (stat(path.c_str(), &s) == 0 ) {
 		if (s.st_mode & S_IFDIR)
-			return false;
+			return 2;
 		else if (s.st_mode & S_IFREG)
-			return true;
+			return 1;
 		else
-			return false;
+			return 0;
 	}
 	else
-		return false;
+		return 0;
 }
 

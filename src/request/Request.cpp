@@ -117,10 +117,53 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->addToLengthReceived(len);
 }
 
+void Request::addToBodyChunked(const char * request_str, int len)
+{
+	char	*			raw_request = NULL, * last_block = NULL;
+	FILE 				*fp;
+	std::string			chunked_filename = this->_tmp_file;
+
+
+	if (len == 0)
+	{
+		std::cout << "return ;" << std::endl;
+		return ;
+	}
+
+	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
+	raw_request[len] = '\0';
+
+	fp = fopen(chunked_filename.c_str(), "a+");
+
+	this->_length_received += len;
+
+	fwrite(raw_request, 1, len, fp);
+
+	if (this->_length_received >= 5)
+	{
+		last_block = (char *)malloc(sizeof(char) * 6);
+		fseek(fp, this->_length_received - 5, SEEK_SET);
+		fread(last_block, 1, 5, fp);
+		last_block[5] = '\0';
+
+		if (last_block[0] == '0' && last_block[1] == '\r' && last_block[2] == '\n')
+		{
+			this->_completed = true;
+			std::cout << "completed" << std::endl;
+		}
+	}
+
+	fclose(fp);
+
+	if (raw_request != NULL)
+		free(raw_request);
+}
+
 /*
 ** I don't understand how curl send the blocks, but well, this function has to change to make it work
 ** EACH CHUNK HAS TO BE SEND in a particular way, it should not be too complicated ... 
-*/
+*//*
 void Request::addToBodyChunked(const char * request_str, int len)
 {
 	char	*			raw_request = NULL, * hexa = NULL;
@@ -136,9 +179,9 @@ void Request::addToBodyChunked(const char * request_str, int len)
 	}
 
 	FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
-	raw_request = (char *)malloc(sizeof(char) * (len));
+	raw_request = (char *)malloc(sizeof(char) * (len + 1));
 	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
-
+	raw_request[len] = '\0';
 
 	if (this->_length_of_chunk_received == 0)
 	{
@@ -151,23 +194,34 @@ void Request::addToBodyChunked(const char * request_str, int len)
 				std::cout << "break  " << std::endl;
 				break ;
 			}
-			while (read < len && (raw_request[read + i] != '\r' && raw_request[read + i] != '\n'))
+			printf("hexa = ");
+			while (read < len && (raw_request[read + i] != '\0' && raw_request[read + i] != '\r' && raw_request[read + i] != '\n'))
 			{
 				printf("%c" , raw_request[read + i]);
 				i++;
 			}
+
 			std::cout << "\nread = " << read << std::endl;
 
 			hexa = (char *)malloc(sizeof(char) * (i + 1));
 			hexa = (char *)memcpy(hexa, &raw_request[read], i); // storing hexa number
 			hexa[i] = '\0';
-			printf("hexa = %s\n", hexa);
 
-			read +=  (i + 2);
+			
 
 			ss << std::hex << std::string(hexa);
 			ss >> this->_length_of_chunk; // len of chunk that i have to read
 			std::cout << "_length_of_chunk : " << this->_length_of_chunk << std::endl;
+
+			if (raw_request[read + i] == '\0')
+			{
+				if (raw_request != NULL)
+					free(raw_request);
+				fclose(fp);
+				return ;
+			}
+
+			read +=  (i + 2);
 
 			if (this->_length_of_chunk == 0) //if 0 it means it is the last block
 			{
@@ -215,7 +269,7 @@ void Request::addToBodyChunked(const char * request_str, int len)
 	fclose(fp);
 	if (raw_request != NULL)
 		free(raw_request);
-}
+}*/
 
 void	Request::addToLengthReceived(size_t length_to_add)
 {

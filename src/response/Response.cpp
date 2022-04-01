@@ -87,6 +87,7 @@ void	Response::create_cgi_base(const char *filename) {
 }
 
 void	Response::create_get(std::string filename) {
+		std::cout << "filname ================================================================================================ " << filename << std::endl;
 
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos) {
 		std::cout << "binary" << std::endl;
@@ -99,6 +100,7 @@ void	Response::create_get(std::string filename) {
 	std::string			str, body;
 
 	if (f) {
+		std::cout << "dedans" << std::endl;
 		header.append("Content-Length: ");
 		while (f.good()) {
 			getline(f, str);

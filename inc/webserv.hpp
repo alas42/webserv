@@ -35,9 +35,11 @@
 #define TRUE             1
 #define FALSE            0
 #define DEFAULT_CONFIG 	"data/example.conf"
+// #define DEFAULT_INDEX 	"data/get_form.php"
+#define DEFAULT_INDEX 	"data/webserv_default_index.html"
 
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);
-	bool	pathIsFile(const std::string& path);
+	int	pathIsFile(const std::string& path);
 
 #endif

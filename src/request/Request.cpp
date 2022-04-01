@@ -213,14 +213,18 @@ void	Request::reset() {
 Response	Request::execute(void) {
 
 	Response r;
-
+	std::cout << "avant" << std::endl;
+	for (std::map<std::string, std::string>::iterator it = this->_env_vars.begin(); it != this->_env_vars.end(); it++)
+		std::cout << it->first << " = " << it->second << std::endl;
 	this->chooseConfigBeforeExecution();
-
+	std::cout << "apres" << std::endl;
+	for (std::map<std::string, std::string>::iterator it = this->_env_vars.begin(); it != this->_env_vars.end(); it++)
+		std::cout << it->first << " = " << it->second << std::endl;
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
 	//if (this->_cgi) -> this->_cgi should be set to true if based on the conf a script has been called
-	if (this->_env_vars["SCRIPT_NAME"].find(".php") != std::string::npos
+	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
 		execute_cgi();
@@ -374,7 +378,7 @@ void Request::parse_output_client(std::string & output) {
 	parse_http_accept(output, "Accept:");
 	parse_http_accept(output, "Accept-Encoding:");
 	parse_http_accept(output, "Accept-Language:");
-	std::cout << "--------------------------------_______________________ \n";
+
 	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	else
@@ -634,6 +638,9 @@ void Request::chooseConfigBeforeExecution() {
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
 		this->addIndex();
+	std::cout << this->_env_vars["SCRIPT_NAME"] << std::endl;
+	std::cout << this->_env_vars["DOCUMENT_ROOT"] << std::endl;
+	std::cout << this->_env_vars["SCRIPT_FILENAME"] << std::endl;
 }
 
 std::string	Request::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
@@ -679,7 +686,7 @@ void	Request::changeBlockToNewConfig(Config &newConfig) {
 void Request::addIndex() {
 
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
-		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i])) {
+		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {
 			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);
 			this->parse_sript(this->_env_vars["REQUEST_URI"]);
 			if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
@@ -688,5 +695,11 @@ void Request::addIndex() {
 				this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["SCRIPT_NAME"];
 			return ;
 		}
-  }
+	}
+	if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
+		this->_env_vars["DOCUMENT_ROOT"] = "./";
+		this->_env_vars["SCRIPT_NAME"] = DEFAULT_INDEX;
+		this->_env_vars["REQUEST_URI"] = this->_env_vars["SCRIPT_NAME"];
+		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+	}
 }

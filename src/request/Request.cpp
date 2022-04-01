@@ -119,10 +119,11 @@ void Request::addToBody(const char * request_str, int pos, int len)
 
 void Request::addToBodyChunked(const char * request_str, int len)
 {
-	char	*			raw_request = NULL, * last_block = NULL;
+	char				*raw_request = NULL, *last_block = NULL, *size = NULL;
 	FILE 				*fp;
 	std::string			chunked_filename = this->_tmp_file;
-
+	bool				next = true;
+	int					len_size, i = 0;
 
 	if (len == 0)
 	{
@@ -149,11 +150,20 @@ void Request::addToBodyChunked(const char * request_str, int len)
 
 		if (last_block[0] == '0' && last_block[1] == '\r' && last_block[2] == '\n')
 		{
+			fseek(fp, 0, 0);
+			while (next)
+			{
+				len_size = 0;
+				size = (char *)malloc(sizeof(char) * 10);
+				fread(last_block, 1, 9, fp);
+				size[9] = '\0';
+				while (size[i] != '\r' && size[i] != '\n')
+					i++;
+			}
 			this->_completed = true;
 			std::cout << "completed" << std::endl;
 		}
 	}
-
 	fclose(fp);
 
 	if (raw_request != NULL)

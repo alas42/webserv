@@ -38,5 +38,6 @@
 
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);
+	bool	pathIsFile(const std::string& path);
 
 #endif

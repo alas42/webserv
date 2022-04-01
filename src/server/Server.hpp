@@ -7,8 +7,8 @@
 # include "../response/Response.hpp"
 # include "./../../inc/webserv.hpp"
 
-class Server
-{
+class Server {
+
 	public:
 		Server(void);
 		~Server(void);

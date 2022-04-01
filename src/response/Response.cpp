@@ -1,7 +1,7 @@
 #include "Response.hpp"
 
-Response::Response(void): _header("s"), _body(""), _raw_response("")
-{
+Response::Response(void): _header("s"), _body(""), _raw_response("") {
+
 	this->_binary = false;
 	setting_mimes();
 }
@@ -9,16 +9,15 @@ Response::Response(void): _header("s"), _body(""), _raw_response("")
 Response::~Response(void)
 {}
 
-Response::Response(const Response & other): _header(other._header), _body(other._body), _raw_response(other._raw_response)
-{
+Response::Response(const Response & other): _header(other._header), _body(other._body), _raw_response(other._raw_response) {
+
 	this->_binary = other._binary;
 	this->_mimes = other._mimes;
 }
 
-Response & Response::operator=(const Response & other)
-{
-	if (this != &other)
-	{
+Response & Response::operator=(const Response & other) {
+
+	if (this != &other) {
 		this->_body = other._body;
 		this->_header = other._header;
 		this->_raw_response = other._raw_response;
@@ -28,15 +27,32 @@ Response & Response::operator=(const Response & other)
 	return (*this);
 }
 
-void			Response::setHeader(std::string new_header) {this->_header = new_header;}
-void			Response::setBody(std::string new_body) {this->_body= new_body;}
-void			Response::setRawResponse(std::string new_raw_response) {this->_raw_response = new_raw_response;}
-std::string &	Response::getHeader(void){ return this->_header; }
-std::string &	Response::getBody(void) {return this->_body; }
-std::string &	Response::getRawResponse(void){ return this->_raw_response; }
+void	Response::setHeader(std::string new_header) {
+	this->_header = new_header;
+}
 
-void	Response::create_cgi_base(const char *filename)
-{
+void	Response::setBody(std::string new_body) {
+	this->_body= new_body;
+}
+
+void	Response::setRawResponse(std::string new_raw_response) {
+	this->_raw_response = new_raw_response;
+}
+
+std::string &	Response::getHeader(void) {
+	return this->_header;
+}
+
+std::string &	Response::getBody(void) {
+	return this->_body;
+}
+
+std::string &	Response::getRawResponse(void) {
+	return this->_raw_response;
+}
+
+void	Response::create_cgi_base(const char *filename) {
+
 	std::ifstream f(filename);
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
@@ -45,19 +61,15 @@ void	Response::create_cgi_base(const char *filename)
 
 	f.clear();
 	f.seekg(0, std::ios::beg);
-	if (f)
-	{
-		while (f.good())
-		{
+	if (f) {
+		while (f.good()) {
 			getline(f, str);
-			if (i == 0)
-			{
+			if (i == 0) {
 				header.append(str);
 				header.append("\nContent-Length: ");
 				str.clear();
 			}
-			else if (i > 1)
-			{
+			else if (i > 1) {
 				body.append(str);
 				body.append("\r\n");
 			}
@@ -74,10 +86,9 @@ void	Response::create_cgi_base(const char *filename)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::create_get(std::string filename)
-{
-	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
-	{
+void	Response::create_get(std::string filename) {
+
+	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos) {
 		std::cout << "binary" << std::endl;
 		this->binary(filename);
 		return ;
@@ -87,11 +98,9 @@ void	Response::create_get(std::string filename)
 	std::string			header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
 	std::string			str, body;
 
-	if (f)
-	{
+	if (f) {
 		header.append("Content-Length: ");
-		while (f.good())
-		{
+		while (f.good()) {
 			getline(f, str);
 			body.append(str);
 			body.append("\r\n");
@@ -110,20 +119,19 @@ void	Response::create_get(std::string filename)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::create_post(std::string filename)
-{
+void	Response::create_post(std::string filename) {
 	(void)filename;
 }
 
 /*
 ** To do list : Content-type : set to correct one
 */
-void	Response::binary(std::string filename)
-{
-	std::size_t 		length, found;
+void	Response::binary(std::string filename) {
+
+	std::size_t		length, found;
 	std::string			header, extension;
-	std::stringstream 	ss;
-	std::ifstream 		f(filename.c_str(), std::ios::binary);
+	std::stringstream	ss;
+	std::ifstream		f(filename.c_str(), std::ios::binary);
 
 	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: *\r\nContent-Length: ";
 	found = filename.find_last_of(".");
@@ -159,8 +167,8 @@ void	Response::binary(std::string filename)
 **		Yes -> use Content-Type: application/octet-stream
 **		No  -> use Content-Type: text/plain
 */
-void	Response::setting_mimes(void)
-{
+void	Response::setting_mimes(void) {
+
 	this->_mimes[".avi"] = 	"video/x-msvideo";
 	this->_mimes[".bmp"] = 	"image/bmp";
 	this->_mimes[".csv"] = 	"text/csv";
@@ -181,24 +189,22 @@ void	Response::setting_mimes(void)
 	this->_mimes[".*"] = 	"application/octet-stream";
 }
 
-void	Response::create_bad_request(void)
-{
-	std::ifstream f("data/error_pages/400.html");
-	std::stringstream ss;
-	std::string header("HTTP/1.1 400 Bad Request\r\nConnection: keep-alive\r\n");
-	std::string str, body;
-	if (f)
-	{
+void	Response::create_bad_request(void) {
+
+	std::ifstream		f("data/error_pages/400.html");
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 400 Bad Request\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	if (f) {
 		header.append("Content-Length: ");
-		while (f.good())
-		{
+		while (f.good()) {
 			getline(f, str);
 			body.append(str);
 			body.append("\r\n");
 		}
 	}
-	else
-	{
+	else {
 		return ;
 	}
 	f.close();
@@ -211,30 +217,27 @@ void	Response::create_bad_request(void)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::create_Forbidden(void)
-{
+void	Response::create_Forbidden(void) {
+
 	//creer un fd
 	//ajouter a la liste des polls dans Server.cpp
 	//une fois qu'on passe (boucle suivante) dedans
 	//lire le fichier et continuer la preparation de la reponse
-	std::ifstream f("data/error_pages/403.html");
-	std::stringstream ss;
-	std::string header("HTTP/1.1 403 Forbidden\r\nConnection: keep-alive\r\n");
-	std::string str, body;
-	if (f)
-	{
+	std::ifstream		f("data/error_pages/403.html");
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 403 Forbidden\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	if (f) {
 		header.append("Content-Length: ");
-		while (f.good())
-		{
+		while (f.good()) {
 			getline(f, str);
 			body.append(str);
 			body.append("\r\n");
 		}
 	}
 	else
-	{
 		return ;
-	}
 	f.close();
 	this->_body = body;
 	ss << body.size();
@@ -245,26 +248,23 @@ void	Response::create_Forbidden(void)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::create_not_found(void)
-{
-	std::ifstream f("data/error_pages/404.html");
-	std::stringstream ss;
-	std::string header("HTTP/1.1 404 Not Found\r\nConnection: keep-alive\r\n");
-	std::string str, body;
-	if (f)
-	{
+void	Response::create_not_found(void) {
+
+	std::ifstream		f("data/error_pages/404.html");
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 404 Not Found\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	if (f) {
 		header.append("Content-Length: ");
-		while (f.good())
-		{
+		while (f.good()) {
 			getline(f, str);
 			body.append(str);
 			body.append("\r\n");
 		}
 	}
-	else // didn't find
-	{
+	else
 		return ;
-	}
 	f.close();
 	this->_body = body;
 	ss << body.size();
@@ -275,26 +275,23 @@ void	Response::create_not_found(void)
 	this->_raw_response.append(this->_body);
 }
 
-void	Response::create_internal_error(void)
-{
-	std::ifstream f("data/error_pages/500.html");
-	std::stringstream ss;
-	std::string header("HTTP/1.1 500 Internal Server Error\r\nConnection: keep-alive\r\n");
-	std::string str, body;
-	if (f)
-	{
+void	Response::create_internal_error(void) {
+
+	std::ifstream		f("data/error_pages/500.html");
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 500 Internal Server Error\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	if (f) {
 		header.append("Content-Length: ");
-		while (f.good())
-		{
+		while (f.good()) {
 			getline(f, str);
 			body.append(str);
 			body.append("\r\n");
 		}
 	}
-	else // didn't find
-	{
+	else
 		return ;
-	}
 	f.close();
 	this->_body = body;
 	ss << body.size();

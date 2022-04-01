@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/30 14:23:18 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 17:03:45 by ymehdi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -157,11 +157,12 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r) {
 	return (0);
 }
 
-int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client) {
-
+int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
+{
 	std::string		host;
-	int				rc = -1;
-	char			*buffer = (char *)malloc(sizeof(char) * 90000);
+	int 			rc = -1;
+	char   			*buffer = (char *)malloc(sizeof(char) * 90000);
+
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, 90000, 0);

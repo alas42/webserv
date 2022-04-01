@@ -301,3 +301,65 @@ void	Response::create_internal_error(void) {
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
 }
+
+void	Response::print_directory(std::string root_dir, std::string dir)
+{
+	DIR *dpdf;
+	struct dirent *epdf;
+	std::stringstream ss;
+	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
+	std::string str, body;
+	struct stat buf;
+	int res_stat = 0;
+	dpdf = opendir(root_dir.c_str());
+	if (dpdf != NULL)
+	{
+		header.append("Content-Length: ");
+		while ((epdf = readdir(dpdf)))
+		{
+			body.append("<a href=\"");
+			body.append(dir);
+			//body.append("/");
+			body.append(epdf->d_name);
+			std::string is_dir = epdf->d_name;
+			is_dir = dir + is_dir;
+			res_stat = stat(is_dir.c_str() ,&buf);
+			if (S_ISDIR(buf.st_mode) != 0)
+				body.append("/");
+			body.append("\">");
+			body.append(epdf->d_name);
+			body.append("</a>\r\n");
+			//printf("Filename: %s",epdf->d_name);
+	      // std::cout << epdf->d_name << std::endl;
+	  }
+	}
+	else
+		return ;
+	closedir(dpdf);
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+
+}
+
+void	Response::create_delete(std::string filename)
+{
+	std::stringstream ss;
+	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
+	std::string body;
+	header.append("Content-Length: ");
+	body.append(filename);
+	body.append(" deleted.");
+	body.append("\r\n");
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}

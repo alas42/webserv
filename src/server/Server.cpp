@@ -170,8 +170,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 {
 	std::string		host; 
 	int 			rc = -1;
-	//char   			*buffer = new char[BUFFER_SIZE]();
-	char			*buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	char			*buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
@@ -199,7 +198,6 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		this->verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
-	//delete [] buffer;
 	free(buffer);
 	return (0);
 }

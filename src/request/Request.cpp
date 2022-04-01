@@ -117,28 +117,27 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->addToLengthReceived(len);
 }
 
+/*
+** I don't understand how curl send the blocks, but well, this function has to change to make it work
+** EACH CHUNK HAS TO BE SEND in a particular way, it should not be too complicated ... 
+*/
 void Request::addToBodyChunked(const char * request_str, int len)
 {
 	char	*			raw_request = NULL, * hexa = NULL;
-	unsigned int		x = 0;
-	std::stringstream	ss;
+	std::stringstream	ss, ss2;
 	int 				i = 0;
 
 	std::cout << "chunked; len = " << len << std::endl;
 	if (len == 0)
 	{
-		return ; // return when only the header was received
+		std::cout << "return ; (len == 0)" << std::endl;
+		return ;
 	}
 
 	FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
-	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	raw_request = (char *)malloc(sizeof(char) * (len));
 	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
-	raw_request[len] = '\0';
 
-/*
-** I don't understand how curl send the blocks, but well, this function has to change to make it work
-** EACH CHUNK HAS TO BE SEND in a particular way, it should not be too complicated ... 
-*/
 	if (this->_length_of_chunk == 0)
 	{
 		while (raw_request[i] != '\r' && raw_request[i] != '\n')
@@ -148,20 +147,18 @@ void Request::addToBodyChunked(const char * request_str, int len)
 		hexa = (char *)memcpy(hexa, &raw_request[0], i);
 		hexa[i] = '\0';
 
-		printf("hexa = %s\n", hexa);
-
 		ss << std::hex << std::string(hexa);
-		ss >> x;
+		ss >> this->_length_of_chunk;
 
-		this->_length_of_chunk = (int)x;
 		if (this->_length_of_chunk == 0)
 		{
 			this->_completed = true;
 			return ;
 		}
-		std::cout << "length_of_chunk = " << x << std::endl;
+
+		std::cout << "length_of_chunk = " << this->_length_of_chunk << std::endl;
 		this->_length_of_chunk_received = len -  (strlen(hexa) + 4);
-		fwrite(&raw_request[strlen(hexa) + 2], 1, len - (strlen(hexa) + 4), fp);
+		fwrite(&raw_request[strlen(hexa) + 2], 1, this->_length_of_chunk_received, fp);
 	}
 	else
 	{
@@ -171,8 +168,10 @@ void Request::addToBodyChunked(const char * request_str, int len)
 
 	if (this->_length_of_chunk_received >= this->_length_of_chunk)
 	{
-		this->_length_of_chunk_received = 0;
-		this->_length_of_chunk = 0;
+		std::cout << "this->_length_of_chunk_received = " << this->_length_of_chunk_received << std::endl;
+		ss2 << this->_length_of_chunk_received;
+		this->_completed = true;
+		this->_env_vars["CONTENT_LENGTH"] = ss2.str();
 	}
 	fclose(fp);
 	if (raw_request != NULL)

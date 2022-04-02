@@ -12,7 +12,7 @@
 
 #include "Server.hpp"
 
-Server::Server(void): _config(), _timeout(0.5 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
 Server::~Server(void)
@@ -72,7 +72,7 @@ int	Server::setup(void)
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
 
-	this->_pollfds.reserve(200); // because when reallocation, valgrind has invalid read
+	this->_pollfds.reserve(300);
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
@@ -109,11 +109,12 @@ int	Server::setup(void)
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
-		this->_server_fds.push_back(server_fd); // contains every file descriptor that our server uses to listen
+		this->_server_fds.push_back(server_fd);
 		listening_fd.fd = server_fd;
 		listening_fd.events = POLLIN;
-		this->_pollfds.push_back(listening_fd); // contains every poll_file_descriptor that the poll function will check
+		this->_pollfds.push_back(listening_fd);
 	}
+	std::cout << GREEN << "Starting..." << RESET << std::endl;
 	return (0);
 }
 
@@ -146,23 +147,22 @@ bool	Server::accept_connections(int server_fd)
 		this->_pollfds.push_back(client_fd);
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client)); // adds a new Client Object
+		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
 	} while (new_socket != -1);
 	return (false);
 }
 
-/* Creation of Response beforehand */
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
 
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
-	printf("%d bytes send\n", i);
 	if (i < 0)
 	{
 		perror("send error");
 		return (1);
 	}
+	std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
 	return (0);
 }
 
@@ -174,7 +174,6 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
-	printf("  %d bytes received\n\n", rc);
 	if (rc == -1)
 	{
 		free(buffer);
@@ -186,14 +185,13 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		free(buffer);
 		return (1);
 	}
+	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
 	if (client->second.getRequest().hasHeader())
 	{
-		std::cout << "has header" << std::endl;
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	}
 	else
 	{
-		std::cout << "has no header" << std::endl;
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
@@ -254,12 +252,10 @@ bool	Server::checking_revents(void)
 			{
 				if (client_request.isChunked() && !client_request.sentContinue())
 				{
-					std::cout << "execute_chuncked" << std::endl;
 					r = client_request.execute_chunked();
 				}
 				else
 				{
-					std::cout << "execute()" << std::endl;
 					r = client_request.execute();
 				}
 				if (this->sending(it, r))
@@ -284,24 +280,15 @@ int	Server::listen_poll(void)
 
 	rc = poll(&this->_pollfds[0], size_vec, -1);
 	if (rc <= 0)
-	{
-		rc == 0 ? std::cerr << "poll timeout " << std::endl : std::cerr << "poll error" << std::endl;
 		return (1);
-	}
 	return (0);
 }
 
-void	Server::run(void)
+bool	Server::run(void)
 {
-	bool	end = false; //should be global or static singleton because signals should interrupt the server
-
-	while (end == false)
-	{
-		if (this->listen_poll())
-			break ;
-		end = this->checking_revents();
-	}
-	std::cout << "Quitting..." << std::endl;
+	if (this->listen_poll())
+		return (1);
+	return (this->checking_revents());
 }
 
 void	Server::clean(void)
@@ -309,6 +296,7 @@ void	Server::clean(void)
 	for (size_t i = 0; i < this->_pollfds.size(); i++)
 		close(this->_pollfds[i].fd);
 	this->_pollfds.clear();
+	std::cout << RED << "Quitting..." << RESET << std::endl;
 }
 
 std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) {
@@ -327,7 +315,7 @@ std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) 
 		}
 	}
 	else
-		throw std::runtime_error("Error: Cannot open conf file\n");
+		throw std::runtime_error("Error: Cannot open configuration file\n");
 	return confFile;
 }
 

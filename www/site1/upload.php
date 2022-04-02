@@ -1,31 +1,28 @@
 <?php
 	$target_dir = "uploads/";
 	$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
-	$uploadOk = 1;
+	$uploadOk = 0;
 	$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
 
 	if(isset($_POST["submit"]))
 	{
 		$uploadOk = 1;
 	}
-	else
-	{
-		echo "not isset\n";
-	}
 
 	// Check if file already exists
-	if (file_exists($target_file))
+	if ($uploadOk == 1 && file_exists($target_file))
 	{
 		echo "Sorry, file already exists.\n";
 		$uploadOk = 0;
 	}
 
 	// Check file size
-	if ($_FILES["fileToUpload"]["size"] > 1000000000)
+	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 500000000)
 	{
 		echo "Sorry, your file is too large.\n";
 		$uploadOk = 0;
 	}
+
 	// Check if $uploadOk is set to 0 by an error
 	if ($uploadOk == 0)
 	{

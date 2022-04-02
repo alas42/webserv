@@ -13,19 +13,33 @@
 #include "../inc/webserv.hpp"
 #include "./server/Server.hpp"
 
+namespace ft
+{
+	bool	end = false;
+}
+
+void signal_handler(int signal_num)
+{
+	ft::end = true;
+	(void)signal_num;
+}
+
 int		main(int ac, char **av)
 {
-	Server		server;
+	Server	server;
 
 	try
 	{
+		signal(SIGINT, signal_handler);
 		if (ac == 2)
 			server.config(av[1]);
 		else
 			server.config(DEFAULT_CONFIG);
-		if (server.setup())
-			return (1);
-		server.run();
+		if (!server.setup())
+		{
+			while (!ft::end)
+				ft::end = server.run();
+		}
 		server.clean();
 	}
 	catch (std::exception &e)

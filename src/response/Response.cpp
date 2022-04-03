@@ -96,7 +96,6 @@ void	Response::create_get(std::string filename)
 {
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
-		std::cout << "binary" << std::endl;
 		this->binary(filename);
 		return ;
 	}
@@ -106,7 +105,6 @@ void	Response::create_get(std::string filename)
 	std::string			str, body;
 
 	if (f) {
-		std::cout << "dedans" << std::endl;
 		header.append("Content-Length: ");
 		while (f.good()) {
 			getline(f, str);

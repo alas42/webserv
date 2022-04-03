@@ -88,11 +88,11 @@ Request & Request::operator=(const Request & other) {
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
 		this->_header = other._header;
-    this->_env_vars = other._env_vars;
+		this->_env_vars = other._env_vars;
 		this->_length_received = other._length_received;
 		this->_completed = other._completed;
 		this->_cgi = other._cgi;
-		this->_chuncked = other._chuncked;
+		this->_chunked = other._chunked;
 		this->_post = other._post;
 		this->_sent_continue = other._sent_continue;
 		this->_method = other._method;
@@ -282,22 +282,21 @@ Response	Request::execute_chunked(void)
 Response	Request::execute(void) {
 
 	Response r;
-	std::cout << "avant" << std::endl;
-	for (std::map<std::string, std::string>::iterator it = this->_env_vars.begin(); it != this->_env_vars.end(); it++)
-		std::cout << it->first << " = " << it->second << std::endl;
 	this->chooseConfigBeforeExecution();
-	std::cout << "apres" << std::endl;
-	for (std::map<std::string, std::string>::iterator it = this->_env_vars.begin(); it != this->_env_vars.end(); it++)
-		std::cout << it->first << " = " << it->second << std::endl;
 	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
-	//if (this->_cgi) -> this->_cgi should be set to true if based on the conf a script has been called
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
-		execute_cgi();
-		r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
+		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {	
+			execute_cgi();
+			r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
+		}
+		else
+		{
+			r.create_bad_request();
+		}
 	}
 	else {
 		for(size_t i = 0; methods[i].compare("0"); i++)
@@ -364,13 +363,13 @@ Response	Request::execute_get(void) {
 		r.create_Forbidden();
 	else
 		r.create_internal_error();
-	//r.create_get(path);
 	return (r);
 }
 
-// -> BAD REQUEST (SCRIPT NOT SPECIFIED)
 Response	Request::execute_post(void) {
-
+	/*
+	** JUBA !
+	*/
 	Response r;
 	r.create_bad_request();
 	return (r);
@@ -630,7 +629,9 @@ void Request::parse_transfer_encoding(std::string & output) {
 		this->_chunked = false;
 }
 
-
+/*
+** DROITS FICHIERS
+*/
 int Request::check_path(std::string path)
 {
 	struct stat buf;
@@ -641,7 +642,7 @@ int Request::check_path(std::string path)
 		return(-1);
 	if (S_ISDIR(buf.st_mode) != 0)
 	{
-		// on check l'auto index return 4 si off et 5 si on par default is off
+		// on check l'auto index return 4 si off et 5 si on. Par default is off
 		return (4);
 	}
 

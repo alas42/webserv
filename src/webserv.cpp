@@ -21,6 +21,7 @@ namespace ft
 void signal_handler(int signal_num)
 {
 	ft::end = true;
+	std::cout << std::endl;
 	(void)signal_num;
 }
 

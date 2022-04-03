@@ -12,7 +12,7 @@
 
 #include "Server.hpp"
 
-Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(0.5 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
 Server::~Server(void)
@@ -278,9 +278,11 @@ int	Server::listen_poll(void)
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
 
-	rc = poll(&this->_pollfds[0], size_vec, -1);
+	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
 	if (rc <= 0)
+	{
 		return (1);
+	}
 	return (0);
 }
 

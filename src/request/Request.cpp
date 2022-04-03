@@ -25,10 +25,12 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	_length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
 {
 	this->init_env_map();
-	if (this->_block.getCgiPass().empty())
-		this->_path_to_cgi = "cgi/php-cgi";
-	else
+	if (!this->_block.getCgiPass().empty())
 		this->_path_to_cgi = this->_block.getCgiPass();
+	if (this->_block.getUploadFolder().empty())
+		this->_env_vars["UPLOAD_STORE"] = "uploads";
+	else
+		this->_env_vars["UPLOAD_STORE"] = this->_block.getUploadFolder();
 	this->parse_output_client(this->_string_request);
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	if (this->_post)
@@ -66,6 +68,7 @@ void	Request::init_env_map(void) {
 		"AUTH_TYPE", "REMOTE_USER",
 		"REMOTE_IDENT", "HTTP_ACCEPT",
 		"HTTP_ACCEPT_LANGUAGE", "HTTP_USER_AGENT",
+		"UPLOAD_STORE",
 		"0"
 	};
 
@@ -170,7 +173,7 @@ void Request::addToBodyChunked(const char * request_str, int len)
 
 				ss << std::hex << std::string(hexa);
 				ss >> this->_length_of_chunk;
-	
+
 				if (this->_length_of_chunk)
 				{
 					this->_length_received += this->_length_of_chunk;
@@ -289,7 +292,7 @@ Response	Request::execute(void) {
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
-		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {	
+		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {
 			execute_cgi();
 			r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
 		}
@@ -708,9 +711,6 @@ void Request::chooseConfigBeforeExecution() {
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
 		this->addIndex();
-	std::cout << this->_env_vars["SCRIPT_NAME"] << std::endl;
-	std::cout << this->_env_vars["DOCUMENT_ROOT"] << std::endl;
-	std::cout << this->_env_vars["SCRIPT_FILENAME"] << std::endl;
 }
 
 std::string	Request::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
@@ -751,6 +751,8 @@ void	Request::changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getIndex() = newConfig.getIndex();
 	if (newConfig.getAutoIndex() == true)
 		this->_block.getAutoIndex() = newConfig.getAutoIndex();
+	if (this->_block.getUploadFolder() != newConfig.getUploadFolder())
+		this->_block.getUploadFolder() = newConfig.getUploadFolder();
 }
 
 void Request::addIndex() {

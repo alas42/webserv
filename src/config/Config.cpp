@@ -22,7 +22,8 @@ Config::Config(Config const & other): _ipAddress(other._ipAddress), _port(other.
 										_serverNames(other._serverNames), _errorPages(other._errorPages), \
 										_clientMaxBodySize(other._clientMaxBodySize), _cgiPass(other._cgiPass), \
 										_allowMethods(other._allowMethods), _location(other._location), \
-										_root(other._root), _index(other._index), _autoIndex(other._autoIndex){}
+										_root(other._root), _index(other._index), _autoIndex(other._autoIndex), \
+										_uploadFolder(other._uploadFolder) {}
 
 Config & Config::operator=(Config const & other) {
 
@@ -38,6 +39,7 @@ Config & Config::operator=(Config const & other) {
 		this->_root = other._root;
 		this->_index = other._index;
 		this->_autoIndex = other._autoIndex;
+		this->_uploadFolder = other._uploadFolder;
 	}
 	return (*this);
 }
@@ -88,6 +90,10 @@ bool							& Config::getAutoIndex(void) {
 	return this->_autoIndex;
 }
 
+std::string & Config::getUploadFolder(void) {
+	return this->_uploadFolder;
+}
+
 int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t i) {
 
 	for (; i < confFile.size(); i++) {
@@ -113,6 +119,8 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 			this->_setIndex(confFile[i]);
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
+		if (confFile[i][0].compare("upload_store") == 0)
+			this->_setUploadFolder(confFile[i]);
 	}
 	throw std::runtime_error("Error: server{} not closed\n");
 }
@@ -232,6 +240,8 @@ int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, 
 			this->_setIndex(confFile[i]);
 		if (confFile[i][0].compare("autoindex") == 0)
 			this->_setAutoIndex(confFile[i]);
+		if (confFile[i][0].compare("upload_store") == 0)
+			this->_setUploadFolder(confFile[i]);
 	}
 	throw std::runtime_error("Error: location{} not closed\n");
 }
@@ -258,6 +268,13 @@ void Config::_setAutoIndex(std::vector<std::string> line) {
 		throw std::runtime_error("Bad autoindex config\n");
 	if (line[1].compare("on") == 0)
 		this->_autoIndex = true;
+}
+
+void Config::_setUploadFolder(std::vector<std::string> line) {
+
+	if (line.size() != 2)
+		throw std::runtime_error("Bad upload config\n");
+	this->_uploadFolder = line[1].c_str();
 }
 
 void	Config::_removeLastSlashe(std::string & path) {
@@ -288,8 +305,8 @@ std::ostream	&operator<<(std::ostream &out, Config &conf) {
 			out << " ";
 	}
 	out << std::endl;
-	// for (std::map<std::string, Config>::iterator it = conf.getLocation().begin(); it != conf.getLocation().end(); it++)
-	// 	out << "Location " << it->first << " [\n" << it->second << "]" << std::endl;
+	for (std::map<std::string, Config>::iterator it = conf.getLocation().begin(); it != conf.getLocation().end(); it++)
+		out << "Location " << it->first << " [\n" << it->second << "]" << std::endl;
 	out << "Root = " << conf.getRoot() << std::endl;
 	out << "Index = ";
 	for (size_t i = 0; i < conf.getIndex().size(); i++) {
@@ -299,5 +316,6 @@ std::ostream	&operator<<(std::ostream &out, Config &conf) {
 	}
 	out << std::endl;
 	out << "AutoIndex = " << (conf.getAutoIndex() ? "true" : "false") << std::endl;
+	out << "Upload_folder = " << conf.getUploadFolder() << std::endl;
 	return out;
 }

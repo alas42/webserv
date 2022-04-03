@@ -25,7 +25,6 @@ class Server {
 		void	clean(void);
 		int		listen_poll(void);
 		bool 	checking_revents(void);
-		void	print_revents(pollfd fd);
 		int		receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client);
 		bool	sending(std::vector<pollfd>::iterator	it, Response & r);
 		bool	accept_connections(int server_fd);

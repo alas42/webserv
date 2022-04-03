@@ -17,9 +17,8 @@ Request::Request(const Request & other): _block(other._block),
 	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _env_vars(other._env_vars)
 {}
 
-//std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
-	_method(""), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(""),_content_length(""),
+	_method(""), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(""), _content_length(""),
 	_content_type(""), _header(""), _tmp_file(""),
 	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
 	_length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
@@ -223,38 +222,6 @@ std::map<std::string,std::string> const & 	Request::getEnvVars(void) const { ret
 Config &									Request::getConf(void) { return this->_block; }
 void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 
-char	**Request::create_env_tab(void) {
-	char		*tmp = NULL;
-	char 		**env_tab = NULL;
-	size_t		length = 0;
-	size_t 		i = 0;
-
-	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
-	std::cout << "[" << std::endl;
-	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
-	for(;it != this->_env_vars.end(); it++) {
-		tmp = strdup(it->second.c_str());
-		if (tmp == NULL)
-			length = strlen(it->first.c_str()) + 1;
-		else
-			length = strlen(it->first.c_str()) + 2 + strlen(it->second.c_str());
-		env_tab[i] = (char *)malloc(sizeof(char) * (length));
-		env_tab[i] = strcpy(env_tab[i], it->first.c_str());
-		if (tmp) {
-			env_tab[i] = strcat(env_tab[i], "=\0");
-			env_tab[i] = strcat(env_tab[i], tmp);
-		}
-		env_tab[i][length - 1] = '\0';
-		std::cout << env_tab[i] << std::endl;
-		if (tmp)
-			free(tmp);
-		i++;
-	}
-	std::cout << "]" << std::endl;
-	env_tab[this->_env_vars.size()] = 0;
-	return env_tab;
-}
-
 void	Request::reset() {
 
 	if (this->_post)
@@ -292,8 +259,10 @@ Response	Request::execute(void) {
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
 		|| this->_env_vars["REQUEST_URI"].find("cgi") != std::string::npos)
 	{
+		this->_cgi = true;
 		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {
-			execute_cgi();
+			Cgi c(this->_path_to_cgi, this->_post, this->_tmp_file, this->_env_vars);
+			c.execute();
 			r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());
 		}
 		else
@@ -390,51 +359,6 @@ Response	Request::execute_post(void) {
 	}
 	r.create_bad_request();
 	return (r);
-}
-
-void	Request::execute_cgi(void) {
-
-	char 		**tab = (char **)malloc(sizeof(char *) * 3);
-	char		**env_tab = NULL;
-	pid_t		c_pid;
-	FILE 		*fi, *fo;
-	int			status = 0, fdi, fdo;
-
-	this->_cgi = true;
-	env_tab = create_env_tab();
-	std::cout << _path_to_cgi << std::endl;
-	tab[0] = strdup(this->_path_to_cgi.c_str());
-	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
-	tab[2] = 0;
-
-	c_pid = fork();
-	if (c_pid == 0) {
-		fo = fopen(std::string("cgi_" + this->_tmp_file).c_str(), "a");
-		fdo = fileno(fo);
-		if (dup2(fdo, STDOUT_FILENO) == -1)
-			perror("dup2");
-		if (this->_post) {
-			fi = fopen(this->_tmp_file.c_str(), "r");
-			fdi = fileno(fi);
-			if (dup2(fdi, STDIN_FILENO) == -1)
-				perror("dup2");
-		}
-		execve(this->_path_to_cgi.c_str(), tab, env_tab);
-		exit(EXIT_SUCCESS);
-	}
-	else if (c_pid < 0) {
-		perror("fork");
-		exit(EXIT_FAILURE);
-	}
-	else {
-		waitpid(c_pid, &status, 0);
-	}
-	for(size_t i = 0; tab[i]; i++)
-		free(tab[i]);
-	free(tab);
-	for(size_t i = 0; env_tab[i]; i++)
-		free(env_tab[i]);
-	free(env_tab);
 }
 
 /*********************************************************/
@@ -646,70 +570,6 @@ void Request::parse_transfer_encoding(std::string & output) {
 		this->_chunked = false;
 }
 
-/*
-** DROITS FICHIERS
-*/
-int Request::check_path(std::string path)
-{
-	struct stat buf;
-	int res_stat = 0;
-
-	res_stat = stat(path.c_str() ,&buf);
-	if (res_stat == -1)
-		return(-1);
-	if (S_ISDIR(buf.st_mode) != 0)
-	{
-		// on check l'auto index return 4 si off et 5 si on. Par default is off
-		return (4);
-	}
-
-	return (0);
-}
-
-int Request::check_read_rights(std::string path)
-{
-	struct stat buf;
-	int res_stat = 0;
-
-	res_stat = stat(path.c_str() ,&buf);
-	if (res_stat == -1)
-		return(-1);
-	if (buf.st_mode & S_IROTH)
-	{
-		return (1);
-	}
-	return (0);
-}
-
-int Request::check_wright_rights(std::string path)
-{
-	struct stat buf;
-	int res_stat = 0;
-
-	res_stat = stat(path.c_str() ,&buf);
-	if (res_stat == -1)
-		return(-1);
-	if (buf.st_mode & S_IWOTH)
-	{
-		return (1);
-	}
-	return (0);
-}
-
-int Request::check_execute_rights(std::string path)
-{
-	struct stat buf;
-	int res_stat = 0;
-
-	res_stat = stat(path.c_str() ,&buf);
-	if (res_stat == -1)
-		return(-1);
-	if (buf.st_mode & S_IXOTH)
-	{
-		return (1);
-	}
-	return (0);
-}
 void Request::chooseConfigBeforeExecution() {
 
 	std::string	path;

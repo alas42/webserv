@@ -23,6 +23,7 @@ class Config {
 		std::string						& getRoot(void);
 		std::vector<std::string>		& getIndex(void);
 		bool							& getAutoIndex(void);
+		std::string						& getUploadFolder(void);
 
 		int		parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
 		void	checkBlock();
@@ -39,6 +40,7 @@ class Config {
 		std::string						_root;
 		std::vector<std::string>		_index;
 		bool							_autoIndex;
+		std::string						_uploadFolder;
 
 		// Parse file .conf
 		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
@@ -54,6 +56,7 @@ class Config {
 		void	_setRoot(std::vector<std::string> line);
 		void	_setIndex(std::vector<std::string> line);
 		void	_setAutoIndex(std::vector<std::string> line);
+		void	_setUploadFolder(std::vector<std::string> line);
 		void	_removeLastSlashe(std::string & path);
 };
 

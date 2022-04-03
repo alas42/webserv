@@ -30,6 +30,7 @@ class Response {
 		void	create_not_found(void);
 		void	create_Forbidden(void);
 		void	create_internal_error(void);
+		void	create_method_not_allowed(void);
 		void	create_delete(std::string filename);
 		void	print_directory(std::string root_dir, std::string dir);
 

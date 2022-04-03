@@ -316,6 +316,11 @@ Response	Request::execute_delete(void)
     int res;
     std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 
+
+	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+		r.create_method_not_allowed();
+		return r;
+	}
     if (check_path(path) == -1)
 		r.create_not_found();
 	else if (check_path(path) == 4)
@@ -349,8 +354,13 @@ Response	Request::execute_delete(void)
 Response	Request::execute_get(void) {
 
 	Response r;
-    std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
-    if (check_path(path) == -1)
+	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
+
+	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "GET") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+		r.create_method_not_allowed();
+		return r;
+	}
+	if (check_path(path) == -1)
 		r.create_not_found();
 	else if (check_path(path) == 4)
 	{
@@ -374,6 +384,10 @@ Response	Request::execute_post(void) {
 	** JUBA !
 	*/
 	Response r;
+	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+		r.create_method_not_allowed();
+		return r;
+	}
 	r.create_bad_request();
 	return (r);
 }

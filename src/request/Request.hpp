@@ -6,8 +6,8 @@
 #include "../../inc/webserv.hpp"
 #include <algorithm>
 
-class Request
-{
+class Request {
+
 	public:
 		Request(void);
 		~Request(void);
@@ -28,6 +28,10 @@ class Request
 		void parse_content_type (std::string & output);
 		void parse_http_accept(std::string &output, std::string tofind);
 		void parse_transfer_encoding(std::string & output);
+		void chooseConfigBeforeExecution();
+		std::string getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig);
+		void changeBlockToNewConfig(Config &newConfig);
+		void addIndex();
 
 		bool isComplete(void);
 		bool hasHeader(void);
@@ -49,6 +53,11 @@ class Request
 		Config &	getConf(void);
 		void		reset(void);
 		void		setSentContinue(bool val);
+
+		int check_path(std::string path);
+		int check_read_rights(std::string path);
+		int check_wright_rights(std::string path);
+		int check_execute_rights(std::string path);
 
 	private:
 		Config								_block;

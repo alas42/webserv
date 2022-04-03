@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:40:04 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/24 18:30:02 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 11:41:49 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,8 +43,7 @@ int		main(int ac, char **av)
 		}
 		server.clean();
 	}
-	catch (std::exception &e)
-	{
+	catch (std::exception &e) {
 		std::cerr << e.what() << std::endl;
 	}
 	return (0);

@@ -2,12 +2,13 @@
 # define RESPONSE_HPP
 
 # include "./../../inc/webserv.hpp"
+# include <dirent.h>
 
 /*
 ** Response to Client's Request
 */
-class Response
-{
+class Response {
+
 	public:
 		Response(void);
 		~Response(void);
@@ -30,6 +31,8 @@ class Response
 		void	create_not_found(void);
 		void	create_Forbidden(void);
 		void	create_internal_error(void);
+		void	create_delete(std::string filename);
+		void	print_directory(std::string root_dir, std::string dir);
 
 	private:
 		std::string							_header;

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
+/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/25 19:03:49 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/03/29 17:03:45 by ymehdi           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,10 +21,9 @@ Server::~Server(void)
 Server::Server(const Server & other): _config(other._config), _timeout(other._timeout), _total_clients(other._total_clients)
 {}
 
-Server & Server::operator=(const Server & other)
-{
-		if (this != &other)
-		{
+Server & Server::operator=(const Server & other) {
+
+		if (this != &other) {
 			this->_config = other._config;
 			this->_timeout = other._timeout;
 			this->_pollfds = other._pollfds;
@@ -39,13 +38,16 @@ std::map<std::string, Config> & Server::getConfig() {
 }
 
 std::vector<int> Server::getPorts() {
+
 	std::vector<int> ports;
 
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 		ports.push_back(it->second.getPort());
 	return ports;
 }
+
 std::string Server::getHostInConfig(std::string buffer) {
+
 	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
 
 	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++) {
@@ -61,13 +63,12 @@ void Server::verifyHost(std::string & host) {
 		host.replace(0, 9, "127.0.0.1");
 }
 
-void	Server::config(const char * conf_file)
-{
+void	Server::config(const char * conf_file) {
 	this->_fileToServer(conf_file);
 }
 
-int	Server::setup(void)
-{
+int	Server::setup(void) {
+
 	struct pollfd		listening_fd;
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
@@ -77,20 +78,17 @@ int	Server::setup(void)
 	{
 		server_fd = -1;
 
-		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		{
+		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 			std::cerr << "socket error" << std::endl;
 			return (1);
 		}
 
-		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
-		{
+		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
 			std::cerr << "setsockopt error" << std::endl;
 			return (1);
 		}
 
-		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0)
-		{
+		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0) {
 			std::cerr << "ioctl error" << std::endl;
 			return (1);
 		}
@@ -98,14 +96,12 @@ int	Server::setup(void)
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(it->second.getPort());
 		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
-		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
-		{
+		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0) {
 			std::cerr << "bind error " << it->second.getServerNames()[0].c_str() << std::endl;
 			return (1);
 		}
 
-		if (listen(server_fd, 150) < 0)
-		{
+		if (listen(server_fd, 150) < 0) {
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
@@ -118,25 +114,22 @@ int	Server::setup(void)
 	return (0);
 }
 
-void	Server::close_connection(std::vector<pollfd>::iterator	it)
-{
+void	Server::close_connection(std::vector<pollfd>::iterator	it) {
+
 	close(it->fd);
 	this->_clients.erase(it->fd);
 	this->_pollfds.erase(it);
 }
 
-bool	Server::accept_connections(int server_fd)
-{
+bool	Server::accept_connections(int server_fd) {
+
 	struct pollfd	client_fd;
 	int				new_socket = -1;
 
-	do
-	{
+	do {
 		new_socket = accept(server_fd, NULL, NULL);
-		if (new_socket < 0)
-		{
-			if (errno != EWOULDBLOCK)
-			{
+		if (new_socket < 0) {
+			if (errno != EWOULDBLOCK) {
 				perror("  accept() failed");
 				return (true);
 			}
@@ -168,9 +161,10 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 
 int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	std::string		host; 
+	std::string		host;
 	int 			rc = -1;
 	char			*buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
@@ -179,8 +173,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		free(buffer);
 		return (1);
 	}
-	else if (rc == 0)
-	{
+	else if (rc == 0) {
 		this->close_connection(it);
 		free(buffer);
 		return (1);
@@ -190,18 +183,18 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	{
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	}
-	else
-	{
+	else {
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
+		// set la bonne config en fonction du server name si le host correspond a 2 configs similaires
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);
 	return (0);
 }
 
-void	Server::print_revents(pollfd fd)
-{
+void	Server::print_revents(pollfd fd) {
+
 	printf("\n*************************************************\nfd=%d->revents: %s%s%s%s\n", fd.fd,
 		(fd.revents & POLLIN)  ? "POLLIN "  : "",
 		(fd.revents & POLLOUT) ? "POLLOUT " : "",
@@ -209,32 +202,27 @@ void	Server::print_revents(pollfd fd)
 		(fd.revents & POLLERR) ? "POLLERR " : "");
 }
 
-bool	Server::checking_revents(void)
-{
+bool	Server::checking_revents(void) {
+
 	bool							end = false;
 	std::vector<int>::iterator		find = this->_server_fds.end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
 	std::map<int, Client>::iterator client;
 
-	for (; it != ite; it++)
-	{
+	for (; it != ite; it++) {
 		if (it->revents == 0)
 			continue;
 		this->print_revents(*it);
 
-		if (it->revents & POLLIN)
-		{
+		if (it->revents & POLLIN) {
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end())
-			{
+			if (find != this->_server_fds.end()) {
 				end = this->accept_connections(*find);
 			}
-			else
-			{
+			else {
 				client = this->_clients.find(it->fd);
-				if (client != this->_clients.end())
-				{
+				if (client != this->_clients.end()) {
 					if (this->receiving(it, client))
 						break;
 					Request & client_request = client->second.getRequest();
@@ -243,8 +231,7 @@ bool	Server::checking_revents(void)
 				}
 			}
 		}
-		else if (it->revents & POLLOUT)
-		{
+		else if (it->revents & POLLOUT) 	{
 			client = this->_clients.find(it->fd);
 			Request & client_request = client->second.getRequest();
 			Response r;
@@ -265,16 +252,15 @@ bool	Server::checking_revents(void)
 					client_request.reset();
 			}
 		}
-		else if (it->revents & POLLERR)
-		{
+		else if (it->revents & POLLERR) {
 			this->close_connection(it);
 		}
 	}
 	return (end);
 }
 
-int	Server::listen_poll(void)
-{
+int	Server::listen_poll(void) {
+
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
 
@@ -293,8 +279,8 @@ bool	Server::run(void)
 	return (this->checking_revents());
 }
 
-void	Server::clean(void)
-{
+void	Server::clean(void) {
+
 	for (size_t i = 0; i < this->_pollfds.size(); i++)
 		close(this->_pollfds[i].fd);
 	this->_pollfds.clear();
@@ -303,10 +289,10 @@ void	Server::clean(void)
 
 std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) {
 
-	std::ifstream file(conf);
-	std::string line;
-	std::vector<std::vector<std::string> > confFile;
-	std::vector<std::string> tmp;
+	std::ifstream							file(conf);
+	std::string								line;
+	std::vector<std::vector<std::string> >	confFile;
+	std::vector<std::string>				tmp;
 
 	if (file.is_open()) {
 		while (getline(file, line)) {
@@ -340,5 +326,4 @@ void	Server::_fileToServer(const char *conf_file) {
 		else if (confFile[i][0].compare("#") != 0)
 			throw std::runtime_error("Error: Bad server{} configuration\n");
 	}
-
 }

@@ -35,9 +35,12 @@
 #define TRUE             1
 #define FALSE            0
 #define DEFAULT_CONFIG 	"data/example.conf"
+// #define DEFAULT_INDEX 	"data/get_form.php"
+#define DEFAULT_INDEX 	"data/webserv_default_index.html"
 
 #define BUFFER_SIZE		1000000
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);
+	int	pathIsFile(const std::string& path);
 
 #endif

@@ -12,8 +12,8 @@
 # define MAGENTA "\033[35m"
 # define RED "\033[31m"
 
-class Server
-{
+class Server {
+
 	public:
 		Server(void);
 		~Server(void);

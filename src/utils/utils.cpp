@@ -44,4 +44,67 @@ int	pathIsFile(const std::string& path) {
 	else
 		return 0;
 }
+/*
+** DROITS FICHIERS
+*/
+int check_path(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
 
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (S_ISDIR(buf.st_mode) != 0)
+	{
+		// on check l'auto index return 4 si off et 5 si on. Par default is off
+		return (4);
+	}
+
+	return (0);
+}
+
+int check_read_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IROTH)
+	{
+		return (1);
+	}
+	return (0);
+}
+
+int check_wright_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IWOTH)
+	{
+		return (1);
+	}
+	return (0);
+}
+
+int check_execute_rights(std::string path)
+{
+	struct stat buf;
+	int res_stat = 0;
+
+	res_stat = stat(path.c_str() ,&buf);
+	if (res_stat == -1)
+		return(-1);
+	if (buf.st_mode & S_IXOTH)
+	{
+		return (1);
+	}
+	return (0);
+}

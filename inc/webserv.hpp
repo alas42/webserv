@@ -42,5 +42,9 @@
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);
 	int	pathIsFile(const std::string& path);
+	int check_path(std::string path);
+	int check_read_rights(std::string path);
+	int check_execute_rights(std::string path);
+	int check_wright_rights(std::string path);
 
 #endif

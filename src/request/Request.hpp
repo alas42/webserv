@@ -4,6 +4,7 @@
 #include "../response/Response.hpp"
 #include "../config/Config.hpp"
 #include "../../inc/webserv.hpp"
+#include "../cgi/Cgi.hpp"
 #include <algorithm>
 
 class Request {
@@ -42,22 +43,15 @@ class Request {
 		void addToBodyChunked(const char * request_str, int len);
 
 		Response execute(void);
-		void execute_cgi(void);
 		Response execute_get(void);
 		Response execute_post(void);
 		Response execute_delete(void);
 		Response execute_chunked(void);
 
-		char **create_env_tab(void);
 		std::map<std::string,std::string> const & getEnvVars(void) const;
 		Config &	getConf(void);
 		void		reset(void);
 		void		setSentContinue(bool val);
-
-		int check_path(std::string path);
-		int check_read_rights(std::string path);
-		int check_wright_rights(std::string path);
-		int check_execute_rights(std::string path);
 
 	private:
 		Config								_block;

@@ -186,20 +186,10 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	else {
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);
-		// set la bonne config en fonction du server name si le host correspond a 2 configs similaires
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);
 	return (0);
-}
-
-void	Server::print_revents(pollfd fd) {
-
-	printf("\n*************************************************\nfd=%d->revents: %s%s%s%s\n", fd.fd,
-		(fd.revents & POLLIN)  ? "POLLIN "  : "",
-		(fd.revents & POLLOUT) ? "POLLOUT " : "",
-		(fd.revents & POLLHUP) ? "POLLHUP " : "",
-		(fd.revents & POLLERR) ? "POLLERR " : "");
 }
 
 bool	Server::checking_revents(void) {
@@ -213,7 +203,6 @@ bool	Server::checking_revents(void) {
 	for (; it != ite; it++) {
 		if (it->revents == 0)
 			continue;
-		this->print_revents(*it);
 
 		if (it->revents & POLLIN) {
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);

@@ -23,6 +23,8 @@ class Response {
 		void	create_cgi_base(const char *filename);
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
+		void	create_delete(std::string filename);
+		void	create_continue(void);
 		void	binary(std::string filename);
 		void	setting_mimes(void);
 		void	create_bad_request(void);

@@ -8,24 +8,6 @@ https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP
 ---------------------------------------Parsing du fichier de configuration------------------------------------
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ---------------------------------------Fonctionnement des sockets------------------------------------------------
 
 - Concept de socket et integration client server :
@@ -35,24 +17,6 @@ https://www.cas.mcmaster.ca/~qiao/courses/cs3mh3/tutorials/socket.html
 
 - Systeme de poll:
 https://suchprogramming.com/epoll-in-3-easy-steps/
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 ----------------------------------------Gestions des requetes/reponses http---------------------------------------
@@ -93,75 +57,56 @@ https://stackoverflow.com/questions/34447856/poll-and-read-resource-temporarily-
 Functions used and explanations :
 
 1.
-        /*
-		** Returns a socket descriptor (endpoint)
-		** only the protocol is specified (not yet the IP and PORT)
-		** A socket_descriptor represents the socket but is not a socket in itself (it is a binary that acts as an index to the socket)
-		*/
-		std::cout << port_number << std::endl;
-		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		{
-			std::cerr << "socket error" << std::endl;
-			return (1);
-		}
+/*
+** Returns a socket descriptor (endpoint)
+** only the protocol is specified (not yet the IP and PORT)
+** A socket_descriptor represents the socket but is not a socket in itself (it is a binary that acts as an index to the socket)
+*/
+std::cout << port_number << std::endl;
+if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+{
+	std::cerr << "socket error" << std::endl;
+	return (1);
+}
 
 2.
-        /*
-		** Allows the application to reuse local address when the server restarts (CTRL-C + ./webserv) before waiting time expires
-		*/
-		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
-		{
-			printf("%s\n", strerror(errno));
-			std::cerr << "setsockopt error" << std::endl;
-			return (1);
-		}
+/*
+** Allows the application to reuse local address when the server restarts (CTRL-C + ./webserv) before waiting time expires
+*/
+if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+{
+	printf("%s\n", strerror(errno));
+	std::cerr << "setsockopt error" << std::endl;
+	return (1);
+}
 
 3.
-        /*
-		** Gets a unique name for the socket
-		** bind() assigns the address specified by the second argument to the socket referred to by the file descriptor sever_fd
-		** it is here that the fd will be assigned an IP and PORT that he will afterwards listen to
-		*/
-		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
-		{
-			printf("%s\n", strerror(errno));
-			std::cerr << "bind error" << std::endl;
-			return (1);
-		}
+/*
+** Gets a unique name for the socket
+** bind() assigns the address specified by the second argument to the socket referred to by the file descriptor sever_fd
+** it is here that the fd will be assigned an IP and PORT that he will afterwards listen to
+*/
+if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
+{
+	printf("%s\n", strerror(errno));
+	std::cerr << "bind error" << std::endl;
+	return (1);
+}
 
 4.
-        /*
-		** Allows the server to accept incoming client connections
-		** listen() marks the socket referred by server_fd as a passive socket that will be used to accept incoming connection with accept
-		*/
-		if (listen(server_fd, 42) < 0) 
-		{ 
-			printf("%s\n", strerror(errno));
-			std::cerr << "listen error" << std::endl;
-			return (1);
-		}
+/*
+** Allows the server to accept incoming client connections
+** listen() marks the socket referred by server_fd as a passive socket that will be used to accept incoming connection with accept
+*/
+if (listen(server_fd, 42) < 0) 
+{ 
+	printf("%s\n", strerror(errno));
+	std::cerr << "listen error" << std::endl;
+	return (1);
+}
 
 SO_REUSEADDR && SO_REUSEPORT
 https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ
 
 HTTP 1.1 : RFC 7230 to 7237
 https://datatracker.ietf.org/doc/html/rfc7230#section-1
-
-/*
-** https://stackoverflow.com/questions/8236/how-do-you-determine-the-size-of-a-file-in-c
-**
-**
-TODO LIST :
-	1. Check the url demanded and the method (WIP)
-	2.a CGI called
-		a. GET -> send the data in QUERY_STRING env var ! IT WORKS (done)
-		b. POST -> send the data via the CGI stdin (use of pipe) (done)
-			b.1 -> the pipe make use of fd, it should be going through poll [MAYBE] (not done)
-			b.2 -> sending binary data into the pipe should not break (WIP)
-	2.b CGI not called
-		a. GET -> (done)
-		b. POST -> (not done)
-		c. DELETE -> (not done)
-**
-**
-*/

@@ -31,11 +31,12 @@ void	Client::createRequest(const char *str, int rc, Config & block)
 	this->_http_request = Request(str, rc, block, this->_id);
 }*/
 
-void	Client::addToRequest(const char *str, int rc, Config & block) {
-
-	if (this->_http_request.hasHeader()) {
-		if (!this->_http_request.isChuncked())
-			this->_http_request.addToBodyChuncked(str, 0, rc);
+void	Client::addToRequest(const char *str, int rc, Config & block)
+{
+	if (this->_http_request.hasHeader())
+	{
+		if (this->_http_request.isChunked())
+			this->_http_request.addToBodyChunked(str, rc);
 		else
 			this->_http_request.addToBody(str, 0, rc);
 	}

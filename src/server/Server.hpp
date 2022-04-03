@@ -7,6 +7,11 @@
 # include "../response/Response.hpp"
 # include "./../../inc/webserv.hpp"
 
+# define RESET "\033[0m"
+# define GREEN "\033[32m"
+# define MAGENTA "\033[35m"
+# define RED "\033[31m"
+
 class Server {
 
 	public:
@@ -16,7 +21,7 @@ class Server {
 		Server & operator=(const Server & other);
 		void	config(const char * conf_file);
 		int		setup(void);
-		void	run(void);
+		bool	run(void);
 		void	clean(void);
 		int		listen_poll(void);
 		bool 	checking_revents(void);

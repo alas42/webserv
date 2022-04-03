@@ -2,8 +2,8 @@
 
 Request::Request(void): _block(),
  _method(""), _string_request(""), _path_to_cgi(""), _postdata(""), _content_length(""), _content_type(""), _header(""), _tmp_file(""),
- _completed(false), _cgi(false), _chuncked(false), _post(false), _header_completed(false),
- _length_body(0), _length_header(0), _length_received(0)
+ _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
+ _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
 {}
 
 Request::~Request(void){}
@@ -12,17 +12,17 @@ Request::Request(const Request & other): _block(other._block),
 	_method(other._method), _string_request(other._string_request), _path_to_cgi(other._path_to_cgi),
 	_postdata(other._postdata), _content_length(other._content_length), _content_type(other._content_type),
 	_header(other._header), _tmp_file(other._tmp_file),
-	_completed(other._completed), _cgi(other._cgi), _chuncked(other._chuncked), _post(other._post), _header_completed(other._header_completed),
-	_length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_env_vars(other._env_vars)
+	_completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
+	_sent_continue(other._sent_continue), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
+	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _env_vars(other._env_vars)
 {}
 
 //std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
 	_method(""), _string_request(request_str), _path_to_cgi("cgi/php-cgi"), _postdata(""),_content_length(""),
 	_content_type(""), _header(""), _tmp_file(""),
-	_completed(false), _cgi(false), _chuncked(false), _post(false), _header_completed(false),
-	_length_body(0), _length_header(0), _length_received(0)
+	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
+	_length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
 {
 	this->init_env_map();
 	if (this->_block.getCgiPass().empty())
@@ -30,6 +30,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	else
 		this->_path_to_cgi = this->_block.getCgiPass();
 	this->parse_output_client(this->_string_request);
+	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	if (this->_post)
 		this->init_post_request(request_str, rc, id);
 	else
@@ -43,10 +44,11 @@ void	Request::init_post_request(const char *request_str, int rc, int id) {
 	ss << id;
 	this->_tmp_file = "request_" + this->_method + "_" + ss.str();
 	this->_length_received = 0;
-	if (this->_chuncked)
-		addToBodyChuncked(request_str, _length_header, rc - _length_header);
+	if (this->_chunked)
+		addToBodyChunked(request_str, rc - _length_header);
 	else
 		addToBody(request_str, _length_header, rc - _length_header);
+	this->_header_completed = true;
 }
 
 void	Request::init_env_map(void) {
@@ -86,16 +88,20 @@ Request & Request::operator=(const Request & other) {
 		this->_content_length = other._content_length;
 		this->_content_type = other._content_type;
 		this->_header = other._header;
-		this->_tmp_file = other._tmp_file;
+    this->_env_vars = other._env_vars;
+		this->_length_received = other._length_received;
 		this->_completed = other._completed;
 		this->_cgi = other._cgi;
 		this->_chuncked = other._chuncked;
 		this->_post = other._post;
+		this->_sent_continue = other._sent_continue;
+		this->_method = other._method;
 		this->_header_completed = other._header_completed;
 		this->_length_body = other._length_body;
 		this->_length_header = other._length_header;
-		this->_length_received = other._length_received;
-		this->_env_vars = other._env_vars;
+		this->_tmp_file = other._tmp_file;
+		this->_length_of_chunk = other._length_of_chunk;
+		this->_length_of_chunk_received = other._length_of_chunk_received;
 	}
 	return (*this);
 }
@@ -115,52 +121,106 @@ void Request::addToBody(const char * request_str, int pos, int len) {
 	this->addToLengthReceived(len);
 }
 
-void Request::addToBodyChuncked(const char * request_str, int pos, int len) {
-
-	//char	*raw_request = NULL;
-	std::cout << "chuncked; pos = " << pos << ", len = " << len << std::endl;
-	if (len == 0) {
-		std::cout << "header first" << std::endl;
+void Request::addToBodyChunked(const char * request_str, int len)
+{
+	if (len == 0)
 		return ;
+
+	char				*raw_request = NULL, *last_block = NULL, *size = NULL, *hexa = NULL, *block = NULL;
+	FILE 				*fp, *fo;
+	std::string			chunked_filename = this->_tmp_file + "_c";
+	bool				next = true;
+	int					i;
+
+	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
+	raw_request[len] = '\0';
+
+	fp = fopen(chunked_filename.c_str(), "a+");
+	this->_length_of_chunk_received += len;
+	fwrite(raw_request, 1, len, fp);
+
+	if (this->_length_of_chunk_received >= 5)
+	{
+		last_block = (char *)malloc(sizeof(char) * 6);
+		fseek(fp, this->_length_of_chunk_received - 5, SEEK_SET);
+		fread(last_block, 1, 5, fp);
+		last_block[5] = '\0';
+
+		if (last_block[0] == '0' && last_block[1] == '\r' && last_block[2] == '\n')
+		{
+			fseek(fp, 0, 0);
+			fo = fopen(this->_tmp_file.c_str(), "w");
+			this->_length_of_chunk_received = 0;
+			while (next)
+			{
+				i = 0;
+				this->_length_of_chunk = 0;
+				std::stringstream	ss;
+
+				fseek(fp, this->_length_of_chunk_received, SEEK_SET);
+				size = (char *)malloc(sizeof(char) * 6);
+				fread(size, 1, 5, fp);
+				size[5] = '\0';
+
+				while (size[i] != '\r' && size[i] != '\n') i++;
+				hexa = (char *)malloc(sizeof(char) * (i + 1));
+				hexa = (char *)memcpy(hexa, size, i);
+				hexa[i] = '\0';
+
+				ss << std::hex << std::string(hexa);
+				ss >> this->_length_of_chunk;
+	
+				if (this->_length_of_chunk)
+				{
+					this->_length_received += this->_length_of_chunk;
+					block = (char *)malloc(sizeof(char) * this->_length_of_chunk);
+					this->_length_of_chunk_received += (strlen(hexa) + 2);
+					fseek(fp, this->_length_of_chunk_received, SEEK_SET);
+					this->_length_of_chunk_received += this->_length_of_chunk + 2;
+					fread(block, 1, this->_length_of_chunk, fp);
+					fwrite(block, 1, this->_length_of_chunk, fo);
+					free(block);
+					block = NULL;
+				}
+				else
+					next = false;
+				free(size);
+				size = NULL;
+				free(hexa);
+				hexa = NULL;
+			}
+			fclose(fo);
+			std::stringstream ss2;
+			ss2 << this->_length_received;
+			this->_env_vars["CONTENT_LENGTH"] = ss2.str();
+			this->_completed = true;
+			remove(chunked_filename.c_str());
+		}
+		free(last_block);
+		last_block = NULL;
 	}
-	else {
-		std::cout << "part of body" << std::endl;
-	}
-	//FILE 	*fp = fopen(this->_tmp_file.c_str(), "a");
-	(void)request_str;
-	(void)pos;
-	(void)len;
+	fclose(fp);
+	if (raw_request != NULL)
+		free(raw_request);
 }
 
-std::map<std::string,std::string> const &  Request::getEnvVars(void) const {
-	return this->_env_vars;
-}
-
-Config &	Request::getConf(void) {
-	return this->_block;
-}
-
-void	Request::addToLengthReceived(size_t length_to_add) {
-
+void	Request::addToLengthReceived(size_t length_to_add)
+{
 	this->_length_received += length_to_add;
 	if (_length_received == this->_length_body)
 		this->_completed = true;
 }
 
-bool	Request::isComplete(void) {
-	return this->_completed;
-}
-
-bool	Request::isChuncked(void) {
-	return this->_chuncked;
-}
-
-bool	Request::hasHeader(void) {
-	return this->_header_completed;
-}
+bool										Request::isComplete(void) { return this->_completed; }
+bool										Request::isChunked(void) { return this->_chunked; }
+bool										Request::hasHeader(void) { return this->_header_completed; }
+bool										Request::sentContinue(void) { return this->_sent_continue; }
+std::map<std::string,std::string> const & 	Request::getEnvVars(void) const { return this->_env_vars; }
+Config &									Request::getConf(void) { return this->_block; }
+void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 
 char	**Request::create_env_tab(void) {
-
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
 	size_t		length = 0;
@@ -201,14 +261,23 @@ void	Request::reset() {
 	this->_header_completed = false;
 	this->_completed = false;
 	this->_cgi = false;
-	this->_chuncked = false;
+	this->_chunked = false;
 	this->_post = false;
 	this->_header_completed = false;
+	this->_sent_continue = false;
 }
 
 /*********************************************************/
 /***********************EXECUTION*************************/
 /*********************************************************/
+Response	Request::execute_chunked(void)
+{
+	Response r;
+
+	r.create_continue();
+	this->_sent_continue = true;
+	return r;
+}
 
 Response	Request::execute(void) {
 
@@ -556,9 +625,9 @@ void Request::parse_http_accept(std::string &output, std::string tofind) {
 void Request::parse_transfer_encoding(std::string & output) {
 
 	if (output.find("Transfer-Encoding: chunked") != std::string::npos)
-		this->_chuncked = true;
+		this->_chunked = true;
 	else
-		this->_chuncked = false;
+		this->_chunked = false;
 }
 
 

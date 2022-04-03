@@ -35,22 +35,24 @@ class Request {
 
 		bool isComplete(void);
 		bool hasHeader(void);
-		bool isChuncked(void);
-
+		bool isChunked(void);
+		bool sentContinue(void);
 		void addToLengthReceived(size_t length_to_add);
 		void addToBody(const char * request_str, int pos, int len);
-		void addToBodyChuncked(const char * request_str, int pos, int len);
+		void addToBodyChunked(const char * request_str, int len);
 
 		Response execute(void);
 		void execute_cgi(void);
 		Response execute_get(void);
 		Response execute_post(void);
 		Response execute_delete(void);
+		Response execute_chunked(void);
 
 		char **create_env_tab(void);
 		std::map<std::string,std::string> const & getEnvVars(void) const;
 		Config &	getConf(void);
 		void		reset(void);
+		void		setSentContinue(bool val);
 
 		int check_path(std::string path);
 		int check_read_rights(std::string path);
@@ -69,12 +71,15 @@ class Request {
 		std::string							_tmp_file;
 		bool								_completed;
 		bool								_cgi;
-		bool								_chuncked;
+		bool								_chunked;
 		bool								_post;
 		bool								_header_completed;
+		bool								_sent_continue;
 		size_t								_length_body;
 		size_t								_length_header;
 		size_t								_length_received;
+		size_t								_length_of_chunk;
+		size_t								_length_of_chunk_received;
 		std::map<std::string, std::string>	_env_vars;
 };
 

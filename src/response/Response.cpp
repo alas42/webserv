@@ -307,6 +307,33 @@ void	Response::create_internal_error(void) {
 	this->_raw_response.append(this->_body);
 }
 
+void	Response::create_method_not_allowed(void) {
+
+	std::ifstream		f("data/error_pages/405.html");
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 405 Internal Server Error\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	if (f) {
+		header.append("Content-Length: ");
+		while (f.good()) {
+			getline(f, str);
+			body.append(str);
+			body.append("\r\n");
+		}
+	}
+	else
+		return ;
+	f.close();
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
 void	Response::print_directory(std::string root_dir, std::string dir)
 {
 	DIR *dpdf;

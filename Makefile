@@ -13,7 +13,8 @@ SRCS =	src/webserv.cpp \
 	src/response/Response.cpp \
 	src/client/Client.cpp \
 	src/utils/utils.cpp \
-	src/cgi/Cgi.cpp
+	src/cgi/Cgi.cpp \
+	src/request/Parser.cpp
 
 
 INCLUDES	= -I src/webserv.hpp

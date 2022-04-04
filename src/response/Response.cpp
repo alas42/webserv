@@ -3,7 +3,7 @@
 Response::Response(void): _header("s"), _body(""), _raw_response("") {
 
 	this->_binary = false;
-	setting_mimes();
+	this->_setting_mimes();
 }
 
 Response::~Response(void)
@@ -25,26 +25,6 @@ Response & Response::operator=(const Response & other) {
 		this->_binary = other._binary;
 	}
 	return (*this);
-}
-
-void	Response::setHeader(std::string new_header) {
-	this->_header = new_header;
-}
-
-void	Response::setBody(std::string new_body) {
-	this->_body= new_body;
-}
-
-void	Response::setRawResponse(std::string new_raw_response) {
-	this->_raw_response = new_raw_response;
-}
-
-std::string &	Response::getHeader(void) {
-	return this->_header;
-}
-
-std::string &	Response::getBody(void) {
-	return this->_body;
 }
 
 std::string &	Response::getRawResponse(void) {
@@ -172,7 +152,7 @@ void	Response::binary(std::string filename) {
 **		Yes -> use Content-Type: application/octet-stream
 **		No  -> use Content-Type: text/plain
 */
-void	Response::setting_mimes(void) {
+void	Response::_setting_mimes(void) {
 
 	this->_mimes[".avi"] = 	"video/x-msvideo";
 	this->_mimes[".bmp"] = 	"image/bmp";

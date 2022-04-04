@@ -162,6 +162,8 @@ void	Response::_setting_mimes(void) {
 	this->_mimes[".html"] = "text/html";
 	this->_mimes[".htm"] = 	"text/html";
 	this->_mimes[".php"] = 	"text/plain";
+	this->_mimes[".js"] = 	"text/plain";
+	this->_mimes[".css"] = 	"text/css";
 	this->_mimes[".jpg"] = 	"image/jpg";
 	this->_mimes[".jpeg"] = "image/jpeg";
 	this->_mimes[".json"] = "application/json";

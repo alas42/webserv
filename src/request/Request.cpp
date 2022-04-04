@@ -62,6 +62,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	this->_chunked = parser.isChunked();
 	this->_length_body = parser.getLengthBody();
 	this->_length_header = parser.getLengthHeader();
+
 	if (this->_post)
 		this->init_post_request(request_str, rc, id);
 	else
@@ -152,6 +153,8 @@ Response	Request::execute(void) {
 	{
 		this->_cgi = true;
 		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {
+			if (this->_length_body > this->_block.getClientMaxBodySize())
+				r.create_request_entity_too_large(this->_block.getErrorPages());
 			Cgi c(this->_path_to_cgi, this->_post, this->_tmp_file, this->_env_vars);
 			c.execute();
 			r.create_cgi_base(std::string("cgi_" + this->_tmp_file).c_str());

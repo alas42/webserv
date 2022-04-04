@@ -161,14 +161,14 @@ Response	Request::execute(void) {
 		}
 		else
 		{
-			r.create_bad_request();
+			r.error("400");
 		}
 	}
 	else {
 		for(size_t i = 0; methods[i].compare("0"); i++)
 			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
 				return (this->*ptr[i])();
-		r.create_bad_request();
+		r.error("400");
 	}
 	return (r);
 }
@@ -181,11 +181,11 @@ Response	Request::execute_delete(void)
 
 
 	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
-		r.create_method_not_allowed();
+		r.error("405");
 		return r;
 	}
     if (check_path(path) == -1)
-		r.create_not_found();
+		r.error("404");
 	else if (check_path(path) == 4)
 	{
 		if (check_execute_rights(path) && check_wright_rights(path))
@@ -193,21 +193,19 @@ Response	Request::execute_delete(void)
 			res = rmdir(path.c_str());
 			if (res != 0)
 			{
-				// recuperer errno et le rajouter a la page d'erreur 400
-				r.create_bad_request();
+				r.error("400");
 			}
 			r.create_delete(path);
 		}
 		else
-			r.create_Forbidden();
+			r.error("403");
 	}
 	else if (check_execute_rights(path) && check_wright_rights(path))
 	{
 		res = remove(path.c_str());
 		if (res != 0)
 		{
-			// recuperer errno et le rajouter a la page d'erreur 400
-			r.create_bad_request();
+			r.error("400");
 		}
 		r.create_delete(path);
 	}
@@ -220,35 +218,35 @@ Response	Request::execute_get(void) {
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 
 	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "GET") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
-		r.create_method_not_allowed();
+		r.error("405");
 		return r;
 	}
 	if (check_path(path) == -1)
-		r.create_not_found();
+		r.error("404");
 	else if (check_path(path) == 4)
 	{
 		std::cout << path << " is a directory\n" << std::endl;
 		if (check_read_rights(path) == 1 && this->getConf().getAutoIndex() == true)
 			r.print_directory(path, this->_env_vars["REQUEST_URI"]);
 		else
-			r.create_Forbidden();
+			r.error("403");
 	}
 	else if (check_read_rights(path) == 1)
 		r.create_get(path);
 	else if (check_read_rights(path) == 0)
-		r.create_Forbidden();
+		r.error("403");
 	else
-		r.create_internal_error();
+		r.error("500");
 	return (r);
 }
 
 Response	Request::execute_post(void) {
 	Response r;
 	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
-		r.create_method_not_allowed();
+		r.error("405");
 		return r;
 	}
-	r.create_bad_request();
+	r.error("400");
 	return (r);
 }
 

@@ -125,15 +125,18 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 	throw std::runtime_error("Error: server{} not closed\n");
 }
 
-void Config::checkBlock() {
+void Config::checkBlock(bool location) {
 
+	(void)location;
 	if (this->_ipAddress.compare("localhost") == 0)
 		this->_ipAddress = "127.0.0.1";
 	if (this->_serverNames.empty())
 		this->_serverNames.push_back("");
+	if (!location && this->_root.empty())
+		this->_root = "./";
 	if (!this->_location.empty()) {
 		for (std::map<std::string, Config>::iterator it = _location.begin(); it != _location.end(); it++)
-			it->second.checkBlock();
+			it->second.checkBlock(true);
 	}
 }
 
@@ -170,10 +173,14 @@ void Config::_setServerName(std::vector<std::string> line) {
 
 void Config::_setErrorPage(std::vector<std::string> line) {
 
-	std::string uri = line[line.size() - 1];
-
 	if (line.size() < 3)
 		throw std::runtime_error("Error: Bad error_page config\n");
+
+	std::string uri = line[line.size() - 1];
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	if (pathIsFile(uri) != 1)
+		throw std::runtime_error("Error: Bad error path\n");
 	for (size_t i = 1; i < line.size() - 1; i++)
 		this->_errorPages.insert(std::pair<int, std::string>(atoi(line[i].c_str()), uri));
 }
@@ -316,8 +323,8 @@ std::ostream	&operator<<(std::ostream &out, Config &conf) {
 			out << " ";
 	}
 	out << std::endl;
-	for (std::map<std::string, Config>::iterator it = conf.getLocation().begin(); it != conf.getLocation().end(); it++)
-		out << "Location " << it->first << " [\n" << it->second << "]" << std::endl;
+	// for (std::map<std::string, Config>::iterator it = conf.getLocation().begin(); it != conf.getLocation().end(); it++)
+	// 	out << "Location " << it->first << " [\n" << it->second << "]" << std::endl;
 	out << "Root = " << conf.getRoot() << std::endl;
 	out << "Index = ";
 	for (size_t i = 0; i < conf.getIndex().size(); i++) {

@@ -32,9 +32,9 @@ class Request {
 		void addToBodyChunked(const char * request_str, int len);
 
 		Response execute(void);
-		Response execute_get(void);
-		Response execute_post(void);
-		Response execute_delete(void);
+		Response execute_get(Response r);
+		Response execute_post(Response r);
+		Response execute_delete(Response r);
 		Response execute_chunked(void);
 
 		std::map<std::string,std::string> const & getEnvVars(void) const;

@@ -12,10 +12,10 @@ Parser::Parser(Parser const & other):
 	_env_vars(other._env_vars), _block(other._block)
 {}
 Parser::Parser(std::map<std::string, std::string> & env_vars, Config & block): _post(false), _chunked(false), _length_body(0), _length_header(0),
-	_header(""), _method(""), _content_length(""), _content_type("")
+	_header(""), _method(""), _content_length(""), _content_type(""), _block(block)
 {
 	this->_env_vars = env_vars;
-	this->_block = block;
+	// this->_block = block;
 }
 
 Parser& Parser::operator=(Parser const & other)
@@ -53,6 +53,11 @@ size_t	Parser::getLengthBody(void)
 size_t	Parser::getLengthHeader(void)
 {
 	return this->_length_header;
+}
+
+Config	Parser::getBlock(void)
+{
+	return this->_block;
 }
 
 std::map<std::string, std::string> Parser::parse_output_client(std::string & output) {
@@ -96,8 +101,8 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_post = false;
 		this->_length_body = 0;
 	}
-	this->chooseConfigBeforeExecution();
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+	this->chooseConfigBeforeExecution();
 	return this->_env_vars;
 }
 
@@ -280,6 +285,8 @@ void Parser::chooseConfigBeforeExecution() {
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
 		this->addIndex();
+	std::cout << "script = " << this->_env_vars["SCRIPT_NAME"] << std::endl;
+	std::cout << "auto = " << this->_block.getAutoIndex() << std::endl;
 }
 
 std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
@@ -325,7 +332,7 @@ void	Parser::changeBlockToNewConfig(Config &newConfig) {
 }
 
 void Parser::addIndex() {
-
+	std::cout << "ici = " << std::endl;
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
 		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {
 			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);
@@ -337,10 +344,11 @@ void Parser::addIndex() {
 			return ;
 		}
 	}
-	if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
+	if (pathIsFile(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
 		this->_env_vars["DOCUMENT_ROOT"] = "./";
 		this->_env_vars["SCRIPT_NAME"] = DEFAULT_INDEX;
 		this->_env_vars["REQUEST_URI"] = this->_env_vars["SCRIPT_NAME"];
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
+	std::cout << "==========" << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] << std::endl;
 	}
 }

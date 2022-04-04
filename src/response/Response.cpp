@@ -13,6 +13,7 @@ Response::Response(const Response & other): _header(other._header), _body(other.
 
 	this->_binary = other._binary;
 	this->_mimes = other._mimes;
+	this->_errorPages = other._errorPages;
 }
 
 Response & Response::operator=(const Response & other) {
@@ -23,6 +24,7 @@ Response & Response::operator=(const Response & other) {
 		this->_raw_response = other._raw_response;
 		this->_mimes = other._mimes;
 		this->_binary = other._binary;
+		this->_errorPages = other._errorPages;
 	}
 	return (*this);
 }
@@ -39,6 +41,14 @@ void	Response::setRawResponse(std::string new_raw_response) {
 	this->_raw_response = new_raw_response;
 }
 
+void	Response::setErrorPages(std::map<int, std::string> new_errorPages) {
+	this->_errorPages = new_errorPages;
+	if (new_errorPages.empty())
+		std::cout << "empty before =" << std::endl;
+	if (_errorPages.empty())
+		std::cout << "empty after =" << std::endl;
+}
+
 std::string &	Response::getHeader(void) {
 	return this->_header;
 }
@@ -49,6 +59,10 @@ std::string &	Response::getBody(void) {
 
 std::string &	Response::getRawResponse(void) {
 	return this->_raw_response;
+}
+
+std::map<int, std::string> & Response::getErrorPages(void) {
+	return this->_errorPages;
 }
 
 void	Response::create_cgi_base(const char *filename) {
@@ -196,7 +210,9 @@ void	Response::setting_mimes(void) {
 
 void	Response::error(std::string const error_code)
 {
-	std::string			error_page("data/error_pages/" + error_code + ".html");
+	std::string			error_page(this->_getPathToError(error_code));
+	std::cout << "error_page = " << error_page << std::endl;
+	// std::string			error_page("data/error_pages/" + error_code + ".html");
 	std::ifstream		f(error_page.c_str());
 	std::stringstream	ss;
 	std::string			header("HTTP/1.1 "+ error_code +" Bad Request\r\nConnection: keep-alive\r\n");
@@ -283,4 +299,15 @@ void	Response::create_delete(std::string filename)
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
+}
+
+std::string Response::_getPathToError(std::string error_code) {
+
+	std::string path;
+
+	path = this->_errorPages[atoi(error_code.c_str())];
+	if (path.empty())
+		path = DEFAULT_ERRORS_PATH + error_code + ".html";
+
+	return (path);
 }

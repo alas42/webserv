@@ -26,7 +26,7 @@ class Config {
 		std::string						& getUploadFolder(void);
 
 		int		parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
-		void	checkBlock();
+		void	checkBlock(bool location);
 
 	private:
 		std::string						_ipAddress;

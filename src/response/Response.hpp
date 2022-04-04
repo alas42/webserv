@@ -14,12 +14,17 @@ class Response {
 		~Response(void);
 		Response(const Response & other);
 		Response & operator=(const Response & other);
+
 		std::string & getHeader(void);
 		std::string & getBody(void);
 		std::string & getRawResponse(void);
+		std::map<int, std::string> & getErrorPages(void);
+
 		void	setHeader(std::string new_header);
 		void	setBody(std::string new_body);
 		void	setRawResponse(std::string new_raw_response);
+		void	setErrorPages(std::map<int, std::string> new_errorPages);
+
 		void	create_cgi_base(const char *filename);
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
@@ -36,6 +41,9 @@ class Response {
 		std::string							_raw_response;
 		std::map<std::string, std::string>	_mimes;
 		bool								_binary;
+		std::map<int, std::string>			_errorPages;
+
+		std::string _getPathToError(std::string error_code);
 };
 
 #endif

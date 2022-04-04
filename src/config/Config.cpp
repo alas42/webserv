@@ -54,19 +54,19 @@ int	& Config::getPort(void) {
 	return this->_port;
 }
 
-std::vector<std::string> & Config::getServerNames(void) {
+std::vector<std::string> 		& Config::getServerNames(void) {
 	return this->_serverNames;
 }
 
-std::map<int, std::string> & Config::getErrorPages(void) {
+std::map<int, std::string> 		& Config::getErrorPages(void) {
 	return this->_errorPages;
 }
 
-unsigned long long & Config::getClientMaxBodySize(void) {
+unsigned long long 				& Config::getClientMaxBodySize(void) {
 	return this->_clientMaxBodySize;
 }
 
-std::string & Config::getCgiPass(void) {
+std::string 					& Config::getCgiPass(void) {
 	return this->_cgiPass;
 }
 
@@ -90,7 +90,7 @@ bool							& Config::getAutoIndex(void) {
 	return this->_autoIndex;
 }
 
-std::string & Config::getUploadFolder(void) {
+std::string 					& Config::getUploadFolder(void) {
 	return this->_uploadFolder;
 }
 

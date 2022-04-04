@@ -63,7 +63,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	this->_length_body = parser.getLengthBody();
 	this->_length_header = parser.getLengthHeader();
 	if (this->_post)
-		this->init_post_request(request_str, rc, id);
+		this->_init_post_request(request_str, rc, id);
 	else
 		this->_completed = true;
 }
@@ -91,7 +91,7 @@ void	Request::_init_env_map(void) {
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 }
 
-void	Request::init_post_request(const char *request_str, int rc, int id) {
+void	Request::_init_post_request(const char *request_str, int rc, int id) {
 
 	std::stringstream ss;
 
@@ -144,7 +144,7 @@ Response	Request::execute(void) {
 
 	Response r;
 
-	Response (Request::*ptr [])(void) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
+	Response (Request::*ptr [])(void) = {&Request::_execute_delete, &Request::_execute_get, &Request::_execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
@@ -170,7 +170,7 @@ Response	Request::execute(void) {
 	return (r);
 }
 
-Response	Request::execute_delete(void)
+Response	Request::_execute_delete(void)
 {
     Response r;
     int res;
@@ -209,7 +209,7 @@ Response	Request::execute_delete(void)
 	return (r);
 }
 
-Response	Request::execute_get(void) {
+Response	Request::_execute_get(void) {
 
 	Response r;
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
@@ -237,7 +237,7 @@ Response	Request::execute_get(void) {
 	return (r);
 }
 
-Response	Request::execute_post(void) {
+Response	Request::_execute_post(void) {
 	Response r;
 	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
 		r.error("405");
@@ -259,10 +259,10 @@ void Request::addToBody(const char * request_str, int pos, int len) {
 	fclose(fp);
 	if (raw_request)
 		free(raw_request);
-	this->addToLengthReceived(len);
+	this->_addToLengthReceived(len);
 }
 
-void	Request::addToLengthReceived(size_t length_to_add)
+void	Request::_addToLengthReceived(size_t length_to_add)
 {
 	this->_length_received += length_to_add;
 	if (_length_received == this->_length_body)

@@ -62,7 +62,7 @@ std::map<int, std::string> & Config::getErrorPages(void) {
 	return this->_errorPages;
 }
 
-int & Config::getClientMaxBodySize(void) {
+unsigned long long & Config::getClientMaxBodySize(void) {
 	return this->_clientMaxBodySize;
 }
 
@@ -144,26 +144,26 @@ void Config::_setListen(std::vector<std::string> line) {
 	size_t	cut;
 
 	if (line.size() == 1)
-		throw std::runtime_error("Bad listen config\n");
+		throw std::runtime_error("Error: Bad listen config\n");
 	if ((cut = line[1].find(":")) == std::string::npos) {
 		if (isdigit(atoi(line[1].c_str())) == 0)
 			this->_port = atoi(line[1].c_str());
 		else
-			throw std::runtime_error("Bad listen config\n" + line[1]);
+			throw std::runtime_error("Error: Bad listen config\n" + line[1]);
 	}
 	else {
 		this->_ipAddress = line[1].substr(0, cut);
 		if (isdigit(atoi(line[1].substr(cut).c_str())) == 0)
 			this->_port = atoi(line[1].substr(cut + 1).c_str());
 		else
-			throw std::runtime_error("Bad listen config\n");
+			throw std::runtime_error("Error: Bad listen config\n");
 	}
 }
 
 void Config::_setServerName(std::vector<std::string> line) {
 
 	if (line.size() == 1)
-		throw std::runtime_error("Bad server_name config\n");
+		throw std::runtime_error("Error: Bad server_name config\n");
 	for (size_t i = 1; i < line.size(); i++)
 		this->_serverNames.push_back(line[i]);
 }
@@ -173,29 +173,40 @@ void Config::_setErrorPage(std::vector<std::string> line) {
 	std::string uri = line[line.size() - 1];
 
 	if (line.size() < 3)
-		throw std::runtime_error("Bad error_page config\n");
+		throw std::runtime_error("Error: Bad error_page config\n");
 	for (size_t i = 1; i < line.size() - 1; i++)
 		this->_errorPages.insert(std::pair<int, std::string>(atoi(line[i].c_str()), uri));
 }
 
 void Config::_setClientMaxBodySize(std::vector<std::string> line) {
 
-	if (line.size() != 2 || line[1].find_first_not_of("0123456789") != std::string::npos)
-		throw std::runtime_error("Bad client_max_body_size config\n");
+	size_t pos;
+
+	if (line.size() != 2)
+		throw std::runtime_error("Error: Bad client_max_body_size config\n");
+	pos = line[1].find_first_not_of("0123456789");
+	if (pos != line[1].size() - 1)
+		throw std::runtime_error("Error: Bad client_max_body_size config\n");
 	this->_clientMaxBodySize = atoi(line[1].c_str());
+	if (line[1][pos] == 'K' || line[1][pos] == 'k')
+		this->_clientMaxBodySize *= 1000;
+	if (line[1][pos] == 'M' || line[1][pos] == 'm')
+		this->_clientMaxBodySize *= 1000000;
+	if (line[1][pos] == 'G' || line[1][pos] == 'g')
+		this->_clientMaxBodySize *= 1000000000;
 }
 
 void Config::_setCgiPass(std::vector<std::string> line) {
 
 	if (line.size() != 2)
-		throw std::runtime_error("Bad cgi_pass config\n");
+		throw std::runtime_error("Error: Bad cgi_pass config\n");
 	this->_cgiPass = line[1].c_str();
 }
 
 void Config::_setAllowMethods(std::vector<std::string> line) {
 
 	if (line.size() == 1)
-		throw std::runtime_error("Bad allow_methods config\n");
+		throw std::runtime_error("Error: Bad allow_methods config\n");
 	for (size_t i = 1; i < line.size(); i++)
 		this->_allowMethods.push_back(line[i]);
 }
@@ -249,7 +260,7 @@ int	Config::_parseLocationDeep(std::vector<std::vector<std::string> > confFile, 
 void Config::_setRoot(std::vector<std::string> line) {
 
 	if (line.size() != 2)
-		throw std::runtime_error("Bad root config\n");
+		throw std::runtime_error("Error: Bad root config\n");
 	this->_root = line[1];
 	this->_removeLastSlashe(this->_root);
 }
@@ -257,7 +268,7 @@ void Config::_setRoot(std::vector<std::string> line) {
 void Config::_setIndex(std::vector<std::string> line) {
 
 	if (line.size() == 1)
-		throw std::runtime_error("Bad index config\n");
+		throw std::runtime_error("Error: Bad index config\n");
 	for (size_t i = 1; i < line.size(); i++)
 		this->_index.push_back(line[i]);
 }
@@ -265,7 +276,7 @@ void Config::_setIndex(std::vector<std::string> line) {
 void Config::_setAutoIndex(std::vector<std::string> line) {
 
 	if (line.size() != 2)
-		throw std::runtime_error("Bad autoindex config\n");
+		throw std::runtime_error("Error: Bad autoindex config\n");
 	if (line[1].compare("on") == 0)
 		this->_autoIndex = true;
 }
@@ -273,7 +284,7 @@ void Config::_setAutoIndex(std::vector<std::string> line) {
 void Config::_setUploadFolder(std::vector<std::string> line) {
 
 	if (line.size() != 2)
-		throw std::runtime_error("Bad upload config\n");
+		throw std::runtime_error("Error: Bad upload config\n");
 	this->_uploadFolder = line[1].c_str();
 }
 

@@ -16,7 +16,7 @@ class Config {
 		int								& getPort(void);
 		std::vector<std::string>		& getServerNames(void);
 		std::map<int, std::string>		& getErrorPages(void);
-		int								& getClientMaxBodySize(void);
+		unsigned long long				& getClientMaxBodySize(void);
 		std::string 					& getCgiPass(void);
 		std::vector<std::string>		& getAlowMethods(void);
 		std::map<std::string, Config>	& getLocation(void);
@@ -33,7 +33,7 @@ class Config {
 		int								_port;
 		std::vector<std::string>		_serverNames;
 		std::map<int, std::string>		_errorPages;
-		int								_clientMaxBodySize;
+		unsigned long long				_clientMaxBodySize;
 		std::string						_cgiPass;
 		std::vector<std::string>		_allowMethods;
 		std::map<std::string, Config>	_location;

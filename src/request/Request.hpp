@@ -35,6 +35,7 @@ class Request {
 		Response execute_get(Response r);
 		Response execute_post(Response r);
 		Response execute_delete(Response r);
+		Response execute_redirection(Response r);
 		Response execute_chunked(void);
 
 		std::map<std::string,std::string> const & getEnvVars(void) const;

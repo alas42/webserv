@@ -147,6 +147,8 @@ Response	Request::execute(void) {
 	Response r;
 
 	r.setErrorPages(this->_block.getErrorPages());
+	if (!this->_block.getRedirection().first.empty())
+		return this->execute_redirection(r);
 	Response (Request::*ptr [])(Response) = {&Request::execute_delete, &Request::execute_get, &Request::execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 	if (this->_env_vars["REQUEST_URI"].find(".php") != std::string::npos
@@ -176,15 +178,16 @@ Response	Request::execute(void) {
 
 Response	Request::execute_delete(Response r)
 {
-    int res;
-    std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
+	int res;
+	// std::string path = this->_env_vars["REQUEST_URI"];
+	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 
 
 	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
-    if (check_path(path) == -1)
+	if (check_path(path) == -1)
 		r.error("404");
 	else if (check_path(path) == 4)
 	{
@@ -247,6 +250,15 @@ Response	Request::execute_post(Response r) {
 	}
 	r.error("400");
 	return (r);
+}
+
+Response	Request::execute_redirection(Response r) {
+
+	if (this->_block.getRedirection().first.compare("301") == 0)
+		r.create_redirection(this->_block.getRedirection().second);
+	else
+		r.error(this->_block.getRedirection().first);
+	return r;
 }
 
 void Request::addToBody(const char * request_str, int pos, int len) {

@@ -43,10 +43,6 @@ void	Response::setRawResponse(std::string new_raw_response) {
 
 void	Response::setErrorPages(std::map<int, std::string> new_errorPages) {
 	this->_errorPages = new_errorPages;
-	if (new_errorPages.empty())
-		std::cout << "empty before =" << std::endl;
-	if (_errorPages.empty())
-		std::cout << "empty after =" << std::endl;
 }
 
 std::string &	Response::getHeader(void) {
@@ -142,12 +138,28 @@ void	Response::create_post(std::string filename) {
 	(void)filename;
 }
 
+void	Response::create_redirection(std::string redirection) {
+
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 301 Moved Permanently\r\nLocation: " + redirection + "\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	header.append("Content-Length: ");
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
 /*
 ** To do list : Content-type : set to correct one
 */
 void	Response::binary(std::string filename) {
 
-	std::size_t		length, found;
+	std::size_t			length, found;
 	std::string			header, extension;
 	std::stringstream	ss;
 	std::ifstream		f(filename.c_str(), std::ios::binary);
@@ -211,8 +223,6 @@ void	Response::setting_mimes(void) {
 void	Response::error(std::string const error_code)
 {
 	std::string			error_page(this->_getPathToError(error_code));
-	std::cout << "error_page = " << error_page << std::endl;
-	// std::string			error_page("data/error_pages/" + error_code + ".html");
 	std::ifstream		f(error_page.c_str());
 	std::stringstream	ss;
 	std::string			header("HTTP/1.1 "+ error_code +" Bad Request\r\nConnection: keep-alive\r\n");

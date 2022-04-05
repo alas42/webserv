@@ -83,7 +83,6 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 	_parse_http_accept(output, "Accept-Encoding:");
 	_parse_http_accept(output, "Accept-Language:");
 
-
 	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	else
@@ -285,8 +284,6 @@ void Parser::chooseConfigBeforeExecution() {
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
 		this->addIndex();
-	std::cout << "script = " << this->_env_vars["SCRIPT_NAME"] << std::endl;
-	std::cout << "auto = " << this->_block.getAutoIndex() << std::endl;
 }
 
 std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
@@ -329,6 +326,8 @@ void	Parser::changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getAutoIndex() = newConfig.getAutoIndex();
 	if (this->_block.getUploadFolder() != newConfig.getUploadFolder())
 		this->_block.getUploadFolder() = newConfig.getUploadFolder();
+	if (!newConfig.getRedirection().first.empty())
+		this->_block.getRedirection() = newConfig.getRedirection();
 }
 
 void Parser::addIndex() {

@@ -148,7 +148,7 @@ bool	Server::accept_connections(int server_fd) {
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-
+	std::cout << "header = " << r.getRawResponse() << std::endl;
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{

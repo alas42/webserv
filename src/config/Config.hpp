@@ -12,37 +12,35 @@ class Config {
 		Config & operator=(Config const & other);
 
 		//GET
-		std::string								& getIpAddress(void);
-		int										& getPort(void);
-		std::vector<std::string>				& getServerNames(void);
-		std::map<int, std::string>				& getErrorPages(void);
-		unsigned long long						& getClientMaxBodySize(void);
-		std::string 							& getCgiPass(void);
-		std::vector<std::string>				& getAlowMethods(void);
-		std::map<std::string, Config>			& getLocation(void);
-		std::string								& getRoot(void);
-		std::vector<std::string>				& getIndex(void);
-		bool									& getAutoIndex(void);
-		std::string								& getUploadFolder(void);
-		std::pair<std::string, std::string>		& getRedirection(void);
+		std::string						& getIpAddress(void);
+		int								& getPort(void);
+		std::vector<std::string>		& getServerNames(void);
+		std::map<int, std::string>		& getErrorPages(void);
+		unsigned long long				& getClientMaxBodySize(void);
+		std::string 					& getCgiPass(void);
+		std::vector<std::string>		& getAlowMethods(void);
+		std::map<std::string, Config>	& getLocation(void);
+		std::string						& getRoot(void);
+		std::vector<std::string>		& getIndex(void);
+		bool							& getAutoIndex(void);
+		std::string						& getUploadFolder(void);
 
 		int		parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
-		void	checkBlock(bool location);
+		void	checkBlock();
 
 	private:
-		std::string								_ipAddress;
-		int										_port;
-		std::vector<std::string>				_serverNames;
-		std::map<int, std::string>				_errorPages;
-		unsigned long long						_clientMaxBodySize;
-		std::string								_cgiPass;
-		std::vector<std::string>				_allowMethods;
-		std::map<std::string, Config>			_location;
-		std::string								_root;
-		std::vector<std::string>				_index;
-		bool									_autoIndex;
-		std::string								_uploadFolder;
-		std::pair<std::string, std::string>		_redirection;
+		std::string						_ipAddress;
+		int								_port;
+		std::vector<std::string>		_serverNames;
+		std::map<int, std::string>		_errorPages;
+		unsigned long long				_clientMaxBodySize;
+		std::string						_cgiPass;
+		std::vector<std::string>		_allowMethods;
+		std::map<std::string, Config>	_location;
+		std::string						_root;
+		std::vector<std::string>		_index;
+		bool							_autoIndex;
+		std::string						_uploadFolder;
 
 		// Parse file .conf
 		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
@@ -59,7 +57,6 @@ class Config {
 		void	_setIndex(std::vector<std::string> line);
 		void	_setAutoIndex(std::vector<std::string> line);
 		void	_setUploadFolder(std::vector<std::string> line);
-		void	_setRedirection(std::vector<std::string> line);
 		void	_removeLastSlashe(std::string & path);
 };
 

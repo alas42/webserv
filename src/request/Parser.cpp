@@ -216,12 +216,12 @@ void	Parser::_parse_content_length(std::string & output) {
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
-		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else {
 		this->_content_length = "-1";
-		this->_length_body = -1;
+		this->_length_body = 0;
 	}
+	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 }
 
 void Parser::_parse_content_type (std::string & output) {

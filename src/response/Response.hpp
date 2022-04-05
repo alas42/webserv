@@ -16,7 +16,8 @@ class Response {
 		Response & operator=(const Response & other);
 
 		std::string & getRawResponse(void);
-		void	create_cgi_base(const char *filename);
+		void	create_cgi_get(const char *filename);
+		void	create_cgi_post(const char *filename, std::string const upload_path);
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
 		void	create_continue(void);
@@ -32,7 +33,9 @@ class Response {
 		std::map<std::string, std::string>	_mimes;
 		bool								_binary;
 
-		void	_setting_mimes(void);
+		void		_setting_mimes(void);
+		std::string	_getErrorMessage(std::string const & error_code);
+		void		_create_cgi(const char *filename, std::string header);
 };
 
 #endif

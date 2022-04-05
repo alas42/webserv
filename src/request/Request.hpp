@@ -46,7 +46,6 @@ class Request {
 	private:
 		Config								_block;
 		std::string							_path_to_cgi;
-		std::string							_postdata;
 		std::string							_tmp_file;
 		bool								_completed;
 		bool								_cgi;

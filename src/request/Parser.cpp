@@ -12,10 +12,10 @@ Parser::Parser(Parser const & other):
 	_env_vars(other._env_vars), _block(other._block)
 {}
 Parser::Parser(std::map<std::string, std::string> & env_vars, Config & block): _post(false), _chunked(false), _length_body(0), _length_header(0),
-	_header(""), _method(""), _content_length(""), _content_type(""), _block(block)
+	_header(""), _method(""), _content_length(""), _content_type("")
 {
 	this->_env_vars = env_vars;
-	// this->_block = block;
+	this->_block = block;
 }
 
 Parser& Parser::operator=(Parser const & other)
@@ -55,11 +55,6 @@ size_t	Parser::getLengthHeader(void)
 	return this->_length_header;
 }
 
-Config	Parser::getBlock(void)
-{
-	return this->_block;
-}
-
 std::map<std::string, std::string> Parser::parse_output_client(std::string & output) {
 
 	size_t i = 0;
@@ -83,6 +78,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 	_parse_http_accept(output, "Accept-Encoding:");
 	_parse_http_accept(output, "Accept-Language:");
 
+
 	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	else
@@ -101,7 +97,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_length_body = 0;
 	}
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
-	this->chooseConfigBeforeExecution();
+	this->_chooseConfigBeforeExecution();
 	return this->_env_vars;
 }
 
@@ -220,12 +216,12 @@ void	Parser::_parse_content_length(std::string & output) {
 		for (; std::isdigit(output[i + length_content_length]); length_content_length++);
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
-		this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	}
 	else {
 		this->_content_length = "-1";
-		this->_length_body = -1;
+		this->_length_body = 0;
 	}
+	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 }
 
 void Parser::_parse_content_type (std::string & output) {
@@ -326,12 +322,10 @@ void	Parser::changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getAutoIndex() = newConfig.getAutoIndex();
 	if (this->_block.getUploadFolder() != newConfig.getUploadFolder())
 		this->_block.getUploadFolder() = newConfig.getUploadFolder();
-	if (!newConfig.getRedirection().first.empty())
-		this->_block.getRedirection() = newConfig.getRedirection();
 }
 
 void Parser::addIndex() {
-	std::cout << "ici = " << std::endl;
+
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
 		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {
 			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);
@@ -343,11 +337,10 @@ void Parser::addIndex() {
 			return ;
 		}
 	}
-	if (pathIsFile(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
+	if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
 		this->_env_vars["DOCUMENT_ROOT"] = "./";
 		this->_env_vars["SCRIPT_NAME"] = DEFAULT_INDEX;
 		this->_env_vars["REQUEST_URI"] = this->_env_vars["SCRIPT_NAME"];
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
-	std::cout << "==========" << this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] << std::endl;
 	}
 }

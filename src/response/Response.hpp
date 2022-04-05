@@ -29,7 +29,6 @@ class Response {
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
 		void	create_continue(void);
-		void	create_redirection(std::string redirection);
 		void	binary(std::string filename);
 		void	setting_mimes(void);
 		void	create_delete(std::string filename);

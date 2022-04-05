@@ -1,0 +1,19 @@
+table
+{
+    width: 50%;
+    height: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+tr, th
+{
+    width: 100%;
+    border: 1px solid;
+    text-align: center;
+}
+
+tr
+{
+    margin-top: 10%;
+}

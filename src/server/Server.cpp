@@ -148,7 +148,7 @@ bool	Server::accept_connections(int server_fd) {
 bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-	std::cout << "header = " << r.getRawResponse() << std::endl;
+
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{
@@ -237,7 +237,7 @@ bool	Server::checking_revents(void) {
 				if (this->sending(it, r))
 					break;
 				it->events = POLLIN;
-				if (client_request.isComplete())
+				if (client_request.isComplete()) 
 					client_request.reset();
 			}
 		}
@@ -307,7 +307,7 @@ void	Server::_fileToServer(const char *conf_file) {
 			Config block;
 
 			i = block.parseServer(confFile, i);
-			block.checkBlock(false);
+			block.checkBlock();
 			out << block.getPort();
 			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));

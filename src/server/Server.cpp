@@ -144,7 +144,7 @@ bool	Server::_accept_connections(int server_fd) {
 bool	Server::_sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
-
+	std::cout << "header = " << r.getRawResponse() << std::endl;
 	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
 	if (i < 0)
 	{
@@ -176,9 +176,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 	}
 	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
 	if (client->second.getRequest().hasHeader())
-	{
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
-	}
 	else {
 		host = this->_getHostInConfig(buffer);
 		this->_verifyHost(host);
@@ -233,7 +231,7 @@ bool	Server::_checking_revents(void) {
 				if (this->_sending(it, r))
 					break;
 				it->events = POLLIN;
-				if (client_request.isComplete()) 
+				if (client_request.isComplete())
 					client_request.reset();
 			}
 		}
@@ -303,7 +301,7 @@ void	Server::_fileToServer(const char *conf_file) {
 			Config block;
 
 			i = block.parseServer(confFile, i);
-			block.checkBlock();
+			block.checkBlock(false);
 			out << block.getPort();
 			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));

@@ -23,13 +23,18 @@ class Request {
 		bool sentContinue(void);
 		void addToBody(const char * request_str, int pos, int len);
 		void addToBodyChunked(const char * request_str, int len);
-	
-		Response 									execute_chunked(void);
-		Response 									execute(void);
-		std::map<std::string,std::string> const &	getEnvVars(void) const;
-		Config &									getConf(void);
-		void										reset(void);
-		void										setSentContinue(bool val);
+  
+		Response execute(void);
+		Response execute_get(Response r);
+		Response execute_post(Response r);
+		Response execute_delete(Response r);
+		Response execute_redirection(Response r);
+		Response execute_chunked(void);
+
+		std::map<std::string,std::string> const & getEnvVars(void) const;
+		Config &	getConf(void);
+		void		reset(void);
+		void		setSentContinue(bool val);
 
 	private:
 		Config								_block;

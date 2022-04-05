@@ -14,11 +14,8 @@ class Client {
 		Client(struct pollfd fd);
 		Client & operator=(Client const & other);
 
-		struct pollfd	getClientFd(void);
 		Request 	&	getRequest(void);
-		void			createRequest(const char *str, int rc, Config & block);
 		void			addToRequest(const char *str, int rc, Config & block);
-		int				getId(void);
 		void			setId(int new_id);
 
 	private:

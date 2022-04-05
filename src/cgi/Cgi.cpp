@@ -27,7 +27,7 @@ Cgi & Cgi::operator=(Cgi const & other)
 	return *this;
 }
 
-char	**Cgi::create_env_tab(void)
+char	**Cgi::_create_env_tab(void)
 {
 	char		*tmp = NULL;
 	char 		**env_tab = NULL;
@@ -66,7 +66,7 @@ void	Cgi::execute(void)
 	FILE 		*fi, *fo;
 	int			status = 0, fdi, fdo;
 
-	env_tab = create_env_tab();
+	env_tab = this->_create_env_tab();
 	std::cout << _path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());

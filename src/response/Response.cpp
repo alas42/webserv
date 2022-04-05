@@ -218,11 +218,11 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	if (dpdf != NULL)
 	{
 		header.append("Content-Length: ");
+		body.append("<h1>INDEX</h1>");
 		while ((epdf = readdir(dpdf)))
 		{
 			body.append("<a href=\"");
 			body.append(dir);
-			//body.append("/");
 			body.append(epdf->d_name);
 			std::string is_dir = epdf->d_name;
 			is_dir = dir + is_dir;
@@ -231,9 +231,7 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 				body.append("/");
 			body.append("\">");
 			body.append(epdf->d_name);
-			body.append("</a>\r\n");
-			//printf("Filename: %s",epdf->d_name);
-	      // std::cout << epdf->d_name << std::endl;
+			body.append(" <br></a>\r\n\r\n");
 	  }
 	}
 	else
@@ -246,7 +244,6 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
-
 }
 
 void	Response::create_delete(std::string filename)

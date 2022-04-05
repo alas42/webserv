@@ -96,8 +96,8 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_post = false;
 		this->_length_body = 0;
 	}
-	this->_chooseConfigBeforeExecution();
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+	this->_chooseConfigBeforeExecution();
 	return this->_env_vars;
 }
 
@@ -265,7 +265,7 @@ void Parser::_parse_transfer_encoding(std::string & output) {
 }
 
 
-void Parser::_chooseConfigBeforeExecution() {
+void Parser::chooseConfigBeforeExecution() {
 
 	std::string	path;
 	Config		tmpBlock = this->_block;
@@ -276,13 +276,13 @@ void Parser::_chooseConfigBeforeExecution() {
 		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/"));
 	while (path.compare("") != 0) {
 		Config newConfig;
-		path = this->_getLocationBeforeExecution(path, tmpBlock, newConfig);
+		path = this->getLocationBeforeExecution(path, tmpBlock, newConfig);
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
-		this->_addIndex();
+		this->addIndex();
 }
 
-std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
+std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
 
 	std::map<std::string, Config>::iterator	iter;
 	std::string	tmp = path;
@@ -293,7 +293,7 @@ std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlo
 			{
 				newConfig = it->second;
 				tmpBlock = newConfig;
-				this->_changeBlockToNewConfig(newConfig);
+				this->changeBlockToNewConfig(newConfig);
 				return path.substr(tmp.length(), path.length() - tmp.length());
 			}
 		}
@@ -302,7 +302,7 @@ std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlo
 	return "";
 }
 
-void	Parser::_changeBlockToNewConfig(Config &newConfig) {
+void	Parser::changeBlockToNewConfig(Config &newConfig) {
 
 	if (!newConfig.getErrorPages().empty())
 		this->_block.getErrorPages() = newConfig.getErrorPages();
@@ -324,7 +324,7 @@ void	Parser::_changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getUploadFolder() = newConfig.getUploadFolder();
 }
 
-void Parser::_addIndex() {
+void Parser::addIndex() {
 
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
 		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {

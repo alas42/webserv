@@ -17,8 +17,7 @@ class Parser
 		bool	isChunked(void);
 		size_t	getLengthBody(void);
 		size_t	getLengthHeader(void);
-		Config	getBlock(void);
-
+		
 	private:
 		bool								_post;
 		bool								_chunked;

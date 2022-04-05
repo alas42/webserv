@@ -13,6 +13,7 @@ Response::Response(const Response & other): _header(other._header), _body(other.
 
 	this->_binary = other._binary;
 	this->_mimes = other._mimes;
+	this->_errorPages = other._errorPages;
 }
 
 Response & Response::operator=(const Response & other) {
@@ -23,14 +24,21 @@ Response & Response::operator=(const Response & other) {
 		this->_raw_response = other._raw_response;
 		this->_mimes = other._mimes;
 		this->_binary = other._binary;
+		this->_errorPages = other._errorPages;
 	}
 	return (*this);
 }
 
+void	Response::setErrorPages(std::map<int, std::string> new_errorPages) {
+	this->_errorPages = new_errorPages;
+}
 std::string &	Response::getRawResponse(void) {
 	return this->_raw_response;
 }
 
+std::map<int, std::string> & Response::getErrorPages(void) {
+	return this->_errorPages;
+}
 void		Response::_create_cgi(const char *filename, std::string begin_header)
 {
 	std::ifstream f(filename);
@@ -148,12 +156,28 @@ void	Response::create_post(std::string filename) {
 	(void)filename;
 }
 
+void	Response::create_redirection(std::string redirection) {
+
+	std::stringstream	ss;
+	std::string			header("HTTP/1.1 301 Moved Permanently\r\nLocation: " + redirection + "\r\nConnection: keep-alive\r\n");
+	std::string			str, body;
+
+	header.append("Content-Length: ");
+	this->_body = body;
+	ss << body.size();
+	header.append(ss.str());
+	this->_header = header;
+	this->_raw_response.append(this->_header);
+	this->_raw_response.append("\r\n\r\n");
+	this->_raw_response.append(this->_body);
+}
+
 /*
 ** To do list : Content-type : set to correct one
 */
 void	Response::binary(std::string filename) {
 
-	std::size_t		length, found;
+	std::size_t			length, found;
 	std::string			header, extension;
 	std::stringstream	ss;
 	std::ifstream		f(filename.c_str(), std::ios::binary);
@@ -233,7 +257,7 @@ std::string	Response::_getErrorMessage(std::string const & error_code)
 
 void	Response::error(std::string const error_code)
 {
-	std::string			error_page("data/error_pages/" + error_code + ".html");
+	std::string			error_page(this->_getPathToError(error_code));
 	std::string			error_message = _getErrorMessage(error_code);
 	std::ifstream		f(error_page.c_str());
 	std::stringstream	ss;
@@ -318,4 +342,15 @@ void	Response::create_delete(std::string filename)
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
+}
+
+std::string Response::_getPathToError(std::string error_code) {
+
+	std::string path;
+
+	path = this->_errorPages[atoi(error_code.c_str())];
+	if (path.empty())
+		path = DEFAULT_ERRORS_PATH + error_code + ".html";
+
+	return (path);
 }

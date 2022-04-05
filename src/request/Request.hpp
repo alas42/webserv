@@ -23,7 +23,7 @@ class Request {
 		bool sentContinue(void);
 		void addToBody(const char * request_str, int pos, int len);
 		void addToBodyChunked(const char * request_str, int len);
-	
+
 		Response 									execute_chunked(void);
 		Response 									execute(void);
 		std::map<std::string,std::string> const &	getEnvVars(void) const;
@@ -51,9 +51,10 @@ class Request {
 		void		_init_env_map(void);
 		void 		_init_post_request(const char *request_str, int rc, int id);
 		void 		_addToLengthReceived(size_t length_to_add);
-		Response 	_execute_get(void);
-		Response 	_execute_post(void);
-		Response 	_execute_delete(void);
+		Response 	_execute_get(Response r);
+		Response 	_execute_post(Response r);
+		Response 	_execute_delete(Response r);
+		Response	_execute_redirection(Response r);
 };
 
 #endif

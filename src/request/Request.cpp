@@ -57,6 +57,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 
 	Parser parser(_env_vars, _block);
 	this->_env_vars = parser.parse_output_client(request_string);
+	this->_block = parser.getBlock();
 	this->_post = parser.isPost();
 	this->_chunked = parser.isChunked();
 	this->_length_body = parser.getLengthBody();
@@ -143,7 +144,12 @@ Response	Request::execute(void) {
 
 	Response r;
 
-	Response (Request::*ptr [])(void) = {&Request::_execute_delete, &Request::_execute_get, &Request::_execute_post};
+	r.setErrorPages(this->_block.getErrorPages());
+		std::cout << "avant = " << this->_block.getRedirection().first << std::endl;
+	if (!this->_block.getRedirection().first.empty()) {
+		return this->_execute_redirection(r);
+	}
+	Response (Request::*ptr [])(Response) = {&Request::_execute_delete, &Request::_execute_get, &Request::_execute_post};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
 	if (this->_env_vars["SERVER_PROTOCOL"].compare("HTTP/1.1"))
@@ -159,6 +165,8 @@ Response	Request::execute(void) {
 		}
 		this->_cgi = true;
 		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1) {
+			if (this->_length_body > this->_block.getClientMaxBodySize())
+				r.error("413");
 			Cgi c(this->_path_to_cgi, this->_post, this->_tmp_file, this->_env_vars);
 			c.execute();
 			if (this->_post)
@@ -174,20 +182,19 @@ Response	Request::execute(void) {
 	else {
 		for(size_t i = 0; methods[i].compare("0"); i++)
 			if (!this->_env_vars["REQUEST_METHOD"].compare(methods[i]))
-				return (this->*ptr[i])();
+				return (this->*ptr[i])(r);
 		r.error("400");
 	}
 	return (r);
 }
 
-Response	Request::_execute_delete(void)
+Response	Request::_execute_delete(Response r)
 {
-    Response r;
     int res;
     std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 
 
-	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
@@ -219,12 +226,11 @@ Response	Request::_execute_delete(void)
 	return (r);
 }
 
-Response	Request::_execute_get(void) {
+Response	Request::_execute_get(Response r) {
 
-	Response r;
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 
-	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "GET") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "GET") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
@@ -247,14 +253,25 @@ Response	Request::_execute_get(void) {
 	return (r);
 }
 
-Response	Request::_execute_post(void) {
-	Response r;
-	if (std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end() && !this->_block.getAlowMethods().empty()) {
+Response	Request::_execute_post(Response r) {
+
+	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
 	r.error("400");
 	return (r);
+}
+
+Response	Request::_execute_redirection(Response r) {
+
+	if (this->_block.getRedirection().first.compare("301") == 0) {
+		std::cout << "dans redirection 301"  << std::endl;
+		r.create_redirection(this->_block.getRedirection().second);
+	}
+	else
+		r.error(this->_block.getRedirection().first);
+	return r;
 }
 
 void Request::addToBody(const char * request_str, int pos, int len) {

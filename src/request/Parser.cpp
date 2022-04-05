@@ -12,10 +12,9 @@ Parser::Parser(Parser const & other):
 	_env_vars(other._env_vars), _block(other._block)
 {}
 Parser::Parser(std::map<std::string, std::string> & env_vars, Config & block): _post(false), _chunked(false), _length_body(0), _length_header(0),
-	_header(""), _method(""), _content_length(""), _content_type("")
+	_header(""), _method(""), _content_length(""), _content_type(""), _block(block)
 {
 	this->_env_vars = env_vars;
-	this->_block = block;
 }
 
 Parser& Parser::operator=(Parser const & other)
@@ -55,6 +54,11 @@ size_t	Parser::getLengthHeader(void)
 	return this->_length_header;
 }
 
+Config	Parser::getBlock(void)
+{
+	return this->_block;
+}
+
 std::map<std::string, std::string> Parser::parse_output_client(std::string & output) {
 
 	size_t i = 0;
@@ -78,7 +82,6 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 	_parse_http_accept(output, "Accept-Encoding:");
 	_parse_http_accept(output, "Accept-Language:");
 
-
 	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 	else
@@ -96,8 +99,8 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_post = false;
 		this->_length_body = 0;
 	}
-	this->_chooseConfigBeforeExecution();
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+	this->_chooseConfigBeforeExecution();
 	return this->_env_vars;
 }
 
@@ -322,6 +325,8 @@ void	Parser::_changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getAutoIndex() = newConfig.getAutoIndex();
 	if (this->_block.getUploadFolder() != newConfig.getUploadFolder())
 		this->_block.getUploadFolder() = newConfig.getUploadFolder();
+	if (!newConfig.getRedirection().first.empty())
+		this->_block.getRedirection() = newConfig.getRedirection();
 }
 
 void Parser::_addIndex() {
@@ -337,7 +342,7 @@ void Parser::_addIndex() {
 			return ;
 		}
 	}
-	if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
+	if (pathIsFile(this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"]) == 2) {
 		this->_env_vars["DOCUMENT_ROOT"] = "./";
 		this->_env_vars["SCRIPT_NAME"] = DEFAULT_INDEX;
 		this->_env_vars["REQUEST_URI"] = this->_env_vars["SCRIPT_NAME"];

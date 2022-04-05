@@ -233,7 +233,7 @@ bool	Server::_checking_revents(void) {
 				if (this->_sending(it, r))
 					break;
 				it->events = POLLIN;
-				if (client_request.isComplete()) 
+				if (client_request.isComplete())
 					client_request.reset();
 			}
 		}
@@ -303,7 +303,7 @@ void	Server::_fileToServer(const char *conf_file) {
 			Config block;
 
 			i = block.parseServer(confFile, i);
-			block.checkBlock();
+			block.checkBlock(false);
 			out << block.getPort();
 			std::string tmp = out.str();
 			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));

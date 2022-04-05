@@ -15,23 +15,13 @@ class Response {
 		Response(const Response & other);
 		Response & operator=(const Response & other);
 
-		std::string & getHeader(void);
-		std::string & getBody(void);
 		std::string & getRawResponse(void);
-		std::map<int, std::string> & getErrorPages(void);
-
-		void	setHeader(std::string new_header);
-		void	setBody(std::string new_body);
-		void	setRawResponse(std::string new_raw_response);
-		void	setErrorPages(std::map<int, std::string> new_errorPages);
-
-		void	create_cgi_base(const char *filename);
+		void	create_cgi_get(const char *filename);
+		void	create_cgi_post(const char *filename, std::string const upload_path);
 		void	create_get(std::string filename);
 		void	create_post(std::string filename);
 		void	create_continue(void);
-		void	create_redirection(std::string redirection);
 		void	binary(std::string filename);
-		void	setting_mimes(void);
 		void	create_delete(std::string filename);
 		void	print_directory(std::string root_dir, std::string dir);
 		void	error(std::string const error_code);
@@ -42,9 +32,10 @@ class Response {
 		std::string							_raw_response;
 		std::map<std::string, std::string>	_mimes;
 		bool								_binary;
-		std::map<int, std::string>			_errorPages;
 
-		std::string _getPathToError(std::string error_code);
+		void		_setting_mimes(void);
+		std::string	_getErrorMessage(std::string const & error_code);
+		void		_create_cgi(const char *filename, std::string header);
 };
 
 #endif

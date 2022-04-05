@@ -180,9 +180,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	}
 	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
 	if (client->second.getRequest().hasHeader())
-	{
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
-	}
 	else {
 		host = this->getHostInConfig(buffer);
 		this->verifyHost(host);

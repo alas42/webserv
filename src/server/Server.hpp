@@ -23,6 +23,17 @@ class Server {
 		int		setup(void);
 		bool	run(void);
 		void	clean(void);
+		int		listen_poll(void);
+		bool 	checking_revents(void);
+		int		receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client);
+		bool	sending(std::vector<pollfd>::iterator	it, Response & r);
+		bool	accept_connections(int server_fd);
+		void	close_connection(std::vector<pollfd>::iterator	it);
+
+		std::map<std::string, Config> & getConfig(void);
+		std::vector<int> getPorts();
+		std::string getHostInConfig(std::string buffer);
+		void verifyHost(std::string & host);
 
 	private:
 		std::map<std::string, Config>	_config;
@@ -32,16 +43,7 @@ class Server {
 		std::vector<struct pollfd>		_pollfds;
 		std::map<int, Client>			_clients;
 
-		void				_fileToServer(const char *conf_file);
-		int					_listen_poll(void);
-		bool 				_checking_revents(void);
-		int					_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client);
-		bool				_sending(std::vector<pollfd>::iterator it, Response & r);
-		bool				_accept_connections(int server_fd);
-		void				_close_connection(std::vector<pollfd>::iterator	it);
-		void				_verifyHost(std::string & host);
-		std::string 		_getHostInConfig(std::string buffer);
-		std::vector<int>	_getPorts();
+		void									_fileToServer(const char *conf_file);
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 
 };

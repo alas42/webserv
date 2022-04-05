@@ -65,7 +65,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	this->_length_header = parser.getLengthHeader();
 
 	if (this->_post)
-		this->_init_post_request(request_str, rc, id);
+		this->init_post_request(request_str, rc, id);
 	else
 		this->_completed = true;
 }
@@ -93,7 +93,7 @@ void	Request::_init_env_map(void) {
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 }
 
-void	Request::_init_post_request(const char *request_str, int rc, int id) {
+void	Request::init_post_request(const char *request_str, int rc, int id) {
 
 	std::stringstream ss;
 
@@ -273,10 +273,10 @@ void Request::addToBody(const char * request_str, int pos, int len) {
 	fclose(fp);
 	if (raw_request)
 		free(raw_request);
-	this->_addToLengthReceived(len);
+	this->addToLengthReceived(len);
 }
 
-void	Request::_addToLengthReceived(size_t length_to_add)
+void	Request::addToLengthReceived(size_t length_to_add)
 {
 	this->_length_received += length_to_add;
 	if (_length_received == this->_length_body)

@@ -17,13 +17,20 @@ class Request {
 		Request & operator=(const Request & other);
 		Request(const char * request_str, int rc, Config &block, int id);
 
+		void 		init_post_request(const char *request_str, int rc, int id);
+		void 		chooseConfigBeforeExecution();
+		std::string getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig);
+		void 		changeBlockToNewConfig(Config &newConfig);
+		void 		addIndex();
+
 		bool isComplete(void);
 		bool hasHeader(void);
 		bool isChunked(void);
 		bool sentContinue(void);
+		void addToLengthReceived(size_t length_to_add);
 		void addToBody(const char * request_str, int pos, int len);
 		void addToBodyChunked(const char * request_str, int len);
-  
+
 		Response execute(void);
 		Response execute_get(Response r);
 		Response execute_post(Response r);
@@ -54,12 +61,7 @@ class Request {
 		size_t								_length_of_chunk_received;
 		std::map<std::string, std::string>	_env_vars;
 
-		void		_init_env_map(void);
-		void 		_init_post_request(const char *request_str, int rc, int id);
-		void 		_addToLengthReceived(size_t length_to_add);
-		Response 	_execute_get(void);
-		Response 	_execute_post(void);
-		Response 	_execute_delete(void);
+		void	_init_env_map(void);
 };
 
 #endif

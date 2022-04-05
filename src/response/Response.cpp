@@ -3,7 +3,7 @@
 Response::Response(void): _header(""), _body(""), _raw_response("") {
 
 	this->_binary = false;
-	setting_mimes();
+	this->_setting_mimes();
 }
 
 Response::~Response(void)
@@ -25,30 +25,6 @@ Response & Response::operator=(const Response & other) {
 		this->_binary = other._binary;
 	}
 	return (*this);
-}
-
-void	Response::setHeader(std::string new_header) {
-	this->_header = new_header;
-}
-
-void	Response::setBody(std::string new_body) {
-	this->_body= new_body;
-}
-
-void	Response::setRawResponse(std::string new_raw_response) {
-	this->_raw_response = new_raw_response;
-}
-
-void	Response::setErrorPages(std::map<int, std::string> new_errorPages) {
-	this->_errorPages = new_errorPages;
-}
-
-std::string &	Response::getHeader(void) {
-	return this->_header;
-}
-
-std::string &	Response::getBody(void) {
-	return this->_body;
 }
 
 std::string &	Response::getRawResponse(void) {
@@ -216,7 +192,7 @@ void	Response::binary(std::string filename) {
 **		Yes -> use Content-Type: application/octet-stream
 **		No  -> use Content-Type: text/plain
 */
-void	Response::setting_mimes(void) {
+void	Response::_setting_mimes(void) {
 
 	this->_mimes[".avi"] = 	"video/x-msvideo";
 	this->_mimes[".bmp"] = 	"image/bmp";
@@ -226,6 +202,8 @@ void	Response::setting_mimes(void) {
 	this->_mimes[".html"] = "text/html";
 	this->_mimes[".htm"] = 	"text/html";
 	this->_mimes[".php"] = 	"text/plain";
+	this->_mimes[".js"] = 	"text/plain";
+	this->_mimes[".css"] = 	"text/css";
 	this->_mimes[".jpg"] = 	"image/jpg";
 	this->_mimes[".jpeg"] = "image/jpeg";
 	this->_mimes[".json"] = "application/json";
@@ -296,11 +274,11 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	if (dpdf != NULL)
 	{
 		header.append("Content-Length: ");
+		body.append("<h1>INDEX</h1>");
 		while ((epdf = readdir(dpdf)))
 		{
 			body.append("<a href=\"");
 			body.append(dir);
-			//body.append("/");
 			body.append(epdf->d_name);
 			std::string is_dir = epdf->d_name;
 			is_dir = dir + is_dir;
@@ -322,7 +300,6 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
-
 }
 
 void	Response::create_delete(std::string filename)

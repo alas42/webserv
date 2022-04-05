@@ -30,20 +30,20 @@ class Parser
 		std::map<std::string, std::string>  _env_vars;
 		Config								_block;
 
-		void	_parse_query_string(std::string & request_uri);
-		void	_parse_request_method(std::string & output, std::size_t & pos);
-		void 	_parse_request_uri(std::string & output, std::size_t & pos);
-		void	_parse_server_protocol(std::string & output, std::size_t & pos);
-		void	_parse_server_port(std::string & output, std::size_t & pos);
-		void	_parse_content_length(std::string & output);
-		void 	_parse_content_type (std::string & output);
-		void 	_parse_http_accept(std::string &output, std::string tofind);
-		void	_parse_transfer_encoding(std::string & output);
-		void	_parse_script(std::string & request_uri);
-		void 	addIndex();
-		void	changeBlockToNewConfig(Config &newConfig);
-		std::string	getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig);
-		void 	chooseConfigBeforeExecution();
+		void		_parse_query_string(std::string & request_uri);
+		void		_parse_request_method(std::string & output, std::size_t & pos);
+		void 		_parse_request_uri(std::string & output, std::size_t & pos);
+		void		_parse_server_protocol(std::string & output, std::size_t & pos);
+		void		_parse_server_port(std::string & output, std::size_t & pos);
+		void		_parse_content_length(std::string & output);
+		void 		_parse_content_type (std::string & output);
+		void 		_parse_http_accept(std::string &output, std::string tofind);
+		void		_parse_transfer_encoding(std::string & output);
+		void		_parse_script(std::string & request_uri);
+		void 		_addIndex();
+		void		_changeBlockToNewConfig(Config &newConfig);
+		void 		_chooseConfigBeforeExecution();
+		std::string	_getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig);
 };
 
 #endif

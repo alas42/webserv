@@ -12,7 +12,7 @@
 
 #include "Server.hpp"
 
-Server::Server(void): _config(), _timeout(0.5 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
 Server::~Server(void)
@@ -33,11 +33,7 @@ Server & Server::operator=(const Server & other) {
 		return (*this);
 }
 
-std::map<std::string, Config> & Server::getConfig() {
-	return this->_config;
-}
-
-std::vector<int> Server::getPorts() {
+std::vector<int> Server::_getPorts() {
 
 	std::vector<int> ports;
 
@@ -46,7 +42,7 @@ std::vector<int> Server::getPorts() {
 	return ports;
 }
 
-std::string Server::getHostInConfig(std::string buffer) {
+std::string Server::_getHostInConfig(std::string buffer) {
 
 	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
 
@@ -57,7 +53,7 @@ std::string Server::getHostInConfig(std::string buffer) {
 	return "NULL";
 }
 
-void Server::verifyHost(std::string & host) {
+void Server::_verifyHost(std::string & host) {
 
 	if (host.find("localhost") != std::string::npos)
 		host.replace(0, 9, "127.0.0.1");
@@ -114,14 +110,14 @@ int	Server::setup(void) {
 	return (0);
 }
 
-void	Server::close_connection(std::vector<pollfd>::iterator	it) {
+void	Server::_close_connection(std::vector<pollfd>::iterator	it) {
 
 	close(it->fd);
 	this->_clients.erase(it->fd);
 	this->_pollfds.erase(it);
 }
 
-bool	Server::accept_connections(int server_fd) {
+bool	Server::_accept_connections(int server_fd) {
 
 	struct pollfd	client_fd;
 	int				new_socket = -1;
@@ -145,7 +141,7 @@ bool	Server::accept_connections(int server_fd) {
 	return (false);
 }
 
-bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
+bool	Server::_sending(std::vector<pollfd>::iterator	it, Response & r)
 {
 	int i = 0;
 	std::cout << "header = " << r.getRawResponse() << std::endl;
@@ -159,7 +155,7 @@ bool	Server::sending(std::vector<pollfd>::iterator	it, Response & r)
 	return (0);
 }
 
-int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
+int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
 	std::string		host;
 	int 			rc = -1;
@@ -174,7 +170,7 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		return (1);
 	}
 	else if (rc == 0) {
-		this->close_connection(it);
+		this->_close_connection(it);
 		free(buffer);
 		return (1);
 	}
@@ -182,15 +178,15 @@ int	Server::receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	if (client->second.getRequest().hasHeader())
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	else {
-		host = this->getHostInConfig(buffer);
-		this->verifyHost(host);
+		host = this->_getHostInConfig(buffer);
+		this->_verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
 	}
 	free(buffer);
 	return (0);
 }
 
-bool	Server::checking_revents(void) {
+bool	Server::_checking_revents(void) {
 
 	bool							end = false;
 	std::vector<int>::iterator		find = this->_server_fds.end();
@@ -205,12 +201,12 @@ bool	Server::checking_revents(void) {
 		if (it->revents & POLLIN) {
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
 			if (find != this->_server_fds.end()) {
-				end = this->accept_connections(*find);
+				end = this->_accept_connections(*find);
 			}
 			else {
 				client = this->_clients.find(it->fd);
 				if (client != this->_clients.end()) {
-					if (this->receiving(it, client))
+					if (this->_receiving(it, client))
 						break;
 					Request & client_request = client->second.getRequest();
 					if (client_request.isComplete() || (client_request.isChunked() && !client_request.sentContinue()))
@@ -232,7 +228,7 @@ bool	Server::checking_revents(void) {
 				{
 					r = client_request.execute();
 				}
-				if (this->sending(it, r))
+				if (this->_sending(it, r))
 					break;
 				it->events = POLLIN;
 				if (client_request.isComplete())
@@ -240,13 +236,13 @@ bool	Server::checking_revents(void) {
 			}
 		}
 		else if (it->revents & POLLERR) {
-			this->close_connection(it);
+			this->_close_connection(it);
 		}
 	}
 	return (end);
 }
 
-int	Server::listen_poll(void) {
+int	Server::_listen_poll(void) {
 
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
@@ -261,9 +257,9 @@ int	Server::listen_poll(void) {
 
 bool	Server::run(void)
 {
-	if (this->listen_poll())
+	if (this->_listen_poll())
 		return (1);
-	return (this->checking_revents());
+	return (this->_checking_revents());
 }
 
 void	Server::clean(void) {

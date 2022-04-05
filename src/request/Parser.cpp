@@ -100,6 +100,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_post = false;
 		this->_length_body = 0;
 	}
+
 	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	this->chooseConfigBeforeExecution();
 	return this->_env_vars;
@@ -269,7 +270,7 @@ void Parser::_parse_transfer_encoding(std::string & output) {
 }
 
 
-void Parser::chooseConfigBeforeExecution() {
+void Parser::_chooseConfigBeforeExecution() {
 
 	std::string	path;
 	Config		tmpBlock = this->_block;
@@ -280,13 +281,13 @@ void Parser::chooseConfigBeforeExecution() {
 		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/"));
 	while (path.compare("") != 0) {
 		Config newConfig;
-		path = this->getLocationBeforeExecution(path, tmpBlock, newConfig);
+		path = this->_getLocationBeforeExecution(path, tmpBlock, newConfig);
 	}
 	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
-		this->addIndex();
+		this->_addIndex();
 }
 
-std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
+std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlock, Config &newConfig) {
 
 	std::map<std::string, Config>::iterator	iter;
 	std::string	tmp = path;
@@ -297,7 +298,7 @@ std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBloc
 			{
 				newConfig = it->second;
 				tmpBlock = newConfig;
-				this->changeBlockToNewConfig(newConfig);
+				this->_changeBlockToNewConfig(newConfig);
 				return path.substr(tmp.length(), path.length() - tmp.length());
 			}
 		}
@@ -306,7 +307,7 @@ std::string	Parser::getLocationBeforeExecution(std::string path, Config &tmpBloc
 	return "";
 }
 
-void	Parser::changeBlockToNewConfig(Config &newConfig) {
+void	Parser::_changeBlockToNewConfig(Config &newConfig) {
 
 	if (!newConfig.getErrorPages().empty())
 		this->_block.getErrorPages() = newConfig.getErrorPages();
@@ -330,8 +331,7 @@ void	Parser::changeBlockToNewConfig(Config &newConfig) {
 		this->_block.getRedirection() = newConfig.getRedirection();
 }
 
-void Parser::addIndex() {
-	std::cout << "ici = " << std::endl;
+void Parser::_addIndex() {
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
 		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {
 			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);

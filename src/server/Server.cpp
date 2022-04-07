@@ -91,8 +91,6 @@ int	Server::setup(void) {
 			return (1);
 		}
 
-		std::cout << it->second << std::endl;
-
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(it->second.getPort());
 		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
@@ -165,6 +163,8 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 	int 			rc = -1;
 	char			*buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
 
+	if (!buffer)
+		throw std::runtime_error("Error: Malloc\n");
 
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);

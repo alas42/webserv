@@ -160,10 +160,12 @@ void Config::_setListen(std::vector<std::string> line) {
 	if ((cut = line[1].find(":")) == std::string::npos) {
 		if (line[1].compare("localhost") == 0 || line[1].find(".") != std::string::npos)
 			this->_ipAddress = line[1];
-		else
+		else {
 			for (std::string::iterator it = line[1].begin(); it != line[1].end(); it++)
 				if (isdigit(*it) == 0)
 					throw std::runtime_error("Error: Bad listen config\n");
+			this->_port = atoi(line[1].c_str());
+		}
 	}
 	else {
 		this->_ipAddress = line[1].substr(0, cut);

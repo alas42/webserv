@@ -314,6 +314,9 @@ void Config::_setRedirection(std::vector<std::string> line) {
 
 	if (line.size() < 2 || line.size() > 3 || (line[1].compare("301") == 0 && line.size() != 3))
 		throw std::runtime_error("Error: Bad return config\n");
+	for (std::string::iterator it = line[1].begin(); it != line[1].end(); it++)
+		if (isdigit(*it) == 0)
+		throw std::runtime_error("Error: Bad return config\n");
 	this->_redirection.first = line[1];
 	if (line.size() == 3)
 		this->_redirection.second = line[2];

@@ -22,7 +22,7 @@ void signal_handler(int signal_num)
 {
 	ft::end = true;
 	std::cout << std::endl;
-	(void)signal_num;
+	static_cast<void>(signal_num);
 }
 
 int		main(int ac, char **av)

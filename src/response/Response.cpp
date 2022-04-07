@@ -87,7 +87,6 @@ void	Response::create_cgi_post(const char *filename, std::string const upload_pa
 	{
 		buffer << f.rdbuf();
 		str = buffer.str();
-		std::cout << "|" << str << "|" << std::endl;
 		if (str.find("Success") != std::string::npos)
 		{
 			std::size_t i = str.find("<br>") + 4;

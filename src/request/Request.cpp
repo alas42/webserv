@@ -145,7 +145,6 @@ Response	Request::execute(void) {
 	Response r;
 
 	r.setErrorPages(this->_block.getErrorPages());
-		std::cout << "avant = " << this->_block.getRedirection().first << std::endl;
 	if (!this->_block.getRedirection().first.empty()) {
 		return this->_execute_redirection(r);
 	}
@@ -238,7 +237,6 @@ Response	Request::_execute_get(Response r) {
 		r.error("404");
 	else if (check_path(path) == 4)
 	{
-		std::cout << path << " is a directory\n" << std::endl;
 		if (check_read_rights(path) == 1 && this->getConf().getAutoIndex() == true)
 			r.print_directory(path, this->_env_vars["REQUEST_URI"]);
 		else
@@ -265,10 +263,8 @@ Response	Request::_execute_post(Response r) {
 
 Response	Request::_execute_redirection(Response r) {
 
-	if (this->_block.getRedirection().first.compare("301") == 0) {
-		std::cout << "dans redirection 301"  << std::endl;
+	if (this->_block.getRedirection().first.compare("301") == 0)
 		r.create_redirection(this->_block.getRedirection().second);
-	}
 	else
 		r.error(this->_block.getRedirection().first);
 	return r;

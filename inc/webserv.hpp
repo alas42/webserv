@@ -34,7 +34,7 @@
 
 #define TRUE					1
 #define FALSE					0
-#define DEFAULT_CONFIG			"data/example.conf"
+#define DEFAULT_CONFIG			"data/conf/example.conf"
 #define DEFAULT_INDEX			"data/webserv_default_index.html"
 #define DEFAULT_ERRORS_PATH		"data/error_pages/"
 #define BUFFER_SIZE				1000000

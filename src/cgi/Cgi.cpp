@@ -67,7 +67,6 @@ void	Cgi::execute(void)
 	int			status = 0, fdi, fdo;
 
 	env_tab = this->_create_env_tab();
-	std::cout << _path_to_cgi << std::endl;
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
@@ -76,6 +75,7 @@ void	Cgi::execute(void)
 	if (c_pid == 0) {
 		fo = fopen(std::string("cgi_" + this->_infile).c_str(), "a");
 		fdo = fileno(fo);
+		close(2);
 		if (dup2(fdo, STDOUT_FILENO) == -1)
 			perror("dup2");
 		if (this->_post) {

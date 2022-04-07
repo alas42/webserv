@@ -12,7 +12,7 @@
 
 #include "Config.hpp"
 
-Config::Config(void): _ipAddress("127.0.0.1"), _port(80), _serverNames(), _errorPages(), \
+Config::Config(void): _ipAddress("127.0.0.1"), _port(8080), _serverNames(), _errorPages(), \
 						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
 						_root(), _index(), _autoIndex(false), _uploadFolder(), _redirection() {}
 
@@ -158,10 +158,12 @@ void Config::_setListen(std::vector<std::string> line) {
 	if (line.size() == 1)
 		throw std::runtime_error("Error: Bad listen config\n");
 	if ((cut = line[1].find(":")) == std::string::npos) {
-		if (isdigit(atoi(line[1].c_str())) == 0)
-			this->_port = atoi(line[1].c_str());
+		if (line[1].compare("localhost") == 0 || line[1].find(".") != std::string::npos)
+			this->_ipAddress = line[1];
 		else
-			throw std::runtime_error("Error: Bad listen config\n" + line[1]);
+			for (std::string::iterator it = line[1].begin(); it != line[1].end(); it++)
+				if (isdigit(*it) == 0)
+					throw std::runtime_error("Error: Bad listen config\n");
 	}
 	else {
 		this->_ipAddress = line[1].substr(0, cut);

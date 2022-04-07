@@ -57,6 +57,8 @@ void Server::_verifyHost(std::string & host) {
 
 	if (host.find("localhost") != std::string::npos)
 		host.replace(0, 9, "127.0.0.1");
+	if (host.find("0.0.0.0") != std::string::npos)
+		host.replace(0, 7, "127.0.0.1");
 }
 
 void	Server::config(const char * conf_file) {
@@ -88,6 +90,8 @@ int	Server::setup(void) {
 			std::cerr << "ioctl error" << std::endl;
 			return (1);
 		}
+
+		std::cout << it->second << std::endl;
 
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(it->second.getPort());

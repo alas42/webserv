@@ -99,7 +99,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_post = false;
 		this->_length_body = 0;
 	}
-	std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
+	// std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	this->_chooseConfigBeforeExecution();
 	return this->_env_vars;
 }

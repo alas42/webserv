@@ -34,7 +34,8 @@ char	**Cgi::_create_env_tab(void)
 	size_t		length = 0;
 	size_t 		i = 0;
 
-	env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1));
+	if (!(env_tab = (char **)malloc(sizeof(char *) * (this->_env_vars.size() + 1))))
+		throw std::runtime_error("Error: Malloc\n");
 	std::map<std::string, std::string>::iterator it = this->_env_vars.begin();
 	for(;it != this->_env_vars.end(); it++) {
 		tmp = strdup(it->second.c_str());
@@ -66,11 +67,19 @@ void	Cgi::execute(void)
 	FILE 		*fi, *fo;
 	int			status = 0, fdi, fdo;
 
+	if (!tab)
+		throw std::runtime_error("Error: Malloc\n");
 	env_tab = this->_create_env_tab();
 	tab[0] = strdup(this->_path_to_cgi.c_str());
 	tab[1] = strdup(this->_env_vars["SCRIPT_FILENAME"].c_str());
 	tab[2] = 0;
-
+	if (!tab[0] || !tab[1])
+	{
+		if (!tab[1])
+			free(tab[0]);
+		free(tab);
+		throw std::runtime_error("Error: Malloc\n");
+	}
 	c_pid = fork();
 	if (c_pid == 0) {
 		fo = fopen(std::string("cgi_" + this->_infile).c_str(), "a");

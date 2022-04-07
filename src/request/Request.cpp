@@ -275,7 +275,8 @@ void Request::addToBody(const char * request_str, int pos, int len) {
 	char	*raw_request = NULL;
 	FILE	*fp = fopen(this->_tmp_file.c_str(), "a");
 
-	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	if (!(raw_request = (char *)malloc(sizeof(char) * (len + 1))))
+		throw std::runtime_error("Error: Malloc\n");
 	raw_request = (char *)memcpy(raw_request, &request_str[pos], len);
 	raw_request[len] = '\0';
 	fwrite(raw_request, 1, len, fp);
@@ -297,13 +298,14 @@ void Request::addToBodyChunked(const char * request_str, int len)
 	if (len == 0)
 		return ;
 
-	char				*raw_request = NULL, *last_block = NULL, *size = NULL, *hexa = NULL, *block = NULL;
-	FILE 				*fp, *fo;
-	std::string			chunked_filename = this->_tmp_file + "_c";
-	bool				next = true;
-	int					i;
+	char		*raw_request = NULL, *last_block = NULL, *size = NULL, *hexa = NULL, *block = NULL;
+	FILE 		*fp, *fo;
+	std::string	chunked_filename = this->_tmp_file + "_c";
+	bool		next = true;
+	int			i;
 
-	raw_request = (char *)malloc(sizeof(char) * (len + 1));
+	if (!(raw_request = (char *)malloc(sizeof(char) * (len + 1))))
+		throw std::runtime_error("Error: Malloc\n");
 	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
 	raw_request[len] = '\0';
 
@@ -313,7 +315,11 @@ void Request::addToBodyChunked(const char * request_str, int len)
 
 	if (this->_length_of_chunk_received >= 5)
 	{
-		last_block = (char *)malloc(sizeof(char) * 6);
+		if (!(last_block = (char *)malloc(sizeof(char) * 6)))
+		{
+			free(raw_request);
+			throw std::runtime_error("Error: Malloc\n");
+		}
 		fseek(fp, this->_length_of_chunk_received - 5, SEEK_SET);
 		fread(last_block, 1, 5, fp);
 		last_block[5] = '\0';
@@ -330,7 +336,12 @@ void Request::addToBodyChunked(const char * request_str, int len)
 				std::stringstream	ss;
 
 				fseek(fp, this->_length_of_chunk_received, SEEK_SET);
-				size = (char *)malloc(sizeof(char) * 6);
+				if (!(size = (char *)malloc(sizeof(char) * 6)))
+				{
+					free(raw_request);
+					free(last_block);
+					throw std::runtime_error("Error: Malloc\n");
+				}
 				fread(size, 1, 5, fp);
 				size[5] = '\0';
 
@@ -345,7 +356,13 @@ void Request::addToBodyChunked(const char * request_str, int len)
 				if (this->_length_of_chunk)
 				{
 					this->_length_received += this->_length_of_chunk;
-					block = (char *)malloc(sizeof(char) * this->_length_of_chunk);
+					if (!(block = (char *)malloc(sizeof(char) * this->_length_of_chunk)))
+					{
+						free(raw_request);
+						free(last_block);
+						free(size);
+						throw std::runtime_error("Error: Malloc\n");
+					}
 					this->_length_of_chunk_received += (strlen(hexa) + 2);
 					fseek(fp, this->_length_of_chunk_received, SEEK_SET);
 					this->_length_of_chunk_received += this->_length_of_chunk + 2;

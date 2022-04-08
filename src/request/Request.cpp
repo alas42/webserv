@@ -191,19 +191,42 @@ Response	Request::_execute_delete(Response r)
 {
     int res;
     std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
-
+	int			ret_check_path;
 
 	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "DELETE") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
-    if (check_path(path) == -1)
-		r.error("404");
-	else if (check_path(path) == 4)
+	if (path[path.size() - 1] == '/')
+		path.erase(path.size() - 1);
+	ret_check_path = check_path(path);
+
+    if (ret_check_path == -1)
 	{
-		if (check_execute_rights(path) && check_wright_rights(path))
+		r.error("404");
+	}
+	else if (ret_check_path == 4)
+	{
+		if (check_wright_rights(path))
 		{
 			res = rmdir(path.c_str());
+			if (res != 0)
+			{
+				if (errno == ENOTEMPTY)
+					r.error("409");
+				else
+					r.error("400");
+			}
+			r.create_delete(path);
+		}
+		else
+			r.error("403");
+	}
+	else
+	{
+		if (check_wright_rights(path))
+		{
+			res = remove(path.c_str());
 			if (res != 0)
 			{
 				r.error("400");
@@ -213,29 +236,22 @@ Response	Request::_execute_delete(Response r)
 		else
 			r.error("403");
 	}
-	else if (check_execute_rights(path) && check_wright_rights(path))
-	{
-		res = remove(path.c_str());
-		if (res != 0)
-		{
-			r.error("400");
-		}
-		r.create_delete(path);
-	}
 	return (r);
 }
 
 Response	Request::_execute_get(Response r) {
 
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
+	int			ret_check_path;
 
 	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "GET") == this->_block.getAlowMethods().end()) {
 		r.error("405");
 		return r;
 	}
-	if (check_path(path) == -1)
+	ret_check_path = check_path(path);
+	if (ret_check_path == -1)
 		r.error("404");
-	else if (check_path(path) == 4)
+	else if (ret_check_path == 4)
 	{
 		if (check_read_rights(path) == 1 && this->getConf().getAutoIndex() == true)
 			r.print_directory(path, this->_env_vars["REQUEST_URI"]);

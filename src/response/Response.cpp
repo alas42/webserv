@@ -332,10 +332,12 @@ void	Response::create_delete(std::string filename)
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
 	std::string body;
+
 	header.append("Content-Length: ");
 	body.append(filename);
 	body.append(" deleted.");
 	body.append("\r\n");
+
 	this->_body = body;
 	ss << body.size();
 	header.append(ss.str());

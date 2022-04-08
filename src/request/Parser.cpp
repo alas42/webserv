@@ -281,7 +281,7 @@ void Parser::_chooseConfigBeforeExecution() {
 		Config newConfig;
 		path = this->_getLocationBeforeExecution(path, tmpBlock, newConfig);
 	}
-	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex())
+	if (this->_env_vars["SCRIPT_NAME"].empty() && !this->_block.getAutoIndex() && this->_env_vars["REQUEST_METHOD"].compare("GET") == 0)
 		this->_addIndex();
 }
 

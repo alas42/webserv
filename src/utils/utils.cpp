@@ -52,15 +52,13 @@ int check_path(std::string path)
 	struct stat buf;
 	int res_stat = 0;
 
-	res_stat = stat(path.c_str() ,&buf);
+	res_stat = stat(path.c_str(), &buf);
 	if (res_stat == -1)
 		return(-1);
-	if (S_ISDIR(buf.st_mode) != 0)
+	if (buf.st_mode & S_IFDIR)
 	{
-		// on check l'auto index return 4 si off et 5 si on. Par default is off
 		return (4);
 	}
-
 	return (0);
 }
 

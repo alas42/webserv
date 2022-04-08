@@ -12,6 +12,8 @@
 
 #include "Server.hpp"
 
+extern bool g_end;
+
 Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
 {}
 
@@ -71,7 +73,7 @@ int	Server::setup(void) {
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
 
-	this->_pollfds.reserve(300);
+	this->_pollfds.reserve(CONNECTION_QUEUE);
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
 		server_fd = -1;
@@ -99,7 +101,7 @@ int	Server::setup(void) {
 			return (1);
 		}
 
-		if (listen(server_fd, 150) < 0) {
+		if (listen(server_fd, CONNECTION_QUEUE) < 0) {
 			std::cerr << "listen error" << std::endl;
 			return (1);
 		}
@@ -194,7 +196,6 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 
 bool	Server::_checking_revents(void) {
 
-	bool							end = false;
 	std::vector<int>::iterator		find = this->_server_fds.end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
@@ -207,7 +208,8 @@ bool	Server::_checking_revents(void) {
 		if (it->revents & POLLIN) {
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
 			if (find != this->_server_fds.end()) {
-				end = this->_accept_connections(*find);
+				g_end = this->_accept_connections(*find);
+				break ;
 			}
 			else {
 				client = this->_clients.find(it->fd);
@@ -245,7 +247,7 @@ bool	Server::_checking_revents(void) {
 			this->_close_connection(it);
 		}
 	}
-	return (end);
+	return (g_end);
 }
 
 int	Server::_listen_poll(void) {

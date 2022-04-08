@@ -197,16 +197,18 @@ void	Response::binary(std::string filename) {
 	f.seekg(0, std::ios::end);
 	length = f.tellg();
 	f.seekg(0, std::ios::beg);
+
 	ss << length;
 	header.append(ss.str());
 
 	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
+	f.close();
 	this->_body = content;
 	this->_header = header;
 	this->_raw_response = this->_header;
 	this->_raw_response.append("\r\n\r\n");
 	this->_raw_response.append(this->_body);
-	f.close();
+
 }
 
 /*

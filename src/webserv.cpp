@@ -13,14 +13,11 @@
 #include "../inc/webserv.hpp"
 #include "./server/Server.hpp"
 
-namespace ft
-{
-	bool	end = false;
-}
+bool g_end = false;
 
 void signal_handler(int signal_num)
 {
-	ft::end = true;
+	g_end = true;
 	std::cout << std::endl;
 	static_cast<void>(signal_num);
 }
@@ -38,8 +35,8 @@ int		main(int ac, char **av)
 			server.config(DEFAULT_CONFIG);
 		if (!server.setup())
 		{
-			while (!ft::end)
-				ft::end = server.run();
+			while (!g_end)
+				g_end = server.run();
 		}
 		server.clean();
 	}

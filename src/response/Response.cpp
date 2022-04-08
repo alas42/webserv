@@ -312,7 +312,7 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 				body.append("/");
 			body.append("\">");
 			body.append(epdf->d_name);
-			body.append("</a>\r\n");
+			body.append("</a><br>\r\n");
 	  }
 	}
 	else

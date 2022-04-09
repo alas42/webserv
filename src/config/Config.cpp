@@ -142,7 +142,7 @@ void Config::checkBlock(bool location) {
 	if (this->_serverNames.empty())
 		this->_serverNames.push_back("");
 	if (!location && this->_root.empty())
-		this->_root = "./www/";
+		this->_root = "./www";
 	if (!this->_location.empty()) {
 		for (std::map<std::string, Config>::iterator it = _location.begin(); it != _location.end(); it++)
 			it->second.checkBlock(true);

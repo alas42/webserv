@@ -137,7 +137,7 @@ bool	Server::_accept_connections(int server_fd) {
 		}
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
-		this->_pollfds.push_back(client_fd);
+		this->_pollfds.insert(this->_pollfds.begin(), client_fd);
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
 		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
@@ -145,21 +145,27 @@ bool	Server::_accept_connections(int server_fd) {
 	return (false);
 }
 
-bool	Server::_sending(std::vector<pollfd>::iterator	it, Response & r)
+bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	int i = 0;
+	int 		i = 0;
+	size_t 		block_size = BUFFER_SIZE;
+	std::string response_block;
 
-	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
-	if (i < 0)
+	if (BUFFER_SIZE >  client->second.getResponse().getRemainingLength())
+		block_size =  client->second.getResponse().getRemainingLength();
+	response_block =  client->second.getResponse().getRawResponse().substr(client->second.getResponse().getLengthSent(), block_size);
+	i = send(it->fd, response_block.c_str(), block_size, MSG_NOSIGNAL);
+	if (i <= 0)
 	{
-		perror("send error");
+		this->_close_connection(it);
 		return (1);
 	}
-	std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
+	client->second.addToResponseLength(block_size);
+	//std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
 	return (0);
 }
 
-int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
+int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client)
 {
 	std::string		host;
 	int 			rc = -1;
@@ -180,12 +186,11 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 		free(buffer);
 		return (1);
 	}
-	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
+	//std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
 	if (client->second.getRequest().hasHeader())
-	{
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
-	}
-	else {
+	else
+	{
 		host = this->_getHostInConfig(buffer);
 		this->_verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, _config.at(host));
@@ -201,46 +206,56 @@ bool	Server::_checking_revents(void) {
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
 	std::map<int, Client>::iterator client;
 
-	for (; it != ite; it++) {
+	for (; it != ite; it++)
+	{
 		if (it->revents == 0)
 			continue;
 
 		if (it->revents & POLLIN) {
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end()) {
+			if (find != this->_server_fds.end())
+			{
 				g_end = this->_accept_connections(*find);
 				break ;
 			}
 			else {
 				client = this->_clients.find(it->fd);
-				if (client != this->_clients.end()) {
+				if (client != this->_clients.end())
+				{
 					if (this->_receiving(it, client))
 						break;
-					Request & client_request = client->second.getRequest();
-					if (client_request.isComplete() || (client_request.isChunked() && !client_request.sentContinue()))
+					if (client->second.getRequest().isComplete() || (client->second.getRequest().isChunked() && !client->second.getRequest().sentContinue()))
 						it->events = POLLOUT;
 				}
 			}
 		}
-		else if (it->revents & POLLOUT) 	{
+		else if (it->revents & POLLOUT)
+		{
 			client = this->_clients.find(it->fd);
 			Request & client_request = client->second.getRequest();
-			Response r;
+
 			if (client != this->_clients.end())
 			{
-				if (client_request.isChunked() && !client_request.sentContinue())
+				//std::cout << client->second.getId() <<  "= " << client->second.getResponse().getRemainingLength() << std::endl;
+				if (client->second.getResponse().getRemainingLength() == 0)
 				{
-					r = client_request.execute_chunked();
+					if (client_request.isChunked() && !client_request.sentContinue())
+						client->second.getResponse() = client_request.execute_chunked();
+					else
+						client->second.getResponse() = client_request.execute();
 				}
-				else
-				{
-					r = client_request.execute();
-				}
-				if (this->_sending(it, r))
+				if (this->_sending(it, client))
 					break;
-				it->events = POLLIN;
-				if (client_request.isComplete())
-					client_request.reset();
+				if (client->second.getResponse().isEverythingSent())
+				{
+					//std::cout << "Everything sent, setting to POLLIN" << std::endl;
+					it->events = POLLIN;
+					client->second.getResponse().reset();
+					if (client_request.isComplete())
+					{
+						client_request.reset();
+					}
+				}
 			}
 		}
 		else if (it->revents & POLLERR) {

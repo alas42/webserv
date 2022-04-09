@@ -24,23 +24,32 @@ class Response {
 		void	create_post(std::string filename);
 		void	create_continue(void);
 		void	create_redirection(std::string redirection);
-		void	binary(std::string filename);
 		void	create_delete(std::string filename);
 		void	print_directory(std::string root_dir, std::string dir);
 		void	error(std::string const error_code);
+		void	addToLengthSent(size_t block_size);
+		bool	isEverythingSent(void);
+		void	setLengthResponse(size_t len);
+		size_t	getRemainingLength(void);
+		size_t	getLengthSent(void);
+		void	reset(void);
 
 	private:
 		std::string							_header;
 		std::string							_body;
 		std::string							_raw_response;
+		bool								_sent_all;
+		size_t								_length_sent;
+		size_t								_length_response;
 		std::map<std::string, std::string>	_mimes;
-		bool								_binary;
 		std::map<int, std::string>			_errorPages;
+
 
 		void		_setting_mimes(void);
 		std::string	_getErrorMessage(std::string const & error_code);
 		void		_create_cgi(const char *filename, std::string header);
 		std::string _getPathToError(std::string error_code);
+		void		_binary(std::string filename);
 };
 
 #endif

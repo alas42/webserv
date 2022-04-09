@@ -142,7 +142,7 @@ void Config::checkBlock(bool location) {
 	if (this->_serverNames.empty())
 		this->_serverNames.push_back("");
 	if (!location && this->_root.empty())
-		this->_root = "./";
+		this->_root = "./www/";
 	if (!this->_location.empty()) {
 		for (std::map<std::string, Config>::iterator it = _location.begin(); it != _location.end(); it++)
 			it->second.checkBlock(true);
@@ -205,7 +205,7 @@ void Config::_setClientMaxBodySize(std::vector<std::string> line) {
 	if (line.size() != 2)
 		throw std::runtime_error("Error: Bad client_max_body_size config\n");
 	pos = line[1].find_first_not_of("0123456789");
-	if (pos != line[1].size() - 1)
+	if (pos == 0)
 		throw std::runtime_error("Error: Bad client_max_body_size config\n");
 	this->_clientMaxBodySize = atoi(line[1].c_str());
 	if (line[1][pos] == 'K' || line[1][pos] == 'k')
@@ -238,6 +238,8 @@ int Config::_setLocation(std::vector<std::vector<std::string> > confFile, size_t
 	if (confFile[i].size() == 3){
 		std::string	path = confFile[i][1];
 		this->_removeLastSlashe(path);
+		if (path[0] != '/')
+			path.insert(0, 1, '/');
 		if (confFile[i][0].compare("location") == 0 && confFile[i][2].compare("{") == 0) {
 			i = location._parseLocationDeep(confFile, i);
 			this->_location[path] = location;

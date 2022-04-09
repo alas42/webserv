@@ -31,6 +31,7 @@ Server & Server::operator=(const Server & other) {
 			this->_pollfds = other._pollfds;
 			this->_clients = other._clients;
 			this->_total_clients = other._total_clients;
+			this->_requests_fd = other._requests_fd;
 		}
 		return (*this);
 }
@@ -161,7 +162,7 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		return (1);
 	}
 	client->second.addToResponseLength(block_size);
-	//std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
+	std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
 	return (0);
 }
 
@@ -169,7 +170,8 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 {
 	std::string		host;
 	int 			rc = -1;
-	char			*buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	size_t			buffer_size = BUFFER_SIZE;
+	char			*buffer = (char *)malloc(sizeof(char) * buffer_size);
 
 	if (!buffer)
 		throw std::runtime_error("Error: Malloc\n");
@@ -186,14 +188,14 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		free(buffer);
 		return (1);
 	}
-	//std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
+	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
 	if (client->second.getRequest().hasHeader())
-		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
+		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf()); //STOCKER DANS UNE CHAINE DANS L OBJET REQUEST
 	else
 	{
 		host = this->_getHostInConfig(buffer);
 		this->_verifyHost(host);
-		client->second.addToRequest(&buffer[0], rc, _config.at(host));
+		client->second.addToRequest(&buffer[0], rc, _config.at(host)); //STOCKER DANS UNE CHAINE DANS L OBJET REQUEST 
 	}
 	free(buffer);
 	return (0);
@@ -211,14 +213,16 @@ bool	Server::_checking_revents(void) {
 		if (it->revents == 0)
 			continue;
 
-		if (it->revents & POLLIN) {
+		if (it->revents & POLLIN) // EVENEMENT LIRE 
+		{
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end())
+			if (find != this->_server_fds.end()) // SOCKET DU SERVEUR
 			{
 				g_end = this->_accept_connections(*find);
 				break ;
 			}
-			else {
+			else								// SOCKET DU CLIENT
+			{
 				client = this->_clients.find(it->fd);
 				if (client != this->_clients.end())
 				{
@@ -229,14 +233,12 @@ bool	Server::_checking_revents(void) {
 				}
 			}
 		}
-		else if (it->revents & POLLOUT)
+		else if (it->revents & POLLOUT) // EVENEMENT ECRIRE
 		{
 			client = this->_clients.find(it->fd);
-			Request & client_request = client->second.getRequest();
-
-			if (client != this->_clients.end())
+			if (client != this->_clients.end()) 	// SOCKET DU CLIENT
 			{
-				//std::cout << client->second.getId() <<  "= " << client->second.getResponse().getRemainingLength() << std::endl;
+				Request & client_request = client->second.getRequest();
 				if (client->second.getResponse().getRemainingLength() == 0)
 				{
 					if (client_request.isChunked() && !client_request.sentContinue())
@@ -248,13 +250,23 @@ bool	Server::_checking_revents(void) {
 					break;
 				if (client->second.getResponse().isEverythingSent())
 				{
-					//std::cout << "Everything sent, setting to POLLIN" << std::endl;
 					it->events = POLLIN;
 					client->second.getResponse().reset();
 					if (client_request.isComplete())
 					{
 						client_request.reset();
 					}
+				}
+			}
+			else // NEW CODE							// FILE DESCRIPTOR DU FICHIER DEMANDE PAR LE CLIENT
+			{
+				find = std::find(this->_requests_fd.begin(), this->_requests_fds.end(), it->fd);
+				if (find != this->_requests_fds.end())
+				{
+					//TROUVER LE CLIENT CORRESPONDANT
+					//RECUPERER LA CHAINE STOCKEE DANS REQUEST
+					//ECRIRE DANS FD
+					//CHECK SI TOUT A ETE ECRIT
 				}
 			}
 		}
@@ -264,6 +276,15 @@ bool	Server::_checking_revents(void) {
 	}
 	return (g_end);
 }
+
+/*
+	FILE *file_stream = fopen("nom/path du fichier", READ / WRITE / APPEND);
+	int fd = fileno(file_stream);
+	struct pollfd	request_fd;
+
+	request_fd.fd = fd;
+	request_fd.revents = POLLIN;
+*/
 
 int	Server::_listen_poll(void) {
 

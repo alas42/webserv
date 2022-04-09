@@ -30,6 +30,7 @@ class Server {
 		int								_total_clients;
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
+		std::vector<int>				_requests_fd;
 		std::map<int, Client>			_clients;
 
 		void				_fileToServer(const char *conf_file);

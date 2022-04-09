@@ -37,7 +37,7 @@
 #define DEFAULT_CONFIG			"data/conf/example.conf"
 #define DEFAULT_INDEX			"data/webserv_default_index.html"
 #define DEFAULT_ERRORS_PATH		"data/error_pages/"
-#define BUFFER_SIZE				800
+#define BUFFER_SIZE				1000
 #define CLIENTMAXBODYSIZE		8000000
 #define	CONNECTION_QUEUE		300
 

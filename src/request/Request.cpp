@@ -285,9 +285,25 @@ Response	Request::_execute_redirection(Response r) {
 		r.error(this->_block.getRedirection().first);
 	return r;
 }
-
-void Request::addToBody(const char * request_str, int pos, int len) {
-
+/*
+{
+		Client a une variable FILE *request; //ecriture
+		Response a une variable FILE *f; //lecture
+		REQUEST-POST :
+			1. creation fichier
+			2. ajout du fichier dans poll
+			3. addToBody quand fichier->revents = POLLOUT
+			4. ecriture dans fichier
+			5. check si tout a ete ecrit
+				a. Oui = close fd, suppression du fd dans poll
+				b. 3.
+		REQUEST-CHUNKED :
+			1. 1 a 4 pareil que post
+			2. Condition d arret differente
+}
+*/
+void Request::addToBody(const char * request_str, int pos, int len)
+{
 	char	*raw_request = NULL;
 	FILE	*fp = fopen(this->_tmp_file.c_str(), "a");
 
@@ -307,6 +323,7 @@ void	Request::_addToLengthReceived(size_t length_to_add)
 	this->_length_received += length_to_add;
 	if (_length_received >= this->_length_body)
 		this->_completed = true;
+	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
 }
 
 void Request::addToBodyChunked(const char * request_str, int len)

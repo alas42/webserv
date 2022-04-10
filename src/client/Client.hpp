@@ -6,7 +6,8 @@
 # include "../response/Response.hpp"
 # include "../config/Config.hpp"
 
-class Client {
+class Client
+{
 
 	public:
 		Client(void);
@@ -22,12 +23,16 @@ class Client {
 		void			addToResponseLength(size_t block_size);
 		void			setId(int new_id);
 		int 			getId(void);
+		int				getRequestFd(void);
+		void			setRequestFd(int new_fd);
 
 	private:
 		struct pollfd	_client_fd;
 		Request			_http_request;
 		Response		_http_response;
 		int				_id;
+		int				_request_fd;
+		FILE			*_f;
 };
 
 #endif

@@ -12,6 +12,8 @@ Client::Client(Client const & other)
 Client::Client(pollfd fd)
 {
 	this->_client_fd = fd;
+	this->_f = NULL;
+	this->_request_fd = -1;
 }
 
 Client & Client::operator=(Client const & other) {
@@ -21,6 +23,8 @@ Client & Client::operator=(Client const & other) {
 		this->_http_request = other._http_request;
 		this->_http_response = other._http_response;
 		this->_id = other._id;
+		this->_f = other._f;
+		this->_request_fd = other._request_fd;
 	}
 	return (*this);
 }
@@ -36,6 +40,7 @@ void	Client::addToRequest(const char *str, int rc, Config & block)
 	}
 	else
 		this->_http_request = Request(str, rc, block, this->_id);
+	this->_request_fd = this->_http_request.getFd();
 }
 
 void	Client::addToResponseLength(size_t block_size)
@@ -52,6 +57,15 @@ int		Client::getId(void)
 	return this->_id;
 }
 
+int		Client::getRequestFd(void)
+{
+	return this->_request_fd;
+}
+
+void	Client::setRequestFd(int new_fd)
+{
+	this->_request_fd = new_fd;
+}
 
 Request		&	Client::getRequest(void) {
 	return this->_http_request;

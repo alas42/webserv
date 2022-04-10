@@ -8,7 +8,8 @@
 #include "Parser.hpp"
 #include <algorithm>
 
-class Request {
+class Request
+{
 
 	public:
 		Request(void);
@@ -17,12 +18,16 @@ class Request {
 		Request & operator=(const Request & other);
 		Request(const char * request_str, int rc, Config &block, int id);
 
-		bool isComplete(void);
-		bool hasHeader(void);
-		bool isChunked(void);
-		bool sentContinue(void);
-		void addToBody(const char * request_str, int pos, int len);
-		void addToBodyChunked(const char * request_str, int len);
+		bool	isComplete(void);
+		bool	hasHeader(void);
+		bool	isPost(void);
+		bool	isChunked(void);
+		bool	sentContinue(void);
+		void	addToBody(const char * request_str, int pos, int len);
+		void	addToBodyChunked(const char * request_str, int len);
+		void	freeBodyPart(void);
+		int		getFd(void);
+		size_t	write_in_file(void);
 
 		Response 									execute_chunked(void);
 		Response 									execute(void);
@@ -41,12 +46,15 @@ class Request {
 		bool								_post;
 		bool								_header_completed;
 		bool								_sent_continue;
+		size_t								_body_part_len;
 		size_t								_length_body;
 		size_t								_length_header;
 		size_t								_length_received;
 		size_t								_length_of_chunk;
 		size_t								_length_of_chunk_received;
+		int									_fd;
 		std::map<std::string, std::string>	_env_vars;
+		char 				*				_body_part;
 
 		void		_init_env_map(void);
 		void 		_init_post_request(const char *request_str, int rc, int id);

@@ -12,13 +12,15 @@
 # define MAGENTA "\033[35m"
 # define RED "\033[31m"
 
-class Server {
+class Server
+{
 
 	public:
 		Server(void);
 		~Server(void);
 		Server(const Server & other);
 		Server & operator=(const Server & other);
+
 		void	config(const char * conf_file);
 		int		setup(void);
 		bool	run(void);
@@ -31,7 +33,9 @@ class Server {
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
 		std::vector<int>				_requests_fd;
-		std::map<int, Client>			_clients;
+		std::map<int, Client>			_socket_clients;
+		std::map<int, Client>			_fd_request_client;
+
 
 		void				_fileToServer(const char *conf_file);
 		int					_listen_poll(void);

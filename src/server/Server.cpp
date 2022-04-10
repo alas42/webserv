@@ -25,11 +25,12 @@ Server::Server(const Server & other): _config(other._config), _timeout(other._ti
 
 Server & Server::operator=(const Server & other) {
 
-		if (this != &other) {
+		if (this != &other)
+		{
 			this->_config = other._config;
 			this->_timeout = other._timeout;
 			this->_pollfds = other._pollfds;
-			this->_clients = other._clients;
+			this->_socket_clients= other._socket_clients;
 			this->_total_clients = other._total_clients;
 			this->_requests_fd = other._requests_fd;
 		}
@@ -118,7 +119,7 @@ int	Server::setup(void) {
 void	Server::_close_connection(std::vector<pollfd>::iterator	it) {
 
 	close(it->fd);
-	this->_clients.erase(it->fd);
+	this->_socket_clients.erase(it->fd);
 	this->_pollfds.erase(it);
 }
 
@@ -141,7 +142,7 @@ bool	Server::_accept_connections(int server_fd) {
 		this->_pollfds.insert(this->_pollfds.begin(), client_fd);
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
+		this->_socket_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
 	} while (new_socket != -1);
 	return (false);
 }
@@ -169,7 +170,7 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client)
 {
 	std::string		host;
-	int 			rc = -1;
+	int 			rc = -1, client_request_fd = -1;
 	size_t			buffer_size = BUFFER_SIZE;
 	char			*buffer = (char *)malloc(sizeof(char) * buffer_size);
 
@@ -198,10 +199,26 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		client->second.addToRequest(&buffer[0], rc, _config.at(host)); //STOCKER DANS UNE CHAINE DANS L OBJET REQUEST 
 	}
 	free(buffer);
+	client_request_fd = client->second.getRequestFd();
+	if (client_request_fd != -1)
+	{
+		 // ajout dans le vector de request fds
+		this->_requests_fd.push_back(client_request_fd);
+		struct pollfd request_pollfd;
+		request_pollfd.fd = client_request_fd;
+		request_pollfd.events = POLLOUT;
+
+		// ajout dans le vecteur que parcourt poll
+		this->_pollfds.insert(this->_pollfds.begin(), request_pollfd);
+
+		this->_fd_request_client.insert(std::pair<int, Client>(request_pollfd.fd, client->second));
+		std::cout << "added request_fd, fd = " <<  request_pollfd.fd << std::endl;
+	}
 	return (0);
 }
 
-bool	Server::_checking_revents(void) {
+bool	Server::_checking_revents(void)
+{
 
 	std::vector<int>::iterator		find = this->_server_fds.end();
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
@@ -213,55 +230,57 @@ bool	Server::_checking_revents(void) {
 		if (it->revents == 0)
 			continue;
 
-		if (it->revents & POLLIN) // EVENEMENT LIRE 
+		if (it->revents & POLLIN) 					// EVENEMENT LIRE 
 		{
 			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end()) // SOCKET DU SERVEUR
+			if (find != this->_server_fds.end())	// SOCKET DU SERVEUR
 			{
 				g_end = this->_accept_connections(*find);
 				break ;
 			}
-			else								// SOCKET DU CLIENT
+			else									// SOCKET DU CLIENT
 			{
-				client = this->_clients.find(it->fd);
-				if (client != this->_clients.end())
+				client = this->_socket_clients.find(it->fd);
+				if (client != this->_socket_clients.end())
 				{
 					if (this->_receiving(it, client))
 						break;
 					if (client->second.getRequest().isComplete() || (client->second.getRequest().isChunked() && !client->second.getRequest().sentContinue()))
+					{
+						// Lorsque la requete est entierement recue, on passe le fd du client en ecriture
 						it->events = POLLOUT;
+					}
 				}
 			}
 		}
-		else if (it->revents & POLLOUT) // EVENEMENT ECRIRE
+		else if (it->revents & POLLOUT) 				// EVENEMENT ECRIRE
 		{
-			client = this->_clients.find(it->fd);
-			if (client != this->_clients.end()) 	// SOCKET DU CLIENT
+			client = this->_socket_clients.find(it->fd);
+			if (client != this->_socket_clients.end()) 	// SOCKET DU CLIENT
 			{
 				Request & client_request = client->second.getRequest();
-				if (client->second.getResponse().getRemainingLength() == 0)
+				if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
 				{
+					//			------------ EXECUTION ---------------
 					if (client_request.isChunked() && !client_request.sentContinue())
 						client->second.getResponse() = client_request.execute_chunked();
 					else
 						client->second.getResponse() = client_request.execute();
 				}
-				if (this->_sending(it, client))
+				if (this->_sending(it, client))			// ENVOI D'UNE PARTIE DE LA REPONSE
 					break;
-				if (client->second.getResponse().isEverythingSent())
+				if (client->second.getResponse().isEverythingSent())	//TOUT EST ENVOYE
 				{
-					it->events = POLLIN;
+					it->events = POLLIN;								//PASSE LE SOCKET EN LECTURE
 					client->second.getResponse().reset();
-					if (client_request.isComplete())
-					{
+					if (client_request.isComplete())					//SI CHUNCKED ON RESET PAS ENCORE
 						client_request.reset();
-					}
 				}
 			}
-			else // NEW CODE							// FILE DESCRIPTOR DU FICHIER DEMANDE PAR LE CLIENT
+			else 								// FILE DESCRIPTOR DU FICHIER DEMANDE PAR LE CLIENT
 			{
-				find = std::find(this->_requests_fd.begin(), this->_requests_fds.end(), it->fd);
-				if (find != this->_requests_fds.end())
+				find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), it->fd);
+				if (find != this->_requests_fd.end())
 				{
 					//TROUVER LE CLIENT CORRESPONDANT
 					//RECUPERER LA CHAINE STOCKEE DANS REQUEST

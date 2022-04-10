@@ -167,16 +167,43 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	return (0);
 }
 
+void	Server::_receiving_request(std::map<int, Client>::iterator client, char * buffer, int rc)
+{
+	std::string		host = "";
+	int				client_request_fd = -1;
+
+	if (client->second.getRequest().hasHeader())
+		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
+	else // CREATION OF NEW CLIENT
+	{
+		host = this->_getHostInConfig(buffer);
+		this->_verifyHost(host);
+		client->second.addToRequest(&buffer[0], rc, this->_config.at(host));
+		client_request_fd = client->second.getRequestFd();
+		if (client_request_fd != -1)
+		{
+			/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
+			// ajout dans le vector de request fds
+			this->_requests_fd.push_back(client_request_fd);
+			struct pollfd request_pollfd;
+			request_pollfd.fd = client_request_fd;
+			request_pollfd.events = POLLOUT;
+			// ajout dans le vecteur que parcourt poll
+			this->_pollfds.push_back(request_pollfd);
+			this->_fd_request_client.insert(std::pair<int, Client>(request_pollfd.fd, client->second));
+			std::cout << "added request_fd, fd = " <<  request_pollfd.fd << std::endl;
+		}
+	}
+}
+
 int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client)
 {
-	std::string		host;
-	int 			rc = -1, client_request_fd = -1;
+	int 			rc = -1;
 	size_t			buffer_size = BUFFER_SIZE;
 	char			*buffer = (char *)malloc(sizeof(char) * buffer_size);
 
 	if (!buffer)
 		throw std::runtime_error("Error: Malloc\n");
-
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
 	if (rc == -1)
@@ -190,29 +217,80 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		return (1);
 	}
 	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
-	if (client->second.getRequest().hasHeader())
-		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf()); //STOCKER DANS UNE CHAINE DANS L OBJET REQUEST
-	else
-	{
-		host = this->_getHostInConfig(buffer);
-		this->_verifyHost(host);
-		client->second.addToRequest(&buffer[0], rc, _config.at(host)); //STOCKER DANS UNE CHAINE DANS L OBJET REQUEST 
-	}
+	this->_receiving_request(client, buffer, rc);
 	free(buffer);
-	client_request_fd = client->second.getRequestFd();
-	if (client_request_fd != -1)
+	return (0);
+}
+
+bool	Server::_pollin(std::vector<pollfd>::iterator	it)
+{
+	std::map<int, Client>::iterator client;
+	std::vector<int>::iterator find;
+	
+	find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
+	if (find != this->_server_fds.end())		// SOCKET DU SERVEUR
 	{
-		 // ajout dans le vector de request fds
-		this->_requests_fd.push_back(client_request_fd);
-		struct pollfd request_pollfd;
-		request_pollfd.fd = client_request_fd;
-		request_pollfd.events = POLLOUT;
+		g_end = this->_accept_connections(*find);
+		return (1) ;
+	}
+	else										// SOCKET DU CLIENT
+	{
+		client = this->_socket_clients.find(it->fd);
+		if (client != this->_socket_clients.end())
+		{
+			if (this->_receiving(it, client))
+				return (1);
+			if (client->second.getRequest().isComplete() || (client->second.getRequest().isChunked() && !client->second.getRequest().sentContinue()))
+			{
+				// Lorsque la requete est entierement recue, on passe le fd du client en ecriture
+				it->events = POLLOUT;
+			}
+		}
+	}
+	return (0);
+}
 
-		// ajout dans le vecteur que parcourt poll
-		this->_pollfds.insert(this->_pollfds.begin(), request_pollfd);
+bool	Server::_pollout(std::vector<pollfd>::iterator	it)
+{
+	std::map<int, Client>::iterator client;
+	std::vector<int>::iterator	find;
 
-		this->_fd_request_client.insert(std::pair<int, Client>(request_pollfd.fd, client->second));
-		std::cout << "added request_fd, fd = " <<  request_pollfd.fd << std::endl;
+	client = this->_socket_clients.find(it->fd);
+	if (client != this->_socket_clients.end()) 	// SOCKET DU CLIENT
+	{
+		std::cout << "SENDING TO CLIENT" << std::endl;
+		Request & client_request = client->second.getRequest();
+		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
+		{
+			if (client_request.isChunked() && !client_request.sentContinue())
+				client->second.getResponse() = client_request.execute_chunked();
+			else
+				client->second.getResponse() = client_request.execute();
+		}
+		if (this->_sending(it, client))							// ENVOI D'UNE PARTIE DE LA REPONSE
+			return (1);
+		if (client->second.getResponse().isEverythingSent())	//TOUT EST ENVOYE
+		{
+			it->events = POLLIN;								//PASSE LE SOCKET EN LECTURE
+			client->second.getResponse().reset();
+			if (client_request.isComplete())					//SI CHUNCKED ON RESET PAS ENCORE
+				client_request.reset();
+		}
+	}
+	else 								// FILE DESCRIPTOR DU FICHIER DEMANDE PAR LE CLIENT
+	{
+		find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), it->fd);
+		if (find != this->_requests_fd.end())
+		{
+			client = this->_fd_request_client.find(it->fd);
+			client->second.getRequest().write_in_file();
+			if (client->second.getRequest().isComplete())
+			{
+				std::cout << "Body of request entirely written into file = completed" << std::endl;
+				it->events = 0;
+					/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
+			}
+		}
 	}
 	return (0);
 }
@@ -220,74 +298,23 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 bool	Server::_checking_revents(void)
 {
 
-	std::vector<int>::iterator		find = this->_server_fds.end();
+	std::vector<int>::iterator		find;
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
-	std::map<int, Client>::iterator client;
 
 	for (; it != ite; it++)
 	{
 		if (it->revents == 0)
 			continue;
-
-		if (it->revents & POLLIN) 					// EVENEMENT LIRE 
+		else if (it->revents & POLLIN)
 		{
-			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end())	// SOCKET DU SERVEUR
-			{
-				g_end = this->_accept_connections(*find);
+			if (this->_pollin(it))
 				break ;
-			}
-			else									// SOCKET DU CLIENT
-			{
-				client = this->_socket_clients.find(it->fd);
-				if (client != this->_socket_clients.end())
-				{
-					if (this->_receiving(it, client))
-						break;
-					if (client->second.getRequest().isComplete() || (client->second.getRequest().isChunked() && !client->second.getRequest().sentContinue()))
-					{
-						// Lorsque la requete est entierement recue, on passe le fd du client en ecriture
-						it->events = POLLOUT;
-					}
-				}
-			}
 		}
-		else if (it->revents & POLLOUT) 				// EVENEMENT ECRIRE
+		else if (it->revents & POLLOUT)
 		{
-			client = this->_socket_clients.find(it->fd);
-			if (client != this->_socket_clients.end()) 	// SOCKET DU CLIENT
-			{
-				Request & client_request = client->second.getRequest();
-				if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
-				{
-					//			------------ EXECUTION ---------------
-					if (client_request.isChunked() && !client_request.sentContinue())
-						client->second.getResponse() = client_request.execute_chunked();
-					else
-						client->second.getResponse() = client_request.execute();
-				}
-				if (this->_sending(it, client))			// ENVOI D'UNE PARTIE DE LA REPONSE
-					break;
-				if (client->second.getResponse().isEverythingSent())	//TOUT EST ENVOYE
-				{
-					it->events = POLLIN;								//PASSE LE SOCKET EN LECTURE
-					client->second.getResponse().reset();
-					if (client_request.isComplete())					//SI CHUNCKED ON RESET PAS ENCORE
-						client_request.reset();
-				}
-			}
-			else 								// FILE DESCRIPTOR DU FICHIER DEMANDE PAR LE CLIENT
-			{
-				find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), it->fd);
-				if (find != this->_requests_fd.end())
-				{
-					//TROUVER LE CLIENT CORRESPONDANT
-					//RECUPERER LA CHAINE STOCKEE DANS REQUEST
-					//ECRIRE DANS FD
-					//CHECK SI TOUT A ETE ECRIT
-				}
-			}
+			if (this->_pollout(it))
+				break ;
 		}
 		else if (it->revents & POLLERR) {
 			this->_close_connection(it);
@@ -295,15 +322,6 @@ bool	Server::_checking_revents(void)
 	}
 	return (g_end);
 }
-
-/*
-	FILE *file_stream = fopen("nom/path du fichier", READ / WRITE / APPEND);
-	int fd = fileno(file_stream);
-	struct pollfd	request_fd;
-
-	request_fd.fd = fd;
-	request_fd.revents = POLLIN;
-*/
 
 int	Server::_listen_poll(void) {
 

@@ -53,7 +53,7 @@ Request & Request::operator=(const Request & other) {
 		{
 			this->_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + 1));
 			if (this->_body_part == NULL)
-				throw std::runtime_error("Error: Malloc\n");
+				throw std::runtime_error("Error: operateur = Malloc\n");
 			this->_body_part = (char *)memcpy(this->_body_part, other._body_part, this->_body_part_len);
 			this->_body_part[this->_body_part_len] = '\0';
 		}
@@ -64,8 +64,9 @@ Request & Request::operator=(const Request & other) {
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
 	_path_to_cgi("cgi/php-cgi"), _tmp_file(""),
 	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
-	_length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0)
+	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
 {
+	this->_body_part = NULL;
 	std::string request_string(request_str);
 	this->_init_env_map();
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
@@ -91,6 +92,38 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 		this->_init_post_request(request_str, rc, id);
 	else
 		this->_completed = true;
+}
+
+void Request::addToBody(const char * request_str, int pos, int len)
+{
+	if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
+		throw std::runtime_error("Error: addToBody Malloc\n");
+	this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
+	this->_body_part[len] = '\0';
+	this->_body_part_len = len;
+	//this->_addToLengthReceived(len);
+}
+
+size_t	Request::write_in_file(void)
+{
+	size_t i = write(this->_fd, this->_body_part, this->_body_part_len);
+	_addToLengthReceived(i);
+	return i;
+}
+
+/*
+void	Request::
+{
+	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
+}
+*/
+
+void	Request::_addToLengthReceived(size_t length_to_add)
+{
+	this->_length_received += length_to_add;
+	if (_length_received >= this->_length_body)
+		this->_completed = true;
+	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
 }
 
 void	Request::_init_env_map(void) {
@@ -329,34 +362,6 @@ Response	Request::_execute_redirection(Response r) {
 			2. Condition d arret differente
 }
 */
-void Request::addToBody(const char * request_str, int pos, int len)
-{
-	if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
-		throw std::runtime_error("Error: Malloc\n");
-	this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
-	this->_body_part[len] = '\0';
-	this->_addToLengthReceived(len);
-}
-
-size_t	Request::write_in_file(void)
-{
-	size_t i = write(this->_fd, this->_body_part, this->_body_part_len);
-	_addToLengthReceived(i);
-	return i;
-}
-
-void	Request::_addToLengthReceived(size_t length_to_add)
-{
-	this->_length_received += length_to_add;
-	if (_length_received >= this->_length_body)
-		this->_completed = true;
-	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
-}
-
-
-
-
-
 
 
 /* ----------------------------------TO CHANGE------------------------------------*/

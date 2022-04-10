@@ -168,18 +168,15 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 }
 
 /*
-** Step 1. Change fd in request and client to a pollfd
 ** Step 2. Check if std::find with it works
 ** Step 3. Profit
 */
 void	Server::_receiving_request(std::map<int, Client>::iterator client, char * buffer, int rc)
 {
 	std::string		host = "";
-	int				client_request_fd = -1;
 
 	if (client->second.getRequest().hasHeader())
 	{
-		client_request_fd = client->second.getRequestFd();
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	}
 	else 											// CREATION OF NEW REQUEST
@@ -187,19 +184,16 @@ void	Server::_receiving_request(std::map<int, Client>::iterator client, char * b
 		host = this->_getHostInConfig(buffer);
 		this->_verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, this->_config.at(host));
-		client_request_fd = client->second.getRequestFd();
-		if (client_request_fd != -1)				//SI FD EST NON NULL == resultat de fileno(FILE *)
+		struct pollfd	& client_request_pollfd = client->second.getRequestPollFd();
+		if (client_request_pollfd.fd != -1)				//SI FD EST NON NULL == resultat de fileno(FILE *)
 		{
 			/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
-			// ajout dans le vector de request fds
-			this->_requests_fd.push_back(client_request_fd);
-			struct pollfd request_pollfd;
-			request_pollfd.fd = client_request_fd;
-			request_pollfd.events = POLLOUT;
-			// ajout dans le vecteur que parcourt poll
-			this->_pollfds.push_back(request_pollfd);
-			this->_fd_request_client.insert(std::pair<int, Client>(request_pollfd.fd, client->second));
-			std::cout << "added request_fd, fd = " <<  request_pollfd.fd << std::endl;
+			client_request_pollfd.events = POLLOUT;
+			
+			this->_pollfds.push_back(client_request_pollfd);	// ajout dans le vecteur que parcourt poll
+			this->_requests_fd.push_back(client_request_pollfd.fd);	// ajout dans le vector de request fds
+			this->_fd_request_client.insert(std::pair<int, Client>(client_request_pollfd.fd, client->second));
+			std::cout << "added request_fd, fd = " << client_request_pollfd.fd << std::endl;
 		}
 	}
 }
@@ -293,10 +287,11 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)
 		{
 			client = this->_fd_request_client.find(it->fd);
 			client->second.getRequest().write_in_file();
-			it->events = 0;
+			
 			if (client->second.getRequest().isComplete())
 			{
 				std::cout << "Body of request entirely written into file = completed" << std::endl;
+				it->events = 0;
 				close(it->fd);
 					/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
 			}
@@ -310,9 +305,8 @@ bool	Server::_checking_revents(void)
 
 	std::vector<int>::iterator		find;
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
-	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
 
-	for (; it != ite; it++)
+	for (; it != this->_pollfds.end(); it++)
 	{
 		if (it->revents == 0)
 			continue;

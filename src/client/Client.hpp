@@ -24,6 +24,7 @@ class Client
 		void			setId(int new_id);
 		int 			getId(void);
 		int				getRequestFd(void);
+		struct pollfd	& getRequestPollFd(void);
 		void			setRequestFd(int new_fd);
 
 	private:
@@ -31,6 +32,7 @@ class Client
 		Request			_http_request;
 		Response		_http_response;
 		int				_id;
+		struct pollfd	_request_poll_fd;
 		int				_request_fd;
 		FILE			*_f;
 };

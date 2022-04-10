@@ -18,6 +18,7 @@ Request::Request(const Request & other): _block(other._block), _path_to_cgi(othe
 	_sent_continue(other._sent_continue), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
 	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars) 
 {
+	this->_body_part = NULL;
 	if (this->_body_part_len > 0)
 	{
 		this->_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + 1));
@@ -49,6 +50,11 @@ Request & Request::operator=(const Request & other) {
 		this->_length_of_chunk_received = other._length_of_chunk_received;
 		this->_fd = other._fd;
 		this->_env_vars = other._env_vars;
+		if (this->_body_part)
+		{
+			free(this->_body_part);
+			this->_body_part = NULL;
+		}
 		if (this->_body_part_len > 0)
 		{
 			this->_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + 1));

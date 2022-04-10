@@ -167,20 +167,28 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 	return (0);
 }
 
+/*
+** Step 1. Change fd in request and client to a pollfd
+** Step 2. Check if std::find with it works
+** Step 3. Profit
+*/
 void	Server::_receiving_request(std::map<int, Client>::iterator client, char * buffer, int rc)
 {
 	std::string		host = "";
 	int				client_request_fd = -1;
 
 	if (client->second.getRequest().hasHeader())
+	{
+		client_request_fd = client->second.getRequestFd();
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
-	else // CREATION OF NEW CLIENT
+	}
+	else 											// CREATION OF NEW REQUEST
 	{
 		host = this->_getHostInConfig(buffer);
 		this->_verifyHost(host);
 		client->second.addToRequest(&buffer[0], rc, this->_config.at(host));
 		client_request_fd = client->second.getRequestFd();
-		if (client_request_fd != -1)
+		if (client_request_fd != -1)				//SI FD EST NON NULL == resultat de fileno(FILE *)
 		{
 			/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
 			// ajout dans le vector de request fds
@@ -249,7 +257,8 @@ bool	Server::_pollin(std::vector<pollfd>::iterator	it)
 	}
 	return (0);
 }
-
+//map <fd_request, pollfd_client> ?
+//test if std::find(std::vector<pollfd>::iterator, pollfd) works;
 bool	Server::_pollout(std::vector<pollfd>::iterator	it)
 {
 	std::map<int, Client>::iterator client;
@@ -284,10 +293,11 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)
 		{
 			client = this->_fd_request_client.find(it->fd);
 			client->second.getRequest().write_in_file();
+			it->events = 0;
 			if (client->second.getRequest().isComplete())
 			{
 				std::cout << "Body of request entirely written into file = completed" << std::endl;
-				it->events = 0;
+				close(it->fd);
 					/////////TROUVER LE POLLFD DU CLIENT/////////////////    LE PROBLEME SERA ENSUITE RESOLU
 			}
 		}

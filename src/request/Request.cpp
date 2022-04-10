@@ -101,7 +101,6 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
 	this->_body_part[len] = '\0';
 	this->_body_part_len = len;
-	//this->_addToLengthReceived(len);
 }
 
 size_t	Request::write_in_file(void)
@@ -110,13 +109,6 @@ size_t	Request::write_in_file(void)
 	_addToLengthReceived(i);
 	return i;
 }
-
-/*
-void	Request::
-{
-	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
-}
-*/
 
 void	Request::_addToLengthReceived(size_t length_to_add)
 {

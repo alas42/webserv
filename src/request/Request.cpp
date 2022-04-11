@@ -4,13 +4,16 @@ Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
  _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
  _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
 {
-	_body_part = NULL;
+	this->_body_part = NULL;
 }
 
 Request::~Request(void)
 {
-	if (this->_body_part)
+	if (this->_body_part != NULL)
+	{
+		std::cout << "free in destructor" << std::endl;
 		free(this->_body_part);
+	}
 }
 
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
@@ -19,6 +22,7 @@ Request::Request(const Request & other): _block(other._block), _path_to_cgi(othe
 	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars) 
 {
 	this->_body_part = NULL;
+
 	if (this->_body_part_len > 0)
 	{
 		this->_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + 1));
@@ -29,8 +33,8 @@ Request::Request(const Request & other): _block(other._block), _path_to_cgi(othe
 	}
 }
 
-Request & Request::operator=(const Request & other) {
-
+Request & Request::operator=(const Request & other)
+{
 	if (this != &other)
 	{
 		this->_block = other._block;
@@ -50,8 +54,10 @@ Request & Request::operator=(const Request & other) {
 		this->_length_of_chunk_received = other._length_of_chunk_received;
 		this->_fd = other._fd;
 		this->_env_vars = other._env_vars;
-		if (this->_body_part)
+		if (this->_body_part != NULL)
 		{
+			std::cout << "free in operator = " << std::endl;
+
 			free(this->_body_part);
 			this->_body_part = NULL;
 		}
@@ -74,7 +80,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 {
 	this->_body_part = NULL;
 	std::string request_string(request_str);
-	this->_init_env_map();
+	this->_initEnvMap();
 	this->_env_vars["GATEWAY_INTERFACE"] = "CGI/1.1";
 	this->_env_vars["DOCUMENT_ROOT"] = _block.getRoot();
 	this->_env_vars["SERVER_NAME"] = _block.getServerNames()[0];
@@ -88,32 +94,55 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 		this->_env_vars["UPLOAD_STORE"] = this->_block.getUploadFolder();
 
 	Parser parser(_env_vars, _block);
-	this->_env_vars = parser.parse_output_client(request_string);
+	this->_env_vars = parser.parseOutputClient(request_string);
 	this->_block = parser.getBlock();
 	this->_post = parser.isPost();
 	this->_chunked = parser.isChunked();
 	this->_length_body = parser.getLengthBody();
 	this->_length_header = parser.getLengthHeader();
 	if (this->_post)
-		this->_init_post_request(request_str, rc, id);
+		this->_initPostRequest(request_str, rc, id);
 	else
 		this->_completed = true;
 }
 
 void Request::addToBody(const char * request_str, int pos, int len)
 {
-	if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
-		throw std::runtime_error("Error: addToBody Malloc\n");
-	this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
-	this->_body_part[len] = '\0';
-	this->_body_part_len = len;
+	if (this->_body_part != NULL)
+	{
+		std::cout << "addToBody but body part not null" << std::endl;
+		std::cout << "len to add to body_part = " << len << std::endl;
+		char * new_body_part = NULL;
+		new_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + len + 1));
+		if (new_body_part == NULL)
+			throw std::runtime_error("Error: addToBody Malloc\n");
+		new_body_part = (char *)memcpy(new_body_part, this->_body_part, this->_body_part_len);
+		memcpy(&new_body_part[this->_body_part_len], &request_str[pos], len);
+		std::cout << "free in addToBody" << std::endl;
+		free(this->_body_part);
+		this->_body_part = new_body_part;
+	}
+	else
+	{
+		if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
+			throw std::runtime_error("Error: addToBody Malloc\n");
+		this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
+	}
+	this->_body_part_len += len;
+	this->_body_part[this->_body_part_len] = '\0';
+	std::cout << this->_body_part_len << std::endl;
 }
 
-size_t	Request::write_in_file(void)
+size_t	Request::writeInFile(void)
 {
+	std::cout << "writing in file with fd = " << this->_fd << ", len to write = " << this->_body_part_len << std::endl;
 	size_t i = write(this->_fd, this->_body_part, this->_body_part_len);
-	_addToLengthReceived(i);
-	return i;
+	this->_addToLengthReceived(i);
+	std::cout << "free in write_in_file" << std::endl;
+	free(this->_body_part);
+	this->_body_part = NULL;
+	this->_body_part_len = 0;
+	return (i);
 }
 
 void	Request::_addToLengthReceived(size_t length_to_add)
@@ -124,7 +153,7 @@ void	Request::_addToLengthReceived(size_t length_to_add)
 	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
 }
 
-void	Request::_init_env_map(void) {
+void	Request::_initEnvMap(void) {
 
 	std::string env_var[] = {
 		"REDIRECT_STATUS", "DOCUMENT_ROOT",
@@ -147,7 +176,7 @@ void	Request::_init_env_map(void) {
 		this->_env_vars.insert(std::pair<std::string, std::string>(env_var[i], ""));
 }
 
-void	Request::_init_post_request(const char *request_str, int rc, int id) {
+void	Request::_initPostRequest(const char *request_str, int rc, int id) {
 
 	std::stringstream ss;
 
@@ -175,8 +204,15 @@ Config &									Request::getConf(void) { return this->_block; }
 void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 int											Request::getFd(void) { return this->_fd; }
 
-void	Request::reset() {
+void	Request::reset()
+{
+	if (this->_body_part != NULL)
+	{
+		std::cout << "free in reset" << std::endl;
 
+		free(this->_body_part);
+		this->_body_part = NULL;
+	}
 	if (this->_post)
 		remove(this->_tmp_file.c_str());
 	if (this->_cgi)
@@ -188,16 +224,17 @@ void	Request::reset() {
 	this->_post = false;
 	this->_header_completed = false;
 	this->_sent_continue = false;
+	this->_body_part_len = 0;
 }
 
 /*********************************************************/
 /***********************EXECUTION*************************/
 /*********************************************************/
-Response	Request::execute_chunked(void)
+Response	Request::executeChunked(void)
 {
 	Response r;
 
-	r.create_continue();
+	r.createContinue();
 	this->_sent_continue = true;
 	return r;
 }
@@ -208,9 +245,9 @@ Response	Request::execute(void) {
 
 	r.setErrorPages(this->_block.getErrorPages());
 	if (!this->_block.getRedirection().first.empty()) {
-		return this->_execute_redirection(r);
+		return this->_executeRedirection(r);
 	}
-	Response (Request::*ptr [])(Response) = {&Request::_execute_delete, &Request::_execute_get, &Request::_execute_post};
+	Response (Request::*ptr [])(Response) = {&Request::_executeDelete, &Request::_executeGet, &Request::_executePost};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
 	if (this->_env_vars["SERVER_PROTOCOL"].compare("HTTP/1.1"))
@@ -232,9 +269,9 @@ Response	Request::execute(void) {
 			Cgi c(this->_path_to_cgi, this->_post, this->_tmp_file, this->_env_vars);
 			c.execute();
 			if (this->_post)
-				r.create_cgi_post(std::string("cgi_" + this->_tmp_file).c_str(), this->_env_vars["UPLOAD_STORE"]);
+				r.createCgiPost(std::string("cgi_" + this->_tmp_file).c_str(), this->_env_vars["UPLOAD_STORE"]);
 			else
-				r.create_cgi_get(std::string("cgi_" + this->_tmp_file).c_str());
+				r.createCgiGet(std::string("cgi_" + this->_tmp_file).c_str());
 		}
 		else
 			r.error("400");
@@ -249,7 +286,7 @@ Response	Request::execute(void) {
 	return (r);
 }
 
-Response	Request::_execute_delete(Response r)
+Response	Request::_executeDelete(Response r)
 {
     int res;
     std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
@@ -277,7 +314,7 @@ Response	Request::_execute_delete(Response r)
 				else
 					r.error("400");
 			}
-			r.create_delete(path);
+			r.createDelete(path);
 		}
 		else
 			r.error("403");
@@ -289,7 +326,7 @@ Response	Request::_execute_delete(Response r)
 			res = remove(path.c_str());
 			if (res != 0)
 				r.error("400");
-			r.create_delete(path);
+			r.createDelete(path);
 		}
 		else
 			r.error("403");
@@ -297,7 +334,7 @@ Response	Request::_execute_delete(Response r)
 	return (r);
 }
 
-Response	Request::_execute_get(Response r) {
+Response	Request::_executeGet(Response r) {
 
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	int			ret_check_path;
@@ -312,12 +349,12 @@ Response	Request::_execute_get(Response r) {
 	else if (ret_check_path == 4)
 	{
 		if (check_read_rights(path) == 1 && this->getConf().getAutoIndex() == true)
-			r.print_directory(path, this->_env_vars["REQUEST_URI"]);
+			r.printDirectory(path, this->_env_vars["REQUEST_URI"]);
 		else
 			r.error("403");
 	}
 	else if (check_read_rights(path) == 1)
-		r.create_get(path);
+		r.createGet(path);
 	else if (check_read_rights(path) == 0)
 		r.error("403");
 	else
@@ -325,7 +362,7 @@ Response	Request::_execute_get(Response r) {
 	return (r);
 }
 
-Response	Request::_execute_post(Response r) {
+Response	Request::_executePost(Response r) {
 
 	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end()) {
 		r.error("405");
@@ -335,10 +372,10 @@ Response	Request::_execute_post(Response r) {
 	return (r);
 }
 
-Response	Request::_execute_redirection(Response r) {
+Response	Request::_executeRedirection(Response r) {
 
 	if (this->_block.getRedirection().first.compare("301") == 0)
-		r.create_redirection(this->_block.getRedirection().second);
+		r.createRedirection(this->_block.getRedirection().second);
 	else
 		r.error(this->_block.getRedirection().first);
 	return r;

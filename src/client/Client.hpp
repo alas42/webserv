@@ -16,7 +16,7 @@ class Client
 		Client(struct pollfd fd);
 		Client & operator=(Client const & other);
 
-		Request 	&	getRequest(void);
+		//Request 	&	getRequest(void);
 		Response	&	getResponse(void);
 		void 			setResponse(Response & r);
 		void			addToRequest(const char *str, int rc, Config & block);
@@ -25,11 +25,14 @@ class Client
 		int 			getId(void);
 		int				getRequestFd(void);
 		struct pollfd	& getRequestPollFd(void);
+		struct pollfd	& getClientPollFd(void);
 		void			setRequestFd(int new_fd);
+		Request		*	getRequestPtr(void);
+		void			resetRequest(void);
 
 	private:
 		struct pollfd	_client_fd;
-		Request			_http_request;
+		Request			*_http_request;
 		Response		_http_response;
 		int				_id;
 		struct pollfd	_request_poll_fd;

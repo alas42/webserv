@@ -33,20 +33,18 @@ class Server
 		std::vector<int>				_server_fds;
 		std::vector<struct pollfd>		_pollfds;
 		std::vector<int>				_requests_fd;
-		std::map<int, Client>			_socket_clients;
-		std::map<int, Client>			_fd_request_client;
-
+		std::map<int, Client>			_socket_clients; //ce ne sont pas les memes clients visiblement dans les deux maps
+		std::map<int, Request *>		_fd_request_client;
 
 		void				_fileToServer(const char *conf_file);
-		int					_listen_poll(void);
-		bool 				_checking_revents(void);
+		int					_listenPoll(void);
+		bool 				_checkingRevents(void);
 		bool				_pollin(std::vector<pollfd>::iterator it);
 		bool				_pollout(std::vector<pollfd>::iterator it);
 		int					_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client);
-		void				_receiving_request(std::map<int, Client>::iterator client, char * buffer, int rc);
 		bool				_sending(std::vector<pollfd>::iterator it,  std::map<int, Client>::iterator client);
-		bool				_accept_connections(int server_fd);
-		void				_close_connection(std::vector<pollfd>::iterator	it);
+		bool				_acceptConnections(int server_fd);
+		void				_closeConnection(std::vector<pollfd>::iterator	it);
 		void				_verifyHost(std::string & host);
 		std::string 		_getHostInConfig(std::string buffer);
 		std::vector<int>	_getPorts();

@@ -27,9 +27,9 @@ class Request
 		void	addToBodyChunked(const char * request_str, int len);
 		void	freeBodyPart(void);
 		int		getFd(void);
-		size_t	write_in_file(void);
+		size_t	writeInFile(void);
 
-		Response 									execute_chunked(void);
+		Response 									executeChunked(void);
 		Response 									execute(void);
 		std::map<std::string,std::string> const &	getEnvVars(void) const;
 		Config &									getConf(void);
@@ -56,14 +56,14 @@ class Request
 		std::map<std::string, std::string>	_env_vars;
 		char 				*				_body_part;
 
-		void		_init_env_map(void);
-		void 		_init_post_request(const char *request_str, int rc, int id);
+		void		_initEnvMap(void);
+		void 		_initPostRequest(const char *request_str, int rc, int id);
 		void 		_addToLengthReceived(size_t length_to_add);
 		void		_addToLengthWritten(size_t length_writen);
-		Response 	_execute_get(Response r);
-		Response 	_execute_post(Response r);
-		Response 	_execute_delete(Response r);
-		Response	_execute_redirection(Response r);
+		Response 	_executeGet(Response r);
+		Response 	_executePost(Response r);
+		Response 	_executeDelete(Response r);
+		Response	_executeRedirection(Response r);
 };
 
 #endif

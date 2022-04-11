@@ -3,7 +3,7 @@
 Response::Response(void): _header(""), _body(""), _raw_response(""), _sent_all(false),
 	_length_sent(0), _length_response(0)
 {
-	this->_setting_mimes();
+	this->_settingMimes();
 }
 
 Response::~Response(void)
@@ -84,7 +84,7 @@ std::map<int, std::string> & Response::getErrorPages(void)
 	return this->_errorPages;
 }
 
-void		Response::_create_cgi(const char *filename, std::string begin_header)
+void		Response::_createCgi(const char *filename, std::string begin_header)
 {
 	std::ifstream f(filename);
 	std::stringstream ss;
@@ -123,7 +123,7 @@ void		Response::_create_cgi(const char *filename, std::string begin_header)
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::create_cgi_post(const char *filename, std::string const upload_path)
+void	Response::createCgiPost(const char *filename, std::string const upload_path)
 {
 	std::string		header;
 	std::ifstream	f(filename);
@@ -153,23 +153,23 @@ void	Response::create_cgi_post(const char *filename, std::string const upload_pa
 		return this->error("500");
 	}
 	f.close();
-	this->_create_cgi(filename, header);
+	this->_createCgi(filename, header);
 }
 
-void	Response::create_cgi_get(const char *filename)
+void	Response::createCgiGet(const char *filename)
 {
 	std::string header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n";
-	this->_create_cgi(filename, header);
+	this->_createCgi(filename, header);
 }
 
-void	Response::create_continue(void)
+void	Response::createContinue(void)
 {
 	std::string		header("HTTP/1.1 100 Continue\r\n\r\n");
 	this->_raw_response = header;
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::create_get(std::string filename)
+void	Response::createGet(std::string filename)
 {
 	if (filename.find(".html") == std::string::npos && filename.find(".txt") == std::string::npos)
 	{
@@ -204,11 +204,11 @@ void	Response::create_get(std::string filename)
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::create_post(std::string filename) {
+void	Response::createPost(std::string filename) {
 	(void)filename;
 }
 
-void	Response::create_redirection(std::string redirection) {
+void	Response::createRedirection(std::string redirection) {
 
 	std::stringstream	ss;
 	std::string			header("HTTP/1.1 301 Moved Permanently\r\nLocation: " + redirection + "\r\nConnection: keep-alive\r\n");
@@ -265,7 +265,7 @@ void	Response::_binary(std::string filename) {
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::_setting_mimes(void) {
+void	Response::_settingMimes(void) {
 
 	this->_mimes[".avi"] = 	"video/x-msvideo";
 	this->_mimes[".bmp"] = 	"image/bmp";
@@ -338,7 +338,7 @@ void	Response::error(std::string const error_code)
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::print_directory(std::string root_dir, std::string dir)
+void	Response::printDirectory(std::string root_dir, std::string dir)
 {
 	DIR *dpdf;
 	struct dirent *epdf;
@@ -380,7 +380,7 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	this->setLengthResponse(this->_raw_response.size());
 }
 
-void	Response::create_delete(std::string filename)
+void	Response::createDelete(std::string filename)
 {
 	std::stringstream ss;
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");

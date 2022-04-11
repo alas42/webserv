@@ -19,14 +19,14 @@ class Response
 		std::string & getRawResponse(void);
 		std::map<int, std::string> & getErrorPages(void);
 		void	setErrorPages(std::map<int, std::string> new_errorPages);
-		void	create_cgi_get(const char *filename);
-		void	create_cgi_post(const char *filename, std::string const upload_path);
-		void	create_get(std::string filename);
-		void	create_post(std::string filename);
-		void	create_continue(void);
-		void	create_redirection(std::string redirection);
-		void	create_delete(std::string filename);
-		void	print_directory(std::string root_dir, std::string dir);
+		void	createCgiGet(const char *filename);
+		void	createCgiPost(const char *filename, std::string const upload_path);
+		void	createGet(std::string filename);
+		void	createPost(std::string filename);
+		void	createContinue(void);
+		void	createRedirection(std::string redirection);
+		void	createDelete(std::string filename);
+		void	printDirectory(std::string root_dir, std::string dir);
 		void	error(std::string const error_code);
 		void	addToLengthSent(size_t block_size);
 		bool	isEverythingSent(void);
@@ -46,9 +46,9 @@ class Response
 		std::map<int, std::string>			_errorPages;
 
 
-		void		_setting_mimes(void);
+		void		_settingMimes(void);
 		std::string	_getErrorMessage(std::string const & error_code);
-		void		_create_cgi(const char *filename, std::string header);
+		void		_createCgi(const char *filename, std::string header);
 		std::string _getPathToError(std::string error_code);
 		void		_binary(std::string filename);
 };

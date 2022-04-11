@@ -136,7 +136,6 @@ int	Config::parseServer(std::vector<std::vector<std::string> > confFile, size_t 
 
 void Config::checkBlock(bool location) {
 
-	(void)location;
 	if (this->_ipAddress.compare("localhost") == 0)
 		this->_ipAddress = "127.0.0.1";
 	if (this->_serverNames.empty())

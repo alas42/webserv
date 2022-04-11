@@ -294,7 +294,6 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 	std::string header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\n");
 	std::string str, body;
 	struct stat buf;
-	int res_stat = 0;
 	dpdf = opendir(root_dir.c_str());
 	if (dpdf != NULL)
 	{
@@ -306,10 +305,12 @@ void	Response::print_directory(std::string root_dir, std::string dir)
 			body.append(dir);
 			body.append(epdf->d_name);
 			std::string is_dir = epdf->d_name;
-			is_dir = dir + is_dir;
-			res_stat = stat(is_dir.c_str() ,&buf);
+			is_dir = root_dir + is_dir;
+			stat(is_dir.c_str() ,&buf);
 			if (S_ISDIR(buf.st_mode) != 0)
+			{
 				body.append("/");
+			}
 			body.append("\">");
 			body.append(epdf->d_name);
 			body.append("</a><br>\r\n");

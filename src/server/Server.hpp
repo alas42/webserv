@@ -30,11 +30,11 @@ class Server
 		std::map<std::string, Config>	_config;
 		int								_timeout;
 		int								_total_clients;
-		std::vector<int>				_server_fds;
-		std::vector<struct pollfd>		_pollfds;
-		std::vector<int>				_requests_fd;
-		std::map<int, Client>			_socket_clients; //ce ne sont pas les memes clients visiblement dans les deux maps
-		std::map<int, Request *>		_fd_request_client;
+		std::vector<int>				_server_fds;		// TAB OF SERVER FDS
+		std::vector<int>				_requests_fd;		// TAB OF FDS OF REQUESTS
+		std::vector<struct pollfd>		_pollfds;			// WORKS
+		std::map<int, Client>			_socket_clients;	// WORKS
+		std::map<int, Request *>		_fd_request_client; // WORKS
 
 		void				_fileToServer(const char *conf_file);
 		int					_listenPoll(void);
@@ -48,6 +48,7 @@ class Server
 		void				_verifyHost(std::string & host);
 		std::string 		_getHostInConfig(std::string buffer);
 		std::vector<int>	_getPorts();
+		void				_setClientPollFd(std::vector<pollfd>::iterator	it);
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);
 
 };

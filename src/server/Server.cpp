@@ -132,7 +132,7 @@ bool	Server::_acceptConnections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.insert(this->_pollfds.begin(), client_fd);
-
+		std::cout << "accept, client fd = " << client_fd.fd << std::endl;
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
 		this->_socket_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
@@ -206,7 +206,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 	return (0);
 }
 
-bool	Server::_pollin(std::vector<pollfd>::iterator	it)			//READING
+bool	Server::_pollin(std::vector<pollfd>::iterator	it)			// READING
 {
 	std::map<int, Client>::iterator client;
 	std::vector<int>::iterator find;
@@ -232,11 +232,38 @@ bool	Server::_pollin(std::vector<pollfd>::iterator	it)			//READING
 	return (0);
 }
 
-bool	Server::_pollout(std::vector<pollfd>::iterator	it)			//WRITING
+void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
 {
-	std::map<int, Client>::iterator client;
-	std::map<int, Request *>::iterator request;
-	std::vector<int>::iterator	find;
+	std::map<int, Client>::iterator itb = this->_socket_clients.begin();
+	std::map<int, Client>::iterator ite = this->_socket_clients.end();
+	std::vector<pollfd>::iterator itpe = this->_pollfds.end();
+	std::cout << "setClientPollFd" << std::endl;
+	int	client_fd = -1;
+
+	for ( ; itb != ite; itb++)
+	{
+		if (itb->second.getRequestPollFd().fd == it->fd)
+		{
+			client_fd = itb->second.getClientPollFd().fd;
+			std::cout << "client_fd = " << client_fd << std::endl;
+			for (std::vector<pollfd>::iterator itpb = this->_pollfds.begin(); itpb != itpe; itpb++)
+			{
+				if (itpb->fd == client_fd)
+				{
+					itpb->events = POLLOUT;
+					std::cout << "itpb->events" << std::endl;
+					return ;
+				}
+			}
+		}
+	} 
+}
+
+bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
+{
+	std::map<int, Client>::iterator		client;
+	std::map<int, Request *>::iterator	request;
+	std::vector<int>::iterator			find;
 
 	client = this->_socket_clients.find(it->fd);
 	if (client != this->_socket_clients.end()) 						// SOCKET DU CLIENT
@@ -279,6 +306,7 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			//WRITING
 			std::cout << "REQUEST completed in POLLOUT (POST)" << std::endl;
 			it->events = 0;
 			close(it->fd);
+			_setClientPollFd(it);
 			this->_pollfds.erase(it);
 			return (1);
 		}

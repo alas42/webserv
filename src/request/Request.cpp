@@ -14,6 +14,10 @@ Request::~Request(void)
 		std::cout << "free in destructor" << std::endl;
 		free(this->_body_part);
 	}
+	if (this->_post)
+		remove(this->_tmp_file.c_str());
+	if (this->_cgi)
+		remove(std::string("cgi_" + this->_tmp_file).c_str());
 }
 
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
@@ -110,15 +114,12 @@ void Request::addToBody(const char * request_str, int pos, int len)
 {
 	if (this->_body_part != NULL)
 	{
-		std::cout << "addToBody but body part not null" << std::endl;
-		std::cout << "len to add to body_part = " << len << std::endl;
 		char * new_body_part = NULL;
 		new_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + len + 1));
 		if (new_body_part == NULL)
 			throw std::runtime_error("Error: addToBody Malloc\n");
 		new_body_part = (char *)memcpy(new_body_part, this->_body_part, this->_body_part_len);
 		memcpy(&new_body_part[this->_body_part_len], &request_str[pos], len);
-		std::cout << "free in addToBody" << std::endl;
 		free(this->_body_part);
 		this->_body_part = new_body_part;
 	}
@@ -130,15 +131,12 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	}
 	this->_body_part_len += len;
 	this->_body_part[this->_body_part_len] = '\0';
-	std::cout << this->_body_part_len << std::endl;
 }
 
 size_t	Request::writeInFile(void)
 {
-	std::cout << "writing in file with fd = " << this->_fd << ", len to write = " << this->_body_part_len << std::endl;
 	size_t i = write(this->_fd, this->_body_part, this->_body_part_len);
 	this->_addToLengthReceived(i);
-	std::cout << "free in write_in_file" << std::endl;
 	free(this->_body_part);
 	this->_body_part = NULL;
 	this->_body_part_len = 0;
@@ -150,7 +148,6 @@ void	Request::_addToLengthReceived(size_t length_to_add)
 	this->_length_received += length_to_add;
 	if (_length_received >= this->_length_body)
 		this->_completed = true;
-	std::cout << this->_length_received << " / " << this->_length_body << std::endl;
 }
 
 void	Request::_initEnvMap(void) {

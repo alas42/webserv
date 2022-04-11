@@ -25,7 +25,6 @@ class Request
 		bool	sentContinue(void);
 		void	addToBody(const char * request_str, int pos, int len);
 		void	addToBodyChunked(const char * request_str, int len);
-		void	freeBodyPart(void);
 		int		getFd(void);
 		size_t	writeInFile(void);
 

@@ -10,10 +10,7 @@ Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
 Request::~Request(void)
 {
 	if (this->_body_part != NULL)
-	{
-		std::cout << "free in destructor" << std::endl;
 		free(this->_body_part);
-	}
 	if (this->_post)
 		remove(this->_tmp_file.c_str());
 	if (this->_cgi)
@@ -60,8 +57,6 @@ Request & Request::operator=(const Request & other)
 		this->_env_vars = other._env_vars;
 		if (this->_body_part != NULL)
 		{
-			std::cout << "free in operator = " << std::endl;
-
 			free(this->_body_part);
 			this->_body_part = NULL;
 		}
@@ -190,7 +185,6 @@ void	Request::_initPostRequest(const char *request_str, int rc, int id) {
 	this->_header_completed = true;
 }
 
-void										Request::freeBodyPart(void) { free(this->_body_part); }
 bool										Request::isComplete(void) { return this->_completed; }
 bool										Request::isChunked(void) { return this->_chunked; }
 bool										Request::isPost(void) { return this->_post; }
@@ -205,8 +199,6 @@ void	Request::reset()
 {
 	if (this->_body_part != NULL)
 	{
-		std::cout << "free in reset" << std::endl;
-
 		free(this->_body_part);
 		this->_body_part = NULL;
 	}
@@ -377,24 +369,6 @@ Response	Request::_executeRedirection(Response r) {
 		r.error(this->_block.getRedirection().first);
 	return r;
 }
-/*
-{
-		Client a une variable FILE *request; //ecriture
-		Response a une variable FILE *f; //lecture
-		REQUEST-POST :
-			1. creation fichier
-			2. ajout du fichier dans poll
-			3. addToBody quand fichier->revents = POLLOUT
-			4. ecriture dans fichier
-			5. check si tout a ete ecrit
-				a. Oui = close fd, suppression du fd dans poll
-				b. 3.
-		REQUEST-CHUNKED :
-			1. 1 a 4 pareil que post
-			2. Condition d arret differente
-}
-*/
-
 
 /* ----------------------------------TO CHANGE------------------------------------*/
 void Request::addToBodyChunked(const char * request_str, int len)

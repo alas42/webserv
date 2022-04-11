@@ -237,7 +237,6 @@ void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
 	std::map<int, Client>::iterator itb = this->_socket_clients.begin();
 	std::map<int, Client>::iterator ite = this->_socket_clients.end();
 	std::vector<pollfd>::iterator itpe = this->_pollfds.end();
-	std::cout << "setClientPollFd" << std::endl;
 	int	client_fd = -1;
 
 	for ( ; itb != ite; itb++)
@@ -245,13 +244,11 @@ void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
 		if (itb->second.getRequestPollFd().fd == it->fd)
 		{
 			client_fd = itb->second.getClientPollFd().fd;
-			std::cout << "client_fd = " << client_fd << std::endl;
 			for (std::vector<pollfd>::iterator itpb = this->_pollfds.begin(); itpb != itpe; itpb++)
 			{
 				if (itpb->fd == client_fd)
 				{
 					itpb->events = POLLOUT;
-					std::cout << "itpb->events" << std::endl;
 					return ;
 				}
 			}

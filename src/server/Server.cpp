@@ -316,6 +316,7 @@ std::string Server::_getRightConfigName(std::string host) {
 			}
 			found--;
 		}
+	}
 	return ip + "/1";
 }
 

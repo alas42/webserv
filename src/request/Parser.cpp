@@ -35,31 +35,13 @@ Parser& Parser::operator=(Parser const & other)
 	return *this;
 }
 
-bool	Parser::isPost(void)
-{
-	return _post;
-}
+bool	Parser::isPost(void) { return _post; }
+bool	Parser::isChunked(void) { return _chunked;}
+size_t	Parser::getLengthBody(void) { return this->_length_body; }
+size_t	Parser::getLengthHeader(void) {	return this->_length_header; }
+Config	Parser::getBlock(void) { return this->_block; }
 
-bool	Parser::isChunked(void)
-{
-	return _chunked;
-}
-
-size_t	Parser::getLengthBody(void)
-{
-	return this->_length_body;
-}
-size_t	Parser::getLengthHeader(void)
-{
-	return this->_length_header;
-}
-
-Config	Parser::getBlock(void)
-{
-	return this->_block;
-}
-
-std::map<std::string, std::string> Parser::parse_output_client(std::string & output) {
+std::map<std::string, std::string> Parser::parseOutputClient(std::string & output) {
 
 	size_t i = 0;
 
@@ -72,15 +54,15 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 		this->_header = output;
 		this->_length_header = this->_header.size();
 	}
-	_parse_request_method(output, i);
-	_parse_request_uri(output, i);
-	_parse_server_protocol(output, i);
-	_parse_server_port(output, i);
-	_parse_transfer_encoding(output);
-	_parse_content_type(output);
-	_parse_http_accept(output, "Accept:");
-	_parse_http_accept(output, "Accept-Encoding:");
-	_parse_http_accept(output, "Accept-Language:");
+	_parseRequestMethod(output, i);
+	_parseRequestUri(output, i);
+	_parseServerProtocol(output, i);
+	_parseServerPort(output, i);
+	_parseTransferEncoding(output);
+	_parseContentType(output);
+	_parseHttpAccept(output, "Accept:");
+	_parseHttpAccept(output, "Accept-Encoding:");
+	_parseHttpAccept(output, "Accept-Language:");
 
 	if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 		this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
@@ -91,7 +73,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 
 	if (!this->_method.compare("POST")) {
 		this->_post = true;
-		_parse_content_length(output);
+		_parseContentLength(output);
 		this->_env_vars["PATH_INFO"] = this->_env_vars["SCRIPT_NAME"];
 		this->_env_vars["PATH_TRANSLATED"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	}
@@ -109,7 +91,7 @@ std::map<std::string, std::string> Parser::parse_output_client(std::string & out
 ** string; it provides information to the CGI script to affect or refine
 ** the document to be returned by the script.
 */
-void	Parser::_parse_query_string(std::string & request_uri) {
+void	Parser::_parseQueryString(std::string & request_uri) {
 
 	std::size_t i = 0;
 	if ((i = request_uri.find("?")) != std::string::npos) {
@@ -122,7 +104,7 @@ void	Parser::_parse_query_string(std::string & request_uri) {
 /*
 ** The REQUEST_METHOD meta-variable MUST be set to the method which should be used by the script to process the request
 */
-void	Parser::_parse_request_method(std::string & output, std::size_t & pos) {
+void	Parser::_parseRequestMethod(std::string & output, std::size_t & pos) {
 
 	std::size_t	i = 0;
 	std::string	methods[4] = {"GET", "POST", "DELETE", "0"};
@@ -138,7 +120,7 @@ void	Parser::_parse_request_method(std::string & output, std::size_t & pos) {
 	}
 }
 
-void Parser::_parse_request_uri(std::string & output, std::size_t & pos) {
+void Parser::_parseRequestUri(std::string & output, std::size_t & pos) {
 
 	std::size_t i = 0, length_uri = 0;
 	std::string request_uri;
@@ -149,13 +131,13 @@ void Parser::_parse_request_uri(std::string & output, std::size_t & pos) {
 	request_uri = output.substr(i, length_uri);
 	this->_env_vars["REQUEST_URI"] = request_uri;
 	pos += (i - pos) + length_uri;
-	this->_parse_query_string(request_uri);
-	this->_parse_script(request_uri);
+	this->_parseQueryString(request_uri);
+	this->_parseScript(request_uri);
 	if (this->_env_vars["SCRIPT_NAME"].empty() && this->_env_vars["REQUEST_URI"][this->_env_vars["REQUEST_URI"].size() - 1] != '/')
 		this->_env_vars["REQUEST_URI"].push_back('/');
 }
 
-void	Parser::_parse_script(std::string & request_uri) {
+void	Parser::_parseScript(std::string & request_uri) {
 
 	std::size_t i;
 	std::string script;
@@ -175,7 +157,7 @@ void	Parser::_parse_script(std::string & request_uri) {
 ** The SERVER_PROTOCOL variable MUST be set to the name and version of
 ** the application protocol used for this CGI request.
 */
-void	Parser::_parse_server_protocol(std::string & output, std::size_t & pos) {
+void	Parser::_parseServerProtocol(std::string & output, std::size_t & pos) {
 
 	std::size_t	i = 0, length_protocol = 0;
 	std::string	protocols[4] = {"HTTP", "UDP", "FTP", "0"};
@@ -197,7 +179,7 @@ void	Parser::_parse_server_protocol(std::string & output, std::size_t & pos) {
 ** The SERVER_PORT variable MUST be set to the TCP/IP port number on
 ** which this request is received from the client.
 */
-void	Parser::_parse_server_port(std::string & output, std::size_t & pos) {
+void	Parser::_parseServerPort(std::string & output, std::size_t & pos) {
 
 	std::size_t i = 0, length_port = 0;
 	if ((i = output.find(":", pos)) != std::string::npos) {
@@ -210,7 +192,7 @@ void	Parser::_parse_server_port(std::string & output, std::size_t & pos) {
 	}
 }
 
-void	Parser::_parse_content_length(std::string & output) {
+void	Parser::_parseContentLength(std::string & output) {
 
 	std::size_t i = 0, length_content_length = 0;
 
@@ -227,7 +209,7 @@ void	Parser::_parse_content_length(std::string & output) {
 	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 }
 
-void Parser::_parse_content_type (std::string & output) {
+void Parser::_parseContentType (std::string & output) {
 
 	std::size_t i = 0, length_content_type = 0;
 
@@ -244,7 +226,7 @@ void Parser::_parse_content_type (std::string & output) {
 	this->_env_vars["CONTENT_TYPE"] = this->_content_type;
 }
 
-void Parser::_parse_http_accept(std::string &output, std::string tofind) {
+void Parser::_parseHttpAccept(std::string &output, std::string tofind) {
 
 	std::size_t i = 0;
 	std::size_t length = 0;
@@ -259,7 +241,7 @@ void Parser::_parse_http_accept(std::string &output, std::string tofind) {
 	}
 }
 
-void Parser::_parse_transfer_encoding(std::string & output) {
+void Parser::_parseTransferEncoding(std::string & output) {
 
 	if (output.find("Transfer-Encoding: chunked") != std::string::npos)
 		this->_chunked = true;
@@ -339,7 +321,7 @@ void Parser::_addIndex() {
 	for (size_t i = 0; i < this->_block.getIndex().size(); i++) {
 		if (pathIsFile( this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"] + this->_block.getIndex()[i]) == 1) {
 			this->_env_vars["REQUEST_URI"].append(this->_block.getIndex()[i]);
-			this->_parse_script(this->_env_vars["REQUEST_URI"]);
+			this->_parseScript(this->_env_vars["REQUEST_URI"]);
 			if (this->_env_vars["DOCUMENT_ROOT"].compare("/") != 0)
 				this->_env_vars["SCRIPT_FILENAME"] = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["SCRIPT_NAME"];
 			else

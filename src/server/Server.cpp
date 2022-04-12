@@ -179,9 +179,8 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
 	}
 	else {
-		host = this->_getHostInConfig(buffer);
+		host = this->_getHostInBuffer(buffer);
 		this->_verifyHost(host);
-		std::cout << "confi = " << this->_getRightConfigName(host) << std::endl;
 		client->second.addToRequest(&buffer[0], rc, _config.at(this->_getRightConfigName(host)));
 	}
 	free(buffer);
@@ -266,15 +265,19 @@ std::vector<int> Server::_getPorts() {
 	return ports;
 }
 
-std::string Server::_getHostInConfig(std::string buffer) {
+std::string Server::_getHostInBuffer(std::string buffer) {
+
+	std::string host;
+	std::string uri;
 
 	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
-
 	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++) {
 		if (it->compare("Host:") == 0)
-			return (it + 1)->c_str();
+			host = (it + 1)->c_str();
+		if (it->compare("GET") == 0)
+			uri = (it + 1)->c_str();
 	}
-	return "NULL";
+	return host + uri;
 }
 
 void Server::_verifyHost(std::string & host) {
@@ -289,23 +292,39 @@ std::string Server::_getRightConfigName(std::string host) {
 
 	std::string	ret;
 	size_t		found = 0;
+	std::string	ip;
+	std::string	uri;
+
+	ip = host.substr(0, host.find_first_of("/"));
+	uri = host.substr(host.find_first_of("/"), host.npos);
 
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
-		if (it->first.find(host) != std::string::npos)
+		if (it->first.find(ip) != std::string::npos)
 			found++;
 	}
-	if (found != 0)
-		return (host + "/1");
-	else {
-		for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
-			for (std::vector<std::string>::iterator vt = it->second.getServerNames().begin(); vt != it->second.getServerNames().end(); vt++) {
-				if (vt->find(host) != std::string::npos)
-					return it->first;
+	if (found != 1) {
+		while (found) {
+			std::stringstream	out;
+			Config				tmp;
+
+			out << found;
+			tmp = this->_config.at(ip + "/" + out.str());
+			// std::cout << "tmp [" << tmp << "]" << std::endl;
+			for (std::map<std::string, Config>::iterator it = tmp.getLocation().begin(); it != tmp.getLocation().end(); it++) {
+				if (it->first.compare(uri) == 0)
+					return (ip + "/" + out.str());
 			}
+			found--;
 		}
-	}
-	return "";
+	return ip + "/1";
 }
+
+			// for (size_t i = 0; i < tmp.getServerNames().size(); i++) {
+			// 	std::cout << "servername = " << tmp.getServerNames()[i] << std::endl;
+			// 	std::cout << "uri = " << uri << std::endl;
+			// 	if (tmp.getServerNames()[i].compare(uri) == 0)
+			// 		return (ip + "/" + out.str());
+			// }
 
 std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) {
 

@@ -267,7 +267,6 @@ void Parser::_parse_transfer_encoding(std::string & output) {
 		this->_chunked = false;
 }
 
-
 void Parser::_chooseConfigBeforeExecution() {
 
 	std::string	path;

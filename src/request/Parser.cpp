@@ -258,7 +258,7 @@ void Parser::_chooseConfigBeforeExecution() {
 	if (this->_env_vars["SCRIPT_NAME"].empty())
 		path = this->_env_vars["REQUEST_URI"];
 	else
-		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/"));
+		path = this->_env_vars["REQUEST_URI"].substr(0, this->_env_vars["REQUEST_URI"].find_last_of("/") + 1);
 	while (path.compare("") != 0) {
 		Config newConfig;
 		path = this->_getLocationBeforeExecution(path, tmpBlock, newConfig);
@@ -271,6 +271,7 @@ std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlo
 
 	std::map<std::string, Config>::iterator	iter;
 	std::string	tmp = path;
+	static bool empty = false;
 
 	while (!tmp.empty()) {
 		for (std::map<std::string, Config>::iterator it = tmpBlock.getLocation().begin(); it != tmpBlock.getLocation().end(); it++) {
@@ -283,6 +284,10 @@ std::string	Parser::_getLocationBeforeExecution(std::string path, Config &tmpBlo
 			}
 		}
 		tmp = tmp.substr(0, tmp.find_last_of('/'));
+	}
+	if (empty == false) {
+		empty = true;
+		return "/";
 	}
 	return "";
 }

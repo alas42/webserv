@@ -1,6 +1,7 @@
 # webserv
 This is when you finally understand why a URL starts with HTTP
 
+curl command = curl -H "Transfer-Encding: chunked" -F "fileToUpload=@www/site1/imgs/background.jpg" -F "submit=1" http://localhost:8080/upload.php
 
 https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP
 

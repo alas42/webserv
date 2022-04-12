@@ -34,6 +34,8 @@ all: ${NAME}
 
 ${NAME}: ${OBJS} $(INCLUDES)
 	$(CC) $(CFLAGS) $(SRCS) -o $(NAME)
+	rm -f request_POST_0 
+	rm -f abc
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -o $@ -c $<

@@ -58,7 +58,7 @@ class Request
 		void		_initEnvMap(void);
 		void 		_initPostRequest(const char *request_str, int rc, int id);
 		void 		_addToLengthReceived(size_t length_to_add);
-		void		_addToLengthWritten(size_t length_writen);
+		void		_checkLastBlock(void);
 		Response 	_executeGet(Response r);
 		Response 	_executePost(Response r);
 		Response 	_executeDelete(Response r);

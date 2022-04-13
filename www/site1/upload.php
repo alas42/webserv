@@ -21,7 +21,7 @@
 	}
 
 	// Check file size
-	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 500000000)
+	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 1000000000)
 	{
 		echo "Error\n" ."<br>";
 		echo htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])) . " is too large.\n";

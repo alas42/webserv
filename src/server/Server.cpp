@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/04/13 16:05:31 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/04/13 18:43:27 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 extern bool g_end;
 
-Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0) // timeout in minute, the first number is the number of minutes (0.5 = 30sec)
+Server::Server(void): _config(), _timeout(20 * 60 * 1000), _total_clients(0)
 {}
 
 Server::~Server(void)
@@ -23,24 +23,41 @@ Server::~Server(void)
 Server::Server(const Server & other): _config(other._config), _timeout(other._timeout), _total_clients(other._total_clients)
 {}
 
-Server & Server::operator=(const Server & other) {
-
-		if (this != &other) {
-			this->_config = other._config;
-			this->_timeout = other._timeout;
-			this->_pollfds = other._pollfds;
-			this->_clients = other._clients;
-			this->_total_clients = other._total_clients;
-		}
-		return (*this);
+Server & Server::operator=(const Server & other)
+{
+	if (this != &other)
+	{
+		this->_config = other._config;
+		this->_timeout = other._timeout;
+		this->_pollfds = other._pollfds;
+		this->_socket_clients= other._socket_clients;
+		this->_total_clients = other._total_clients;
+		this->_requests_fd = other._requests_fd;
+	}
+	return (*this);
 }
 
-void	Server::config(const char * conf_file) {
-	this->_fileToServer(conf_file);
+std::vector<int> Server::_getPorts() {
+
+	std::vector<int> ports;
+
+	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
+		ports.push_back(it->second.getPort());
+	return ports;
 }
 
-int	Server::setup(void) {
+void Server::_verifyHost(std::string & host) {
 
+	if (host.find("localhost") != std::string::npos)
+		host.replace(0, 9, "127.0.0.1");
+	if (host.find("0.0.0.0") != std::string::npos)
+		host.replace(0, 7, "127.0.0.1");
+}
+
+void	Server::config(const char * conf_file) { this->_fileToServer(conf_file); }
+
+int	Server::setup(void)
+{
 	struct pollfd		listening_fd;
 	sockaddr_in			sock_structs;
 	int					server_fd, yes = 1;
@@ -54,33 +71,25 @@ int	Server::setup(void) {
 
 		server_fd = -1;
 
-		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-			std::cerr << "socket error" << std::endl;
-			return (1);
-		}
+		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+			throw std::runtime_error("Error: socket() error\n");
 
-		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
-			std::cerr << "setsockopt error" << std::endl;
-			return (1);
-		}
+		if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
+			throw std::runtime_error("Error: setsockopt() error\n");
 
-		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0) {
-			std::cerr << "ioctl error" << std::endl;
-			return (1);
-		}
+		if (ioctl(server_fd, FIONBIO, (char *)&yes) < 0)
+			throw std::runtime_error("Error: ioctl() error\n");
 
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(it->second.getPort());
 		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
-		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0) {
-			std::cerr << "bind error " << it->first.substr(0, pos) << std::endl;
-			return (1);
-		}
 
-		if (listen(server_fd, CONNECTION_QUEUE) < 0) {
-			std::cerr << "listen error" << std::endl;
-			return (1);
-		}
+		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
+			throw std::runtime_error("Error: bind() error: " + it->first.substr(0, pos) + "\n");
+
+		if (listen(server_fd, CONNECTION_QUEUE) < 0)
+			throw std::runtime_error("Error: listen() error\n");
+
 		this->_server_fds.push_back(server_fd);
 		listening_fd.fd = server_fd;
 		listening_fd.events = POLLIN;
@@ -92,34 +101,22 @@ int	Server::setup(void) {
 	return (0);
 }
 
-bool	Server::run(void)
+void	Server::_closeConnection(std::vector<pollfd>::iterator	it)
 {
-	if (this->_listen_poll())
-		return (1);
-	return (this->_checking_revents());
-}
-
-void	Server::clean(void) {
-
-	for (size_t i = 0; i < this->_pollfds.size(); i++)
-		close(this->_pollfds[i].fd);
-	this->_pollfds.clear();
-	std::cout << RED << "Quitting..." << RESET << std::endl;
-}
-
-void	Server::_close_connection(std::vector<pollfd>::iterator	it) {
-
+	std::cout << "close_connection()" << std::endl;
 	close(it->fd);
-	this->_clients.erase(it->fd);
+	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
+		this->_socket_clients.erase(it->fd);
 	this->_pollfds.erase(it);
 }
 
-bool	Server::_accept_connections(int server_fd) {
-
+bool	Server::_acceptConnections(int server_fd)
+{
 	struct pollfd	client_fd;
 	int				new_socket = -1;
 
-	do {
+	do
+	{
 		new_socket = accept(server_fd, NULL, NULL);
 		if (new_socket < 0) {
 			if (errno != EWOULDBLOCK) {
@@ -130,37 +127,45 @@ bool	Server::_accept_connections(int server_fd) {
 		}
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
-		this->_pollfds.push_back(client_fd);
+		this->_pollfds.insert(this->_pollfds.begin(), client_fd);
+		std::cout << "accept, client fd = " << client_fd.fd << std::endl;
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
-		this->_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
-	} while (new_socket != -1);
+		this->_socket_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
+	}
+	while (new_socket != -1);
 	return (false);
 }
 
-bool	Server::_sending(std::vector<pollfd>::iterator	it, Response & r)
+bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
 {
-	int i = 0;
+	int 		i = 0;
+	size_t 		block_size = BUFFER_SIZE;
+	std::string response_block;
 
-	i = send(it->fd, r.getRawResponse().c_str(), r.getRawResponse().size(), 0);
-	if (i < 0)
+	if (BUFFER_SIZE > client->second.getResponse().getRemainingLength())
+		block_size = client->second.getResponse().getRemainingLength();
+	response_block = client->second.getResponse().getRawResponse().substr(client->second.getResponse().getLengthSent(), block_size);
+	i = send(it->fd, response_block.c_str(), block_size, MSG_NOSIGNAL);
+	if (i <= 0)
 	{
-		perror("send error");
+		this->_closeConnection(it);
 		return (1);
 	}
+	client->second.addToResponseLength(block_size);
 	std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
 	return (0);
 }
 
-int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::iterator client)
+int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::iterator client)
 {
-	std::string		host;
+	std::string		host = "";
 	int 			rc = -1;
-	char			*buffer = (char *)malloc(sizeof(char) * BUFFER_SIZE);
+	size_t			buffer_size = BUFFER_SIZE;
+	char			*buffer = (char *)malloc(sizeof(char) * buffer_size);
 
 	if (!buffer)
 		throw std::runtime_error("Error: Malloc\n");
-
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
 	if (rc == -1)
@@ -168,107 +173,188 @@ int	Server::_receiving(std::vector<pollfd>::iterator	it, std::map<int, Client>::
 		free(buffer);
 		return (1);
 	}
-	else if (rc == 0) {
-		this->_close_connection(it);
+	else if (rc == 0)
+	{
+		this->_closeConnection(it);
 		free(buffer);
 		return (1);
 	}
 	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
-	if (client->second.getRequest().hasHeader())
+	if (client->second.getRequestPtr() != 0)						// REQUEST ALREADY EXISITNG
+		client->second.addToRequest(&buffer[0], rc, client->second.getRequestPtr()->getConf());
+	else 															// CREATION OF NEW REQUEST
 	{
-		client->second.addToRequest(&buffer[0], rc, client->second.getRequest().getConf());
-	}
-	else {
 		host = this->_getHostInBuffer(buffer);
 		this->_verifyHost(host);
 		std::string configName = this->_getRightConfigName(host);
 		if (configName == "") {
-			this->_close_connection(it);
+			this->_closeConnection(it);
 			free(buffer);
 			return (1);
 		}
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
+
+		struct pollfd	& client_request_pollfd = client->second.getRequestPollFd();
+		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
+		{
+			client_request_pollfd.events = POLLOUT;
+			this->_pollfds.push_back(client_request_pollfd);		// ADD TO POLL
+			this->_requests_fd.push_back(client_request_pollfd.fd);
+			this->_fd_request_client.insert(std::pair<int, Request *>(client_request_pollfd.fd, client->second.getRequestPtr()));
+			std::cout << "added request_fd, fd = " << client_request_pollfd.fd << std::endl;
+		}
 	}
 	free(buffer);
 	return (0);
 }
 
-bool	Server::_checking_revents(void) {
-
-	std::vector<int>::iterator		find = this->_server_fds.end();
-	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
-	std::vector<pollfd>::iterator	ite = this->_pollfds.end();
+bool	Server::_pollin(std::vector<pollfd>::iterator	it)			// READING
+{
 	std::map<int, Client>::iterator client;
+	std::vector<int>::iterator find;
 
-	for (; it != ite; it++) {
-		if (it->revents == 0)
-			continue;
+	find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
+	if (find != this->_server_fds.end())							// SOCKET DU SERVEUR
+	{
+		g_end = this->_acceptConnections(*find);
+		return (1);
+	}
+	else															// SOCKET DU CLIENT
+	{
+		client = this->_socket_clients.find(it->fd);
+		if (client != this->_socket_clients.end())
+		{
+			if (this->_receiving(it, client))
+				return (1);
+			Request * ptr = client->second.getRequestPtr();
+			if (ptr != 0 && (ptr->isComplete() || (ptr->isChunked() && !ptr->sentContinue())))
+				it->events = POLLOUT;
+		}
+	}
+	return (0);
+}
 
-		if (it->revents & POLLIN) {
-			find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
-			if (find != this->_server_fds.end()) {
-				g_end = this->_accept_connections(*find);
-				break ;
-			}
-			else {
-				client = this->_clients.find(it->fd);
-				if (client != this->_clients.end()) {
-					if (this->_receiving(it, client))
-						break;
-					Request & client_request = client->second.getRequest();
-					if (client_request.isComplete() || (client_request.isChunked() && !client_request.sentContinue()))
-						it->events = POLLOUT;
+void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
+{
+	std::map<int, Client>::iterator itb = this->_socket_clients.begin();
+	std::map<int, Client>::iterator ite = this->_socket_clients.end();
+	std::vector<pollfd>::iterator itpe = this->_pollfds.end();
+	int	client_fd = -1;
+
+	for ( ; itb != ite; itb++)
+	{
+		if (itb->second.getRequestPollFd().fd == it->fd)
+		{
+			client_fd = itb->second.getClientPollFd().fd;
+			for (std::vector<pollfd>::iterator itpb = this->_pollfds.begin(); itpb != itpe; itpb++)
+			{
+				if (itpb->fd == client_fd)
+				{
+					itpb->events = POLLOUT;
+					return ;
 				}
 			}
 		}
-		else if (it->revents & POLLOUT) 	{
-			client = this->_clients.find(it->fd);
-			Request & client_request = client->second.getRequest();
-			Response r;
-			if (client != this->_clients.end())
+	}
+}
+
+bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
+{
+	std::map<int, Client>::iterator		client;
+	std::map<int, Request *>::iterator	request;
+	std::vector<int>::iterator			find;
+
+	client = this->_socket_clients.find(it->fd);
+	if (client != this->_socket_clients.end()) 						// SOCKET DU CLIENT
+	{
+		std::cout << "SENDING TO CLIENT" << std::endl;
+		Request * client_request = client->second.getRequestPtr();
+		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
+		{
+			if (client_request->isChunked() && !client_request->sentContinue())
+				client->second.getResponse() = client_request->executeChunked();
+			else
+				client->second.getResponse() = client_request->execute();
+		}
+		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
+			return (1);
+		if (client->second.getResponse().isEverythingSent())		// TOUT EST ENVOYE
+		{
+			it->events = POLLIN;									// PASSE LE SOCKET EN LECTURE
+			client->second.getResponse().reset();
+			if (client_request->isComplete())						// RESET SI PAS CHUNK (car envoie de 100-Continue)
 			{
-				if (client_request.isChunked() && !client_request.sentContinue())
+				find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), client->second.getRequestFd());
+				if (find != this->_requests_fd.end())
 				{
-					r = client_request.execute_chunked();
+					this->_fd_request_client.erase(client->second.getRequestFd());	// Suppresion de l element requete dans la map ET dans le vector fd
+					this->_requests_fd.erase(find);
 				}
-				else
-				{
-					r = client_request.execute();
-				}
-				if (this->_sending(it, r))
-					break;
-				it->events = POLLIN;
-				if (client_request.isComplete())
-					client_request.reset();
+				client->second.resetRequest();
 			}
+		}
+		return (0);
+	}
+	find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), it->fd);
+	if (find != this->_requests_fd.end())							// FILE DESCRIPTOR (REQUETE)
+	{
+		request = this->_fd_request_client.find(it->fd);
+		request->second->writeInFile();
+		if (request->second->isComplete())
+		{
+			std::cout << "REQUEST completed in POLLOUT (POST)" << std::endl;
+			it->events = 0;
+			close(it->fd);
+			_setClientPollFd(it);
+			this->_pollfds.erase(it);
+			return (1);
+		}
+	}
+	return (0);
+}
+
+bool	Server::_checkingRevents(void)
+{
+	std::vector<int>::iterator		find;
+	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
+
+	for (; it != this->_pollfds.end(); it++)
+	{
+		if (it->revents == 0)
+			continue ;
+		else if (it->revents & POLLIN)
+		{
+			if (this->_pollin(it))
+				break ;
+		}
+		else if (it->revents & POLLOUT)
+		{
+			if (this->_pollout(it))
+				break ;
 		}
 		else if (it->revents & POLLERR) {
-			this->_close_connection(it);
+			this->_closeConnection(it);
 		}
 	}
 	return (g_end);
 }
 
-int	Server::_listen_poll(void) {
+int	Server::_listenPoll(void) {
 
 	int 			rc = 0;
 	unsigned int 	size_vec = (unsigned int)this->_pollfds.size();
 
 	rc = poll(&this->_pollfds[0], size_vec, this->_timeout);
 	if (rc <= 0)
-	{
 		return (1);
-	}
 	return (0);
 }
 
-std::vector<int> Server::_getPorts() {
-
-	std::vector<int> ports;
-
-	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
-		ports.push_back(it->second.getPort());
-	return ports;
+bool	Server::run(void)
+{
+	if (this->_listenPoll())
+		return (1);
+	return (this->_checkingRevents());
 }
 
 std::string Server::_getHostInBuffer(std::string buffer) {
@@ -284,14 +370,6 @@ std::string Server::_getHostInBuffer(std::string buffer) {
 			uri = (it + 1)->c_str();
 	}
 	return host + uri;
-}
-
-void Server::_verifyHost(std::string & host) {
-
-	if (host.find("localhost") != std::string::npos)
-		host.replace(0, 9, "127.0.0.1");
-	if (host.find("0.0.0.0") != std::string::npos)
-		host.replace(0, 7, "127.0.0.1");
 }
 
 std::string Server::_getRightConfigName(std::string host) {
@@ -338,6 +416,13 @@ std::string Server::_getRightConfigName(std::string host) {
 		return "";
 	}
 	return ip + "/1";
+}
+
+void	Server::clean(void) {
+	for (size_t i = 0; i < this->_pollfds.size(); i++)
+		close(this->_pollfds[i].fd);
+	this->_pollfds.clear();
+	std::cout << RED << "Stopping..." << RESET << std::endl;
 }
 
 std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) {

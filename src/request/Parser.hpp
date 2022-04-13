@@ -12,7 +12,7 @@ class Parser
 		Parser(Parser const & other);
 		Parser(std::map<std::string, std::string> & env_var, Config & block);
 		Parser & operator=(Parser const & other);
-		std::map<std::string, std::string> 	parse_output_client(std::string & output);
+		std::map<std::string, std::string> 	parseOutputClient(std::string & output);
 		bool	isPost(void);
 		bool	isChunked(void);
 		size_t	getLengthBody(void);
@@ -31,16 +31,16 @@ class Parser
 		std::map<std::string, std::string>  _env_vars;
 		Config								_block;
 
-		void		_parse_query_string(std::string & request_uri);
-		void		_parse_request_method(std::string & output, std::size_t & pos);
-		void 		_parse_request_uri(std::string & output, std::size_t & pos);
-		void		_parse_server_protocol(std::string & output, std::size_t & pos);
-		void		_parse_server_port(std::string & output, std::size_t & pos);
-		void		_parse_content_length(std::string & output);
-		void 		_parse_content_type (std::string & output);
-		void 		_parse_http_accept(std::string &output, std::string tofind);
-		void		_parse_transfer_encoding(std::string & output);
-		void		_parse_script(std::string & request_uri);
+		void		_parseQueryString(std::string & request_uri);
+		void		_parseRequestMethod(std::string & output, std::size_t & pos);
+		void 		_parseRequestUri(std::string & output, std::size_t & pos);
+		void		_parseServerProtocol(std::string & output, std::size_t & pos);
+		void		_parseServerPort(std::string & output, std::size_t & pos);
+		void		_parseContentLength(std::string & output);
+		void 		_parseContentType (std::string & output);
+		void 		_parseHttpAccept(std::string &output, std::string tofind);
+		void		_parseTransferEncoding(std::string & output);
+		void		_parseScript(std::string & request_uri);
 		void 		_addIndex();
 		void		_changeBlockToNewConfig(Config &newConfig);
 		void 		_chooseConfigBeforeExecution();

@@ -1,8 +1,8 @@
 #include "Request.hpp"
 
 Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
- _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
- _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
+ _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
+ _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0),_fd(-1)
 {
 	this->_body_part = NULL;
 }
@@ -11,16 +11,16 @@ Request::~Request(void)
 {
 	if (this->_body_part != NULL)
 		free(this->_body_part);
-	//if (this->_post)
-	//	remove(this->_tmp_file.c_str());
+	if (this->_post)
+		remove(this->_tmp_file.c_str());
 	if (this->_cgi)
 		remove(std::string("cgi_" + this->_tmp_file).c_str());
 }
 
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
 	_tmp_file(other._tmp_file), _completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
-	_sent_continue(other._sent_continue), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars) 
+	_sent_continue(other._sent_continue),  _last_chunk_received(other._last_chunk_received), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
+	_length_of_chunk(other._length_of_chunk), _fd(other._fd), _env_vars(other._env_vars) 
 {
 	this->_body_part = NULL;
 
@@ -47,12 +47,12 @@ Request & Request::operator=(const Request & other)
 		this->_post = other._post;
 		this->_header_completed = other._header_completed;
 		this->_sent_continue = other._sent_continue;
+		this->_last_chunk_received = other._last_chunk_received;
 		this->_body_part_len = other._body_part_len;
 		this->_length_body = other._length_body;
 		this->_length_header = other._length_header;
 		this->_length_received = other._length_received;
 		this->_length_of_chunk = other._length_of_chunk;
-		this->_length_of_chunk_received = other._length_of_chunk_received;
 		this->_fd = other._fd;
 		this->_env_vars = other._env_vars;
 		if (this->_body_part != NULL)
@@ -74,8 +74,8 @@ Request & Request::operator=(const Request & other)
 
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
 	_path_to_cgi("cgi/php-cgi"), _tmp_file(""),
-	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
-	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
+	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
+	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1)
 {
 	this->_body_part = NULL;
 	std::string request_string(request_str);
@@ -333,7 +333,6 @@ Response	Request::_executeRedirection(Response r) {
 
 void Request::addToBody(const char * request_str, int pos, int len)
 {
-	std::cout << "writing " << len << std::endl;
 	if (this->_body_part != NULL)
 	{
 		char * new_body_part = NULL;
@@ -362,9 +361,8 @@ size_t	Request::writeInFile(void)
 	if (this->_body_part_len != 0)
 	{
 		i = write(this->_fd, this->_body_part, this->_body_part_len);
-		if (!this->_chunked)
-			this->_addToLengthReceived(i);
-		else
+		this->_addToLengthReceived(i);
+		if (this->_chunked)
 			this->_checkLastBlock();
 		free(this->_body_part);
 		this->_body_part = NULL;
@@ -375,96 +373,66 @@ size_t	Request::writeInFile(void)
 
 void	Request::_checkLastBlock()
 {
-	if (this->_body_part_len >= 5)
+	if (this->_last_chunk_received)
 	{
-		if (this->_body_part[this->_body_part_len - 1] == '\n' && this->_body_part[this->_body_part_len - 3] == '\n' &&
-			this->_body_part[this->_body_part_len - 2] == '\r' && this->_body_part[this->_body_part_len - 4] == '\r' &&
-			this->_body_part[this->_body_part_len - 5] == '0')
-		{
-			std::cout << "chunked written last block" << std::endl;
-			this->_completed = true;
-		}
+		this->_completed = true;
+		std::stringstream ss2;
+		ss2 << this->_length_received;
+		this->_env_vars["CONTENT_LENGTH"] = ss2.str();
 	}
+
 }
 
 void	Request::_addToLengthReceived(size_t length_to_add)
 {
 	this->_length_received += length_to_add;
-	if (_length_received >= this->_length_body)
+	if (!this->_chunked && _length_received >= this->_length_body)
 		this->_completed = true;
 }
 
-/* ----------------------------------TO CHANGE------------------------------------*/
-void Request::addToBodyChunked(const char * request_str, int len) // je recois le body ici
+void Request::addToBodyChunked(const char * request_str, int len)
 {
 	if (len == 0)
 		return ;
-	size_t 						begin = 0;
 	std::vector<unsigned char> 	hexa;
+	size_t 						begin = 0;
 	int							i = 0;
-	FILE	*fp = fopen("abc", "a");
-	fwrite(request_str, 1, len, fp);
+
 	while (true)
 	{
-		//std::vector<unsigned char> 	hexa;
-		if (this->_length_of_chunk == 0)			// on a encore rien recu du chunk ou alors fini de lire le precedent
+		if (this->_length_of_chunk == 0)
 		{
-			int o = 0;
 			while (request_str[i] != '\r' && request_str[i] != '\n')
-			{
-				if (o < 4)
-					std::cout << request_str[i];
-				hexa.push_back(request_str[i]);
-				i++;
-				o++;
-			}
-			std::cout << "\ni = " << i << std::endl;
+				hexa.push_back(request_str[i++]);
+			
 			std::stringstream ss;
 			ss << std::hex << hexa.data();
 			ss >> this->_length_of_chunk;
-			std::cout << "begin = " << begin << ", " << this->_length_of_chunk << std::endl;
-			this->_length_of_chunk_received = this->_length_of_chunk;
-
 			begin += hexa.size() + 2;
-			std::cout << "begin = " << begin << "str[begin] = " << request_str[begin] << std::endl;
 		}
 		else
-		{
 			begin = 0;
-		}
-		std::cout << "length_of_chunck_left = " << this->_length_of_chunk << std::endl;
+		
 		if (this->_length_of_chunk == 0)
 		{
-			std::cout << "last block received, len = " << len << std::endl;
+			this->_last_chunk_received = true;
 			break ;
 		}
-
-		if (this->_length_of_chunk <= len - begin)	// la request_str contient tout le bloc ou plus
+		if (this->_length_of_chunk <= len - begin)
 		{
 			this->addToBody(request_str, begin, this->_length_of_chunk);
-			hexa.clear();							// reset length_of_chunk et le vecteur contenant la longueur en hexa vu qu'on va lire le prochain
-			/*std::stringstream stream;
-			stream << std::hex << this->_length_of_chunk_received;
-			std::string result(stream.str());		// string hexa de la longueur du bloc qui vient detre fini*/
-			std::cout << i << " += " << begin << " - " << i << " + " << this->_length_of_chunk << std::endl;
+			hexa.clear();
 			i += (begin - i) + _length_of_chunk + 2;
-			std::cout << "position in request str = " << i << std::endl;
 			begin += this->_length_of_chunk + 2;
 			this->_length_of_chunk = 0;
-			this->_length_of_chunk_received = 0;
 		}
-		else										// la request_str ne contient pas ou plus le bloc
+		else
 		{
 			this->addToBody(request_str, begin, len - begin);
 			this->_length_of_chunk -= (len - begin);
 			break ;
 		}
-
 		if (i >= len)
-		{
-			std::cout << "break i >= len" << std::endl;
 			break ;
-		}
 	}
-	fclose(fp);
 }

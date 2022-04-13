@@ -45,12 +45,12 @@ class Request
 		bool								_post;
 		bool								_header_completed;
 		bool								_sent_continue;
+		bool								_last_chunk_received;
 		size_t								_body_part_len;
 		size_t								_length_body;
 		size_t								_length_header;
 		size_t								_length_received;
 		size_t								_length_of_chunk;
-		size_t								_length_of_chunk_received;
 		int									_fd;
 		std::map<std::string, std::string>	_env_vars;
 		char 				*				_body_part;

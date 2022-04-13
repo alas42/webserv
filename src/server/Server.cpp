@@ -270,9 +270,13 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
 		{
 			if (client_request->isChunked() && !client_request->sentContinue())
+			{
 				client->second.getResponse() = client_request->executeChunked();
+			}
 			else
+			{
 				client->second.getResponse() = client_request->execute();
+			}
 		}
 		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
 			return (1);

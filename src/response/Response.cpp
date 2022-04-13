@@ -14,6 +14,7 @@ Response::Response(const Response & other): _header(other._header), _body(other.
 	_sent_all(other._sent_all), _is_binary(other._is_binary), _length_sent(other._length_sent), _length_response(other._length_response)
 {
 	this->_errorPages = other._errorPages;
+	this->_mimes = other._mimes;
 }
 
 Response & Response::operator=(const Response & other)
@@ -30,6 +31,7 @@ Response & Response::operator=(const Response & other)
 		this->_length_sent = other._length_sent;
 		this->_length_response = other._length_response;
 		this->_errorPages = other._errorPages;
+		this->_mimes = other._mimes;
 	}
 	return (*this);
 }
@@ -76,7 +78,7 @@ void		Response::_createCgi(const char *filename, std::string begin_header)
 	std::stringstream	ss;
 	std::streampos		len_of_file;
 	std::string			str(""), body(""), header(begin_header);
-	size_t				i = 0;
+	bool				has_header = false;
 
 	f.clear();
 	f.seekg(0, std::ios::beg);
@@ -84,24 +86,32 @@ void		Response::_createCgi(const char *filename, std::string begin_header)
 	{
 		while (f.good())
 		{
+			str.clear();
 			getline(f, str);
-			if (i == 0)
+			std::cout << str << std::endl;
+			if (!has_header && (str.empty() || str.size() <= 1))
 			{
-				header.append(str + "\r\n");
-				str.clear();
+				std::cout << "1" << std::endl;
+				has_header = true;
+				continue ;
 			}
-			else if (i > 1)
+			if (!has_header)
 			{
+				std::cout << "2" << std::endl;
+				header.append(str + "\n");
+			}
+			else
+			{
+				std::cout << "3" << std::endl;
 				body.append(str);
 				body.append("\r\n");
 			}
-			i++;
 		}
 	}
 	f.close();
 	this->_body = body;
-	header.append("Content-Length: ");
 	ss << this->_body.size();
+	header.append("Content-Length: ");
 	header.append(ss.str() + "\r\n");
 	this->_header = header;
 	this->_header.append("\r\n\r\n");
@@ -123,15 +133,18 @@ void	Response::createCgiPost(const char *filename, std::string const upload_path
 	{
 		buffer << f.rdbuf();
 		str = buffer.str();
+		header = "HTTP/1.1 201 Created\r\nConnection: keep-alive\r\n";
 		if (str.find("Success") != std::string::npos)
 		{
 			std::size_t i = str.find("<br>") + 4;
-			std::size_t length = str.find(" ", i);
-			header = "HTTP/1.1 201 Created\r\nConnection: keep-alive\r\n";
-			uploaded_file = str.substr(i, length - i);
-			header.append("Location: " + upload_path + "/" + uploaded_file + "\r\n");
+			if (i != std::string::npos)
+			{
+				std::size_t length = str.find(" ", i);
+				uploaded_file = str.substr(i, length - i);
+				header.append("Location: " + upload_path + "/" + uploaded_file + "\r\n");
+			}
 		}
-		else
+		else if (str.find("Error") != std::string::npos)
 			header = "HTTP/1.1 409 Conflict\r\nConnection: keep-alive\r\n";
 	}
 	else
@@ -217,13 +230,13 @@ void	Response::createRedirection(std::string redirection)
 
 void	Response::_binary(std::string filename)
 {
-	std::size_t			found;
+	std::size_t			found, length;
 	std::string			header, extension;
 	std::stringstream	ss;
 	std::ifstream		f(filename.c_str(), std::ios::binary);
 
 	this->_is_binary = true;
-	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-type: *\r\nContent-Length: ";
+	header = "HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Type: *\r\nContent-Length: ";
 	found = filename.find_last_of(".");
 	extension = filename.substr(found);
 	std::map<std::string, std::string>::iterator it = this->_mimes.find(extension);
@@ -236,6 +249,12 @@ void	Response::_binary(std::string filename)
 		return this->error("500");
 	
 	f.clear();
+	f.seekg(0, std::ios::end);
+	length = f.tellg();
+	f.seekg(0, std::ios::beg);
+	ss << length;
+	header.append(ss.str());
+
 	this->_header = header;
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
@@ -243,12 +262,11 @@ void	Response::_binary(std::string filename)
 	std::string content;
 	std::istreambuf_iterator<char> ist(f);
 	std::istreambuf_iterator<char> ise;
-	for (; ist != ise; ++ist)
+	for (; ist != ise; ist++)
 		content.push_back(*ist);
 	f.close();
 	this->_body = content;
-	ss << this->_body.size();
-	header.append(ss.str());
+
 	this->_raw_response.append(this->_body);
 	this->setLengthResponseSizeT(this->_raw_response.size());
 }

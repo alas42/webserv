@@ -26,8 +26,9 @@ class Config {
 		std::string								& getUploadFolder(void);
 		std::pair<std::string, std::string>		& getRedirection(void);
 
-		int		parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
-		void	checkBlock(bool location);
+		int										parseServer(std::vector<std::vector<std::string> > confFile, size_t i);
+		void									checkBlock(bool location);
+		std::string								blockName();
 
 	private:
 		std::string								_ipAddress;
@@ -45,7 +46,7 @@ class Config {
 		std::pair<std::string, std::string>		_redirection;
 
 		// Parse file .conf
-		int	_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
+		int		_parseLocationDeep(std::vector<std::vector<std::string> > confFile, size_t i);
 
 		// SET
 		void	_setListen(std::vector<std::string> line);

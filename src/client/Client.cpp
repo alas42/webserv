@@ -61,9 +61,8 @@ Request		*	Client::getRequestPtr(void) { return this->_http_request; }
 void			Client::setId(int new_id) { this->_id = new_id; }
 int				Client::getId(void) { return this->_id; }
 int				Client::getRequestFd(void) { return this->_request_fd; }
-struct pollfd & Client::getRequestPollFd(void) { return this->_request_poll_fd; }
+struct pollfd 	Client::getRequestPollFd(void) { return this->_request_poll_fd; }
 struct pollfd &	Client::getClientPollFd(void) { return this->_client_fd; }
-void			Client::setRequestFd(int new_fd) { this->_request_fd = new_fd; }
 Response	&	Client::getResponse(void) { return this->_http_response; }
 void 			Client::setResponse(Response & r) { this->_http_response = r; }
 

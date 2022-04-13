@@ -22,7 +22,6 @@ class Response
 		void	createCgiGet(const char *filename);
 		void	createCgiPost(const char *filename, std::string const upload_path);
 		void	createGet(std::string filename);
-		void	createPost(std::string filename);
 		void	createContinue(void);
 		void	createRedirection(std::string redirection);
 		void	createDelete(std::string filename);
@@ -39,6 +38,7 @@ class Response
 		std::string							_header;
 		std::string							_body;
 		std::string							_raw_response;
+		std::string							_filename;
 		bool								_sent_all;
 		size_t								_length_sent;
 		size_t								_length_response;
@@ -51,6 +51,7 @@ class Response
 		void		_createCgi(const char *filename, std::string header);
 		std::string _getPathToError(std::string error_code);
 		void		_binary(std::string filename);
+		std::streampos		_lengthOfFile(std::ifstream & f);
 };
 
 #endif

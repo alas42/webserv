@@ -136,7 +136,6 @@ void	Request::_initPostRequest(const char *request_str, int rc, int id) {
 	this->_tmp_file = "request_" + this->_env_vars["REQUEST_METHOD"] + "_" + ss.str();
 	FILE	*fp = fopen(this->_tmp_file.c_str(), "a");
 
-
 	this->_fd = fileno(fp);
 	this->_length_received = 0;
 	if (this->_chunked)
@@ -314,7 +313,9 @@ Response	Request::_executeGet(Response r) {
 
 Response	Request::_executePost(Response r) {
 
-	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end()) {
+	if (!this->_block.getAlowMethods().empty() &&
+			std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end())
+	{
 		r.error("405");
 		return r;
 	}
@@ -380,7 +381,6 @@ void	Request::_checkLastBlock()
 		ss2 << this->_length_received;
 		this->_env_vars["CONTENT_LENGTH"] = ss2.str();
 	}
-
 }
 
 void	Request::_addToLengthReceived(size_t length_to_add)
@@ -394,7 +394,7 @@ void Request::addToBodyChunked(const char * request_str, int len)
 {
 	if (len == 0)
 		return ;
-	std::vector<unsigned char> 	hexa;
+	std::string 				hexa = "";
 	size_t 						begin = 0;
 	int							i = 0;
 
@@ -403,10 +403,13 @@ void Request::addToBodyChunked(const char * request_str, int len)
 		if (this->_length_of_chunk == 0)
 		{
 			while (request_str[i] != '\r' && request_str[i] != '\n')
-				hexa.push_back(request_str[i++]);
+			{
+				hexa.push_back(request_str[i]);
+				i++;
+			}
 			
 			std::stringstream ss;
-			ss << std::hex << hexa.data();
+			ss << std::hex << hexa;
 			ss >> this->_length_of_chunk;
 			begin += hexa.size() + 2;
 		}
@@ -421,7 +424,8 @@ void Request::addToBodyChunked(const char * request_str, int len)
 		if (this->_length_of_chunk <= len - begin)
 		{
 			this->addToBody(request_str, begin, this->_length_of_chunk);
-			hexa.clear();
+			if (hexa.empty())
+				hexa.clear();
 			i += (begin - i) + _length_of_chunk + 2;
 			begin += this->_length_of_chunk + 2;
 			this->_length_of_chunk = 0;

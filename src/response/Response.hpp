@@ -29,7 +29,6 @@ class Response
 		void	error(std::string const error_code);
 		void	addToLengthSent(size_t block_size);
 		bool	isEverythingSent(void);
-		void	setLengthResponse(std::streampos len_of_file);
 		void	setLengthResponseSizeT(size_t len_of_string);
 		size_t	getRemainingLength(void);
 		size_t	getLengthSent(void);

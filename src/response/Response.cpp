@@ -59,11 +59,6 @@ void	Response::addToLengthSent(size_t block_size)
 		this->_sent_all = true;
 }
 
-void	Response::setLengthResponse(std::streampos len_of_file)
-{
-	size_t len_file = static_cast<size_t>(len_of_file);
-	this->_length_response = len_file + this->_header.size();
-}
 void	Response::setLengthResponseSizeT(size_t len_of_string)
 {
 	this->_length_response = len_of_string;
@@ -72,27 +67,6 @@ void	Response::setLengthResponseSizeT(size_t len_of_string)
 void	Response::setErrorPages(std::map<int, std::string> new_errorPages)
 {
 	this->_errorPages = new_errorPages;
-}
-
-bool	Response::nextBit(void)
-{
-	if (_is_binary)
-	{
-		std::ifstream	f(this->_filename.c_str(), std::ios::binary);
-		size_t pos = _length_response - getRemainingLength();
-		f.seekg(pos, std::ios::beg);
-	}
-	else
-	{
-		std::ifstream	f(this->_filename.c_str());
-		size_t pos = _length_response - getRemainingLength();
-		f.seekg(pos, std::ios::beg);
-	}
-	/*2. read from there till buffer size
-	3. store it
-	4. increment how many bytes were read
-	5. close filestream*/
-	return false;
 }
 
 void		Response::_createCgi(const char *filename, std::string begin_header)
@@ -113,11 +87,7 @@ void		Response::_createCgi(const char *filename, std::string begin_header)
 			getline(f, str);
 			if (i == 0)
 			{
-				header.append("Content-Length: ");
-				len_of_file = this->_lengthOfFile(f);
-				ss << len_of_file;
-				header.append(ss.str() + "\r\n");
-				header.append(str);
+				header.append(str + "\r\n");
 				str.clear();
 			}
 			else if (i > 1)
@@ -130,11 +100,14 @@ void		Response::_createCgi(const char *filename, std::string begin_header)
 	}
 	f.close();
 	this->_body = body;
+	header.append("Content-Length: ");
+	ss << this->_body.size();
+	header.append(ss.str() + "\r\n");
 	this->_header = header;
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append(this->_body);
-	this->setLengthResponse(len_of_file);
+	this->setLengthResponseSizeT(this->_raw_response.size());
 }
 
 void	Response::createCgiPost(const char *filename, std::string const upload_path)
@@ -202,15 +175,11 @@ void	Response::createGet(std::string filename)
 	}
 	std::ifstream 		f(filename.c_str());
 	std::stringstream	ss;
-	std::streampos 		len_of_file;
 	std::string			header("HTTP/1.1 200 OK\r\nConnection: keep-alive\r\nContent-Length: ");
 	std::string			str, body;
 
 	if (f)
 	{
-		len_of_file = this->_lengthOfFile(f);
-		ss << len_of_file;
-		header.append(ss.str());
 		while (f.good())
 		{
 			getline(f, str);
@@ -223,11 +192,13 @@ void	Response::createGet(std::string filename)
 	f.close();
 	
 	this->_body = body;
+	ss << this->_body.size();
+	header.append(ss.str());
 	this->_header = header;
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append(this->_body);
-	this->setLengthResponse(len_of_file);
+	this->setLengthResponseSizeT(this->_raw_response.size());
 }
 
 void	Response::createRedirection(std::string redirection)
@@ -249,7 +220,6 @@ void	Response::_binary(std::string filename)
 	std::size_t			found;
 	std::string			header, extension;
 	std::stringstream	ss;
-	std::streampos 		len_of_file;
 	std::ifstream		f(filename.c_str(), std::ios::binary);
 
 	this->_is_binary = true;
@@ -266,9 +236,6 @@ void	Response::_binary(std::string filename)
 		return this->error("500");
 	
 	f.clear();
-	len_of_file = this->_lengthOfFile(f);
-	ss << len_of_file;
-	header.append(ss.str());
 	this->_header = header;
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
@@ -277,13 +244,13 @@ void	Response::_binary(std::string filename)
 	std::istreambuf_iterator<char> ist(f);
 	std::istreambuf_iterator<char> ise;
 	for (; ist != ise; ++ist)
-	{
 		content.push_back(*ist);
-	}
 	f.close();
 	this->_body = content;
+	ss << this->_body.size();
+	header.append(ss.str());
 	this->_raw_response.append(this->_body);
-	this->setLengthResponse(len_of_file);
+	this->setLengthResponseSizeT(this->_raw_response.size());
 }
 
 void	Response::_settingMimes(void)
@@ -330,15 +297,12 @@ void	Response::error(std::string const error_code)
 	std::string			error_page(this->_getPathToError(error_code)), error_message = _getErrorMessage(error_code);
 	std::ifstream		f(error_page.c_str());
 	std::stringstream	ss;
-	std::streampos		len_of_file;
-	std::string			header("HTTP/1.1 " + error_code +" "+error_message+"\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nContent-Length: "), str, body;
+	std::string			header("HTTP/1.1 " + error_code +" "+error_message+"\r\nConnection: keep-alive\r\nContent-Type: text/html\r\nContent-Length: ");
+	std::string         str, body;
 
 	this->_filename = std::string(error_page.c_str());
 	if (f)
 	{
-		len_of_file = this->_lengthOfFile(f);
-		ss << len_of_file;
-		header.append(ss.str());
 		while (f.good())
 		{
 			getline(f, str);
@@ -353,10 +317,12 @@ void	Response::error(std::string const error_code)
 	f.close();
 	this->_body = body;
 	this->_header = header;
+	ss << this->_body.size();
+	this->_header.append(ss.str());
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
 	this->_raw_response.append(this->_body);
-	this->setLengthResponse(len_of_file);
+	this->setLengthResponseSizeT(this->_raw_response.size());
 }
 
 void	Response::printDirectory(std::string root_dir, std::string dir)

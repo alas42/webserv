@@ -424,7 +424,7 @@ void Request::addToBodyChunked(const char * request_str, int len)
 		if (this->_length_of_chunk <= len - begin)
 		{
 			this->addToBody(request_str, begin, this->_length_of_chunk);
-			if (hexa.empty())
+			if (!hexa.empty())
 				hexa.clear();
 			i += (begin - i) + _length_of_chunk + 2;
 			begin += this->_length_of_chunk + 2;
@@ -433,7 +433,7 @@ void Request::addToBodyChunked(const char * request_str, int len)
 		else
 		{
 			this->addToBody(request_str, begin, len - begin);
-			this->_length_of_chunk -= (len - begin);
+			this->_length_of_chunk -= (len - begin);			
 			break ;
 		}
 		if (i >= len)

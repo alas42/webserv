@@ -29,10 +29,12 @@ class Response
 		void	error(std::string const error_code);
 		void	addToLengthSent(size_t block_size);
 		bool	isEverythingSent(void);
-		void	setLengthResponse(size_t len);
+		void	setLengthResponse(std::streampos len_of_file);
+		void	setLengthResponseSizeT(size_t len_of_string);
 		size_t	getRemainingLength(void);
 		size_t	getLengthSent(void);
 		void	reset(void);
+		bool	nextBit(void);
 
 	private:
 		std::string							_header;
@@ -40,6 +42,7 @@ class Response
 		std::string							_raw_response;
 		std::string							_filename;
 		bool								_sent_all;
+		bool								_is_binary;
 		size_t								_length_sent;
 		size_t								_length_response;
 		std::map<std::string, std::string>	_mimes;

@@ -193,7 +193,6 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 			return (1);
 		}
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
-
 		struct pollfd	& client_request_pollfd = client->second.getRequestPollFd();
 		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
 		{
@@ -378,9 +377,12 @@ std::string Server::_getRightConfigName(std::string host) {
 	size_t		found = 0;
 	std::string	ip;
 	std::string	uri;
+	size_t		pos;
 
-	ip = host.substr(0, host.find_first_of("/"));
-	uri = host.substr(host.find_first_of("/"), host.npos);
+	pos = host.find_first_of("/");
+	ip = host.substr(0, pos);
+	if (pos != std::string::npos)
+		uri = host.substr(host.find_first_of("/"), host.npos);
 
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
 		if (it->first.find(ip) != std::string::npos)

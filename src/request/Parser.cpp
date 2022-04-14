@@ -133,6 +133,8 @@ void Parser::_parseRequestUri(std::string & output, std::size_t & pos) {
 	this->_env_vars["REQUEST_URI"] = request_uri;
 	pos += (i - pos) + length_uri;
 	this->_parseQueryString(request_uri);
+	if (!this->_env_vars["QUERY_STRING"].empty())
+		request_uri = request_uri.substr(0, request_uri.find("?"));
 	this->_parseScript(request_uri);
 	if (this->_env_vars["SCRIPT_NAME"].empty() && this->_env_vars["REQUEST_URI"][this->_env_vars["REQUEST_URI"].size() - 1] != '/')
 		this->_env_vars["REQUEST_URI"].push_back('/');

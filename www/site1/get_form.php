@@ -2,9 +2,9 @@
 
 <html>
 	<body>
-		<form action="php-cgi" method="get">
-			Name: <input type="text" name="name"><br>
-			E-mail: <input type="text" name="email"><br>
+		<form action="./get_form.php" method="get">
+			Name: <input type="text" name="name" maxlength="1000"><br>
+			E-mail: <input type="text" name="email" maxlength="1000"><br>
 			<input type="submit">
 		</form>
 		<?php
@@ -12,7 +12,7 @@
 				echo 'Bonjour ' . htmlspecialchars($_GET["name"]) . '!';
 			}
 			if (isset($_GET['email'])){
-				echo 'Your email is ' . htmlspecialchars($_GET["name"]). '.';
+				echo 'Your email is ' . htmlspecialchars($_GET["email"]). '.';
 			}
 		?>
 	</body>

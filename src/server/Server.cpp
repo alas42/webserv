@@ -184,17 +184,22 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 	}
 	else														// CREATION OF NEW REQUEST
 	{
-		host = this->_getHostInBuffer(buffer);
+		std::string host;
+		std::string uri;
+
+		this->_getHostInBuffer(buffer, host, uri);
+
+		host.append(uri);
 		this->_verifyHost(host);
-		std::cout << "1" << std::endl;
 		std::string configName = this->_getRightConfigName(host);
-		std::cout << "2" << std::endl;
 		if (configName == "") {
 			this->_closeConnection(it);
 			free(buffer);
 			return (1);
 		}
+
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
+
 		struct pollfd client_request_pollfd = client->second.getRequestPollFd();
 		if (client_request_pollfd.fd != -1)						// IF REQUEST POST
 		{
@@ -363,19 +368,15 @@ bool	Server::run(void)
 	return (this->_checkingRevents());
 }
 
-std::string Server::_getHostInBuffer(std::string buffer) {
-
-	std::string host;
-	std::string uri;
+void Server::_getHostInBuffer(std::string buffer, std::string &host, std::string &uri) {
 
 	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
 	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++) {
-		if (it->compare("Host:") == 0)
-			host = (it + 1)->c_str();
 		if (it->compare("GET") == 0)
 			uri = (it + 1)->c_str();
+		if (it->compare("Host:") == 0)
+			host = (it + 1)->c_str();
 	}
-	return host + uri;
 }
 
 std::string Server::_getRightConfigName(std::string host) {
@@ -386,7 +387,6 @@ std::string Server::_getRightConfigName(std::string host) {
 	std::string	uri;
 	size_t		pos;
 
-	std::cout  << "host = " << host << std::endl;
 	pos = host.find_first_of("/");
 	ip = host.substr(0, pos);
 	if (pos != std::string::npos)

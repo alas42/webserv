@@ -47,7 +47,7 @@ class Server
 		void				_closeConnection(std::vector<pollfd>::iterator	it);
 		std::string			_getRightConfigName(std::string host);
 		void				_verifyHost(std::string & host);
-		std::string 		_getHostInBuffer(std::string buffer);
+		void				_getHostInBuffer(std::string buffer, std::string &host, std::string &uri);
 		std::vector<int>	_getPorts();
 		void				_setClientPollFd(std::vector<pollfd>::iterator	it);
 		std::vector<std::vector<std::string> >	_getConfOfFile(const char *conf);

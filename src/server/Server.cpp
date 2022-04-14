@@ -191,7 +191,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 			return (1);
 		}
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
-		struct pollfd	& client_request_pollfd = client->second.getRequestPollFd();
+		struct pollfd client_request_pollfd = client->second.getRequestPollFd();
 		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
 		{
 			client_request_pollfd.events = POLLOUT;

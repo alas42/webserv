@@ -18,10 +18,12 @@ class Parser
 		size_t	getLengthBody(void);
 		size_t	getLengthHeader(void);
 		Config	getBlock(void);
+		int		getFlag(void);
 
 	private:
 		bool								_post;
 		bool								_chunked;
+		int									_flag;
 		std::size_t							_length_body;
 		std::size_t							_length_header;
 		std::string							_header;

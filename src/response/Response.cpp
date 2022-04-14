@@ -313,6 +313,10 @@ void	Response::error(std::string const error_code)
 	std::string         str, body;
 
 	this->_filename = std::string(error_page.c_str());
+	if (!error_code.compare("413"))
+	{
+		header.replace(header.find("keep-alive"), 10, "close");
+	}
 	if (f)
 	{
 		while (f.good())

@@ -8,6 +8,9 @@ https://developer.mozilla.org/fr/docs/Web/HTTP/Basics_of_HTTP
 
 ---------------------------------------Parsing du fichier de configuration------------------------------------
 
+127.0.0.1:8080/1
+127.0.0.1:8081/1
+127.0.0.1:8080/2
 
 ---------------------------------------Fonctionnement des sockets------------------------------------------------
 
@@ -99,8 +102,8 @@ if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
 ** Allows the server to accept incoming client connections
 ** listen() marks the socket referred by server_fd as a passive socket that will be used to accept incoming connection with accept
 */
-if (listen(server_fd, 42) < 0) 
-{ 
+if (listen(server_fd, 42) < 0)
+{
 	printf("%s\n", strerror(errno));
 	std::cerr << "listen error" << std::endl;
 	return (1);

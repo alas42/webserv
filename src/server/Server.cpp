@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Server.cpp                                         :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ymehdi <ymehdi@student.42.fr>              +#+  +:+       +#+        */
+/*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/03/29 17:03:45 by ymehdi           ###   ########.fr       */
+/*   Updated: 2022/04/13 18:43:27 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,16 +46,6 @@ std::vector<int> Server::_getPorts() {
 	return ports;
 }
 
-std::string Server::_getHostInConfig(std::string buffer) {
-
-	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
-
-	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++)
-		if (it->compare("Host:") == 0)
-			return (it + 1)->c_str();
-	return "NULL";
-}
-
 void Server::_verifyHost(std::string & host) {
 
 	if (host.find("localhost") != std::string::npos)
@@ -75,6 +65,10 @@ int	Server::setup(void)
 	this->_pollfds.reserve(CONNECTION_QUEUE);
 	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++)
 	{
+		size_t pos = it->first.find("/");
+		if (it->first[pos + 1] != '1')
+			continue;
+
 		server_fd = -1;
 
 		if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -89,9 +83,9 @@ int	Server::setup(void)
 		sock_structs.sin_family = AF_INET;
 		sock_structs.sin_port = htons(it->second.getPort());
 		sock_structs.sin_addr.s_addr = inet_addr(it->second.getIpAddress().c_str());
-		
+
 		if (bind(server_fd, (sockaddr *)&sock_structs, sizeof(sockaddr_in)) < 0)
-			throw std::runtime_error("Error: bind() error: " + it->second.getServerNames()[0] + "\n");
+			throw std::runtime_error("Error: bind() error: " + it->first.substr(0, pos) + "\n");
 
 		if (listen(server_fd, CONNECTION_QUEUE) < 0)
 			throw std::runtime_error("Error: listen() error\n");
@@ -100,6 +94,8 @@ int	Server::setup(void)
 		listening_fd.fd = server_fd;
 		listening_fd.events = POLLIN;
 		this->_pollfds.push_back(listening_fd);
+
+		std::cout << "Listen on " << it->first.substr(0, pos) << std::endl;
 	}
 	std::cout << GREEN << "Starting..." << RESET << std::endl;
 	return (0);
@@ -186,12 +182,17 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		client->second.addToRequest(&buffer[0], rc, client->second.getRequestPtr()->getConf());
 	else 															// CREATION OF NEW REQUEST
 	{
-		host = this->_getHostInConfig(buffer);
+		host = this->_getHostInBuffer(buffer);
 		this->_verifyHost(host);
-		client->second.addToRequest(&buffer[0], rc, this->_config.at(host));
-
-		struct pollfd client_request_pollfd = client->second.getRequestPollFd();
-		if (client_request_pollfd.fd != -1)
+		std::string configName = this->_getRightConfigName(host);
+		if (configName == "") {
+			this->_closeConnection(it);
+			free(buffer);
+			return (1);
+		}
+		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
+		struct pollfd	& client_request_pollfd = client->second.getRequestPollFd();
+		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
 		{
 			client_request_pollfd.events = POLLOUT;
 			this->_pollfds.push_back(client_request_pollfd);
@@ -256,7 +257,7 @@ void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
 				}
 			}
 		}
-	} 
+	}
 }
 
 bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
@@ -360,8 +361,71 @@ bool	Server::run(void)
 	return (this->_checkingRevents());
 }
 
-void	Server::clean(void) {
+std::string Server::_getHostInBuffer(std::string buffer) {
 
+	std::string host;
+	std::string uri;
+
+	std::vector<std::string> buff = mySplit(buffer, " \n\t\r");
+	for (std::vector<std::string>::iterator it = buff.begin(); it != buff.end(); it++) {
+		if (it->compare("Host:") == 0)
+			host = (it + 1)->c_str();
+		if (it->compare("GET") == 0)
+			uri = (it + 1)->c_str();
+	}
+	return host + uri;
+}
+
+std::string Server::_getRightConfigName(std::string host) {
+
+	std::string	ret;
+	size_t		found = 0;
+	std::string	ip;
+	std::string	uri;
+	size_t		pos;
+
+	pos = host.find_first_of("/");
+	ip = host.substr(0, pos);
+	if (pos != std::string::npos)
+		uri = host.substr(host.find_first_of("/"), host.npos);
+
+	for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
+		if (it->first.find(ip) != std::string::npos)
+			found++;
+	}
+	if (found == 1)	// return the only one matching server{}
+		return (ip + "/1");
+	if (found > 1) {
+		while (found) {	// checks locations on each matching server{}
+			std::stringstream	out;
+			Config				tmp;
+
+			out << found;
+			tmp = this->_config.at(ip + "/" + out.str());
+			for (std::map<std::string, Config>::iterator it = tmp.getLocation().begin(); it != tmp.getLocation().end(); it++) {
+				if (it->first.compare(uri) == 0)
+					return (ip + "/" + out.str());
+			}
+			found--;
+		}
+	}
+	else {	// checks server_name on each maching server{} with port
+		std::string port = ip.substr(ip.find(":") + 1, ip.find("/") - ip.find(":"));
+		ip = ip.substr(0, ip.find(":"));
+		for(std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
+			if (it->first.find(port) != it->first.npos) {
+				for (size_t i = 0; i < it->second.getServerNames().size(); i++) {
+					if (it->second.getServerNames()[i].compare(ip) == 0)
+						return it->first;
+				}
+			}
+		}
+		return "";
+	}
+	return ip + "/1";
+}
+
+void	Server::clean(void) {
 	for (size_t i = 0; i < this->_pollfds.size(); i++)
 		close(this->_pollfds[i].fd);
 	this->_pollfds.clear();
@@ -390,19 +454,27 @@ std::vector<std::vector<std::string> >	Server::_getConfOfFile(const char *conf) 
 
 void	Server::_fileToServer(const char *conf_file) {
 
-	std::vector<std::vector<std::string> > confFile;
+	std::vector<std::vector<std::string> >	confFile;
 
 	confFile = this->_getConfOfFile(conf_file);
 	for (size_t i = 0; i < confFile.size(); i++) {
 		if (confFile[i][0].compare("server") == 0 && confFile[i][1].compare("{") == 0) {
-			std::stringstream out;
-			Config block;
+			std::stringstream	out;
+			std::stringstream	countout;
+			Config				block;
+			int					count = 1;
 
 			i = block.parseServer(confFile, i);
 			block.checkBlock(false);
 			out << block.getPort();
-			std::string tmp = out.str();
-			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str(), block));
+
+			for (std::map<std::string, Config>::iterator it = this->_config.begin(); it != this->_config.end(); it++) {
+				if (it->first.find(block.getIpAddress() + ":" + out.str()) != std::string::npos)
+					count++;
+			}
+
+			countout << count;
+			this->_config.insert(std::pair<std::string, Config>(block.getIpAddress() + ":" + out.str() + "/" + countout.str(), block));
 		}
 		else if (confFile[i][0].compare("#") != 0)
 			throw std::runtime_error("Error: Bad server{} configuration\n");

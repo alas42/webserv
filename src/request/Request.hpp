@@ -33,8 +33,9 @@ class Request
 		Response 									execute(void);
 		std::map<std::string,std::string> const &	getEnvVars(void) const;
 		Config &									getConf(void);
-		void										reset(void);
 		void										setSentContinue(bool val);
+		int											getFlag(void);
+
 
 	private:
 		Config								_block;
@@ -53,6 +54,7 @@ class Request
 		size_t								_length_received;
 		size_t								_length_of_chunk;
 		int									_fd;
+		int									_flag;
 		std::map<std::string, std::string>	_env_vars;
 		char 				*				_body_part;
 		FILE				*				_fp;

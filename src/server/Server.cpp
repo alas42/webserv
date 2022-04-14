@@ -151,7 +151,6 @@ bool	Server::_sending(std::vector<pollfd>::iterator	it, std::map<int, Client>::i
 		return (1);
 	}
 	client->second.addToResponseLength(block_size);
-	std::cout << MAGENTA << i << " bytes sended"<< RESET << std::endl;
 	return (0);
 }
 
@@ -178,13 +177,18 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		return (1);
 	}
 	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
-	if (client->second.getRequestPtr() != 0)						// REQUEST ALREADY EXISITNG
-		client->second.addToRequest(&buffer[0], rc, client->second.getRequestPtr()->getConf());
-	else 															// CREATION OF NEW REQUEST
+	if (client->second.getRequestPtr() != 0)	// REQUEST ALREADY EXISITNG
+	{
+		if (!client->second.getRequestPtr()->getFlag())
+			client->second.addToRequest(&buffer[0], rc, client->second.getRequestPtr()->getConf());
+	}
+	else														// CREATION OF NEW REQUEST
 	{
 		host = this->_getHostInBuffer(buffer);
 		this->_verifyHost(host);
+		std::cout << "1" << std::endl;
 		std::string configName = this->_getRightConfigName(host);
+		std::cout << "2" << std::endl;
 		if (configName == "") {
 			this->_closeConnection(it);
 			free(buffer);
@@ -192,7 +196,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		}
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
 		struct pollfd client_request_pollfd = client->second.getRequestPollFd();
-		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
+		if (client_request_pollfd.fd != -1)						// IF REQUEST POST
 		{
 			client_request_pollfd.events = POLLOUT;
 			this->_pollfds.push_back(client_request_pollfd);
@@ -273,20 +277,19 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
 		{
 			if (client_request->isChunked() && !client_request->sentContinue())
-			{
 				client->second.getResponse() = client_request->executeChunked();
-			}
 			else
-			{
 				client->second.getResponse() = client_request->execute();
-			}
 		}
 		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
 			return (1);
+
 		if (client->second.getResponse().isEverythingSent())		// TOUT EST ENVOYE
 		{
 			it->events = POLLIN;									// PASSE LE SOCKET EN LECTURE
 			client->second.getResponse().reset();
+			if (client_request->getFlag() == 413)
+				return (1);
 			if (client_request->isComplete())						// RESET SI PAS CHUNK (car envoie de 100-Continue)
 			{
 				find = std::find(this->_requests_fd.begin(), this->_requests_fd.end(), client->second.getRequestFd());
@@ -307,7 +310,6 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		request->second->writeInFile();
 		if (request->second->isComplete())
 		{
-			std::cout << "REQUEST completed in POLLOUT (POST)" << std::endl;
 			it->events = 0;
 			fclose(request->second->getFp());
 			_setClientPollFd(it);
@@ -384,6 +386,7 @@ std::string Server::_getRightConfigName(std::string host) {
 	std::string	uri;
 	size_t		pos;
 
+	std::cout  << "host = " << host << std::endl;
 	pos = host.find_first_of("/");
 	ip = host.substr(0, pos);
 	if (pos != std::string::npos)

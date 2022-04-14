@@ -1,17 +1,17 @@
 #include "Parser.hpp"
 
-Parser::Parser(void): _post(false), _chunked(false), _length_body(0), _length_header(0),
+Parser::Parser(void): _post(false), _chunked(false), _flag(0), _length_body(0), _length_header(0),
 	_header(""), _method(""), _content_length(""), _content_type("")
 {}
 
 Parser::~Parser(void)
 {}
 Parser::Parser(Parser const & other):
-	_post(other._post), _chunked(other._chunked), _length_body(other._length_body), _length_header(other._length_header),
+	_post(other._post), _chunked(other._chunked), _flag(other._flag), _length_body(other._length_body), _length_header(other._length_header),
 	_header(other._header), _method(other._method), _content_length(other._content_length), _content_type(other._content_type),
 	_env_vars(other._env_vars), _block(other._block)
 {}
-Parser::Parser(std::map<std::string, std::string> & env_vars, Config & block): _post(false), _chunked(false), _length_body(0), _length_header(0),
+Parser::Parser(std::map<std::string, std::string> & env_vars, Config & block): _post(false), _chunked(false), _flag(0), _length_body(0), _length_header(0),
 	_header(""), _method(""), _content_length(""), _content_type(""), _block(block)
 {
 	this->_env_vars = env_vars;
@@ -31,6 +31,7 @@ Parser& Parser::operator=(Parser const & other)
 		this->_content_type = other._content_type;
 		this->_env_vars = other._env_vars;
 		this->_block = other._block;
+		this->_flag = other._flag;
 	}
 	return *this;
 }
@@ -40,6 +41,7 @@ bool	Parser::isChunked(void) { return _chunked;}
 size_t	Parser::getLengthBody(void) { return this->_length_body; }
 size_t	Parser::getLengthHeader(void) {	return this->_length_header; }
 Config	Parser::getBlock(void) { return this->_block; }
+int		Parser::getFlag(void) { return this->_flag; }
 
 std::map<std::string, std::string> Parser::parseOutputClient(std::string & output) {
 
@@ -81,7 +83,6 @@ std::map<std::string, std::string> Parser::parseOutputClient(std::string & outpu
 		this->_post = false;
 		this->_length_body = 0;
 	}
-	// std::cout << "\n--------------------------\n" << this->_header <<  "\n--------------------------\n" << std::endl;
 	this->_chooseConfigBeforeExecution();
 	return this->_env_vars;
 }
@@ -160,9 +161,10 @@ void	Parser::_parseScript(std::string & request_uri) {
 void	Parser::_parseServerProtocol(std::string & output, std::size_t & pos) {
 
 	std::size_t	i = 0, length_protocol = 0;
-	std::string	protocols[4] = {"HTTP", "UDP", "FTP", "0"};
+	std::string	protocols[2] = {"HTTP", "0"};
 
-	while (protocols[i].compare("0") != 0) {
+	while (protocols[i].compare("0") != 0)
+	{
 		if ((i = output.find(protocols[i], pos)) != std::string::npos) {
 			while (!std::isspace(output.at(i + length_protocol))) {
 				length_protocol++;
@@ -172,6 +174,10 @@ void	Parser::_parseServerProtocol(std::string & output, std::size_t & pos) {
 			break ;
 		}
 		i++;
+	}
+	if (this->_env_vars["SERVER_PROTOCOL"].empty())
+	{
+		this->_flag = 505;
 	}
 }
 
@@ -202,11 +208,17 @@ void	Parser::_parseContentLength(std::string & output) {
 		this->_content_length = output.substr(i, length_content_length);
 		this->_length_body = atoi(_content_length.c_str());
 	}
-	else {
+	else
+	{
 		this->_content_length = "-1";
 		this->_length_body = 0;
+		this->_flag = 411;
 	}
 	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
+	if (this->_length_body > this->_block.getClientMaxBodySize())
+	{
+		this->_flag = 413;
+	}
 }
 
 void Parser::_parseContentType (std::string & output) {

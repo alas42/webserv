@@ -2,7 +2,7 @@
 
 Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
  _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
- _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0),_fd(-1)
+ _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1), _flag(0)
 {
 	this->_body_part = NULL;
 	this->_fp = NULL;
@@ -21,7 +21,7 @@ Request::~Request(void)
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
 	_tmp_file(other._tmp_file), _completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
 	_sent_continue(other._sent_continue),  _last_chunk_received(other._last_chunk_received), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_length_of_chunk(other._length_of_chunk), _fd(other._fd), _env_vars(other._env_vars) 
+	_length_of_chunk(other._length_of_chunk), _fd(other._fd), _flag(other._flag), _env_vars(other._env_vars) 
 {
 	this->_body_part = NULL;
 	this->_fp = other._fp;
@@ -56,6 +56,7 @@ Request & Request::operator=(const Request & other)
 		this->_length_received = other._length_received;
 		this->_length_of_chunk = other._length_of_chunk;
 		this->_fd = other._fd;
+		this->_flag = other._flag;
 		this->_env_vars = other._env_vars;
 		this->_fp = other._fp;
 		if (this->_body_part != NULL)
@@ -78,7 +79,7 @@ Request & Request::operator=(const Request & other)
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
 	_path_to_cgi("cgi/php-cgi"), _tmp_file(""),
 	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
-	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1)
+	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1), _flag(0)
 {
 	this->_fp = NULL;
 	this->_body_part = NULL;
@@ -100,10 +101,12 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	this->_env_vars = parser.parseOutputClient(request_string);
 	this->_block = parser.getBlock();
 	this->_post = parser.isPost();
+	this->_flag = parser.getFlag();
+	std::cout << "flag = " << _flag << std::endl;
 	this->_chunked = parser.isChunked();
 	this->_length_body = parser.getLengthBody();
 	this->_length_header = parser.getLengthHeader();
-	if (this->_post)
+	if (!this->_flag && this->_post)
 		this->_initPostRequest(request_str, rc, id);
 	else
 		this->_completed = true;
@@ -157,28 +160,8 @@ std::map<std::string,std::string> const & 	Request::getEnvVars(void) const { ret
 Config &									Request::getConf(void) { return this->_block; }
 void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 int											Request::getFd(void) { return this->_fd; }
+int											Request::getFlag(void) { return this->_flag; }
 FILE								*		Request::getFp(void) { return this->_fp; }
-
-void	Request::reset()
-{
-	if (this->_body_part != NULL)
-	{
-		free(this->_body_part);
-		this->_body_part = NULL;
-	}
-	if (this->_post)
-		remove(this->_tmp_file.c_str());
-	if (this->_cgi)
-		remove(std::string("cgi_" + this->_tmp_file).c_str());
-	this->_header_completed = false;
-	this->_completed = false;
-	this->_cgi = false;
-	this->_chunked = false;
-	this->_post = false;
-	this->_header_completed = false;
-	this->_sent_continue = false;
-	this->_body_part_len = 0;
-}
 
 /*********************************************************/
 /***********************EXECUTION*************************/
@@ -200,6 +183,14 @@ Response	Request::execute(void) {
 	if (!this->_block.getRedirection().first.empty()) {
 		return this->_executeRedirection(r);
 	}
+	if (this->_flag)
+	{
+		std::stringstream ss;
+		ss << this->_flag;
+		r.error(ss.str());
+		return (r);
+	}
+
 	Response (Request::*ptr [])(Response) = {&Request::_executeDelete, &Request::_executeGet, &Request::_executePost};
 	std::string methods[] = {"DELETE", "GET", "POST", "0"};
 
@@ -315,8 +306,8 @@ Response	Request::_executeGet(Response r) {
 	return (r);
 }
 
-Response	Request::_executePost(Response r) {
-
+Response	Request::_executePost(Response r)
+{
 	if (!this->_block.getAlowMethods().empty() &&
 			std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end())
 	{

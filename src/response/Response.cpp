@@ -19,7 +19,6 @@ Response::Response(const Response & other): _header(other._header), _body(other.
 
 Response & Response::operator=(const Response & other)
 {
-	std::cout << "Response = called " << std::endl;
 	if (this != &other)
 	{
 		this->_body = other._body;
@@ -88,21 +87,17 @@ void		Response::_createCgi(const char *filename, std::string begin_header)
 		{
 			str.clear();
 			getline(f, str);
-			std::cout << str << std::endl;
 			if (!has_header && (str.empty() || str.size() <= 1))
 			{
-				std::cout << "1" << std::endl;
 				has_header = true;
 				continue ;
 			}
 			if (!has_header)
 			{
-				std::cout << "2" << std::endl;
 				header.append(str + "\n");
 			}
 			else
 			{
-				std::cout << "3" << std::endl;
 				body.append(str);
 				body.append("\r\n");
 			}
@@ -203,7 +198,7 @@ void	Response::createGet(std::string filename)
 	else
 		return this->error("500");
 	f.close();
-	
+
 	this->_body = body;
 	ss << this->_body.size();
 	header.append(ss.str());
@@ -247,7 +242,7 @@ void	Response::_binary(std::string filename)
 		header.replace(header.find("*"), 1, "application/octet-stream");
 	if (!f)
 		return this->error("500");
-	
+
 	f.clear();
 	f.seekg(0, std::ios::end);
 	length = f.tellg();

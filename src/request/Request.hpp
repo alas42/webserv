@@ -26,6 +26,7 @@ class Request
 		void	addToBody(const char * request_str, int pos, int len);
 		void	addToBodyChunked(const char * request_str, int len);
 		int		getFd(void);
+		FILE *	getFp(void);
 		size_t	writeInFile(void);
 
 		Response 									executeChunked(void);
@@ -54,6 +55,7 @@ class Request
 		int									_fd;
 		std::map<std::string, std::string>	_env_vars;
 		char 				*				_body_part;
+		FILE				*				_fp;
 
 		void		_initEnvMap(void);
 		void 		_initPostRequest(const char *request_str, int rc, int id);

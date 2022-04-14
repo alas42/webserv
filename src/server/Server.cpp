@@ -309,7 +309,7 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		{
 			std::cout << "REQUEST completed in POLLOUT (POST)" << std::endl;
 			it->events = 0;
-			close(it->fd);
+			fclose(request->second->getFp());
 			_setClientPollFd(it);
 			this->_pollfds.erase(it);
 			return (1);

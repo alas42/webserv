@@ -27,7 +27,7 @@ class Request
 		void	addToBodyChunked(const char * request_str, int len);
 		int		getFd(void);
 		FILE *	getFp(void);
-		size_t	writeInFile(void);
+		int		writeInFile(void);
 
 		Response 									executeChunked(void);
 		Response 									execute(void);

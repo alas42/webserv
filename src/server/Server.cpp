@@ -105,7 +105,11 @@ void	Server::_closeConnection(std::vector<pollfd>::iterator	it)
 {
 	close(it->fd);
 	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
+	{
+		if (this->_socket_clients.find(it->fd)->second.getRequestPtr() != 0)
+			fclose(this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp());
 		this->_socket_clients.erase(it->fd);
+	}
 	this->_pollfds.erase(it);
 }
 
@@ -165,12 +169,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		throw std::runtime_error("Error: Malloc\n");
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
-	if (rc == -1)
-	{
-		free(buffer);
-		return (1);
-	}
-	else if (rc == 0)
+	if (rc <= 0)
 	{
 		this->_closeConnection(it);
 		free(buffer);
@@ -186,9 +185,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 	{
 		host = this->_getHostInBuffer(buffer);
 		this->_verifyHost(host);
-		std::cout << "1" << std::endl;
 		std::string configName = this->_getRightConfigName(host);
-		std::cout << "2" << std::endl;
 		if (configName == "") {
 			this->_closeConnection(it);
 			free(buffer);
@@ -240,7 +237,7 @@ bool	Server::_pollin(std::vector<pollfd>::iterator	it)			// READING
 	return (0);
 }
 
-void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
+void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it, int event)
 {
 	std::map<int, Client>::iterator itb = this->_socket_clients.begin();
 	std::map<int, Client>::iterator ite = this->_socket_clients.end();
@@ -256,7 +253,13 @@ void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it)
 			{
 				if (itpb->fd == client_fd)
 				{
-					itpb->events = POLLOUT;
+					if (event == 1)
+						itpb->events = POLLOUT;
+					else if (event == 0)
+					{
+						this->_pollfds.erase(it);
+						this->_closeConnection(itpb);
+					}
 					return ;
 				}
 			}
@@ -269,6 +272,7 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 	std::map<int, Client>::iterator		client;
 	std::map<int, Request *>::iterator	request;
 	std::vector<int>::iterator			find;
+	int									ret = 0;
 
 	client = this->_socket_clients.find(it->fd);
 	if (client != this->_socket_clients.end()) 						// SOCKET DU CLIENT
@@ -307,18 +311,24 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 	if (find != this->_requests_fd.end())							// FILE DESCRIPTOR (REQUETE)
 	{
 		request = this->_fd_request_client.find(it->fd);
-		request->second->writeInFile();
-		if (request->second->isComplete())
+		ret = request->second->writeInFile();
+		if (ret <= 0)
 		{
-			it->events = 0;
+			_setClientPollFd(it, 0);
+			return (1);
+		}
+		else if (request->second->isComplete())
+		{
 			fclose(request->second->getFp());
-			_setClientPollFd(it);
+			_setClientPollFd(it, 1);
 			this->_pollfds.erase(it);
 			return (1);
 		}
 	}
 	return (0);
 }
+
+
 
 bool	Server::_checkingRevents(void)
 {
@@ -386,7 +396,6 @@ std::string Server::_getRightConfigName(std::string host) {
 	std::string	uri;
 	size_t		pos;
 
-	std::cout  << "host = " << host << std::endl;
 	pos = host.find_first_of("/");
 	ip = host.substr(0, pos);
 	if (pos != std::string::npos)

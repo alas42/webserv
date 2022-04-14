@@ -5,6 +5,7 @@ Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
  _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0),_fd(-1)
 {
 	this->_body_part = NULL;
+	this->_fp = NULL;
 }
 
 Request::~Request(void)
@@ -23,7 +24,7 @@ Request::Request(const Request & other): _block(other._block), _path_to_cgi(othe
 	_length_of_chunk(other._length_of_chunk), _fd(other._fd), _env_vars(other._env_vars) 
 {
 	this->_body_part = NULL;
-
+	this->_fp = other._fp;
 	if (this->_body_part_len > 0)
 	{
 		this->_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + 1));
@@ -32,6 +33,7 @@ Request::Request(const Request & other): _block(other._block), _path_to_cgi(othe
 		this->_body_part = (char *)memcpy(this->_body_part, other._body_part, this->_body_part_len);
 		this->_body_part[this->_body_part_len] = '\0';
 	}
+
 }
 
 Request & Request::operator=(const Request & other)
@@ -55,6 +57,7 @@ Request & Request::operator=(const Request & other)
 		this->_length_of_chunk = other._length_of_chunk;
 		this->_fd = other._fd;
 		this->_env_vars = other._env_vars;
+		this->_fp = other._fp;
 		if (this->_body_part != NULL)
 		{
 			free(this->_body_part);
@@ -77,6 +80,7 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
 	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1)
 {
+	this->_fp = NULL;
 	this->_body_part = NULL;
 	std::string request_string(request_str);
 	this->_initEnvMap();
@@ -134,9 +138,8 @@ void	Request::_initPostRequest(const char *request_str, int rc, int id) {
 
 	ss << id;
 	this->_tmp_file = "request_" + this->_env_vars["REQUEST_METHOD"] + "_" + ss.str();
-	FILE	*fp = fopen(this->_tmp_file.c_str(), "a");
-
-	this->_fd = fileno(fp);
+	this->_fp = fopen(this->_tmp_file.c_str(), "a");
+	this->_fd = fileno(this->_fp);
 	this->_length_received = 0;
 	if (this->_chunked)
 		addToBodyChunked(request_str, rc - _length_header);
@@ -154,6 +157,7 @@ std::map<std::string,std::string> const & 	Request::getEnvVars(void) const { ret
 Config &									Request::getConf(void) { return this->_block; }
 void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 int											Request::getFd(void) { return this->_fd; }
+FILE								*		Request::getFp(void) { return this->_fp; }
 
 void	Request::reset()
 {

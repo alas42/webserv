@@ -20,7 +20,7 @@ Request::~Request(void)
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
 	_tmp_file(other._tmp_file), _completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
 	_sent_continue(other._sent_continue), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars) 
+	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars)
 {
 	this->_body_part = NULL;
 

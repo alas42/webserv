@@ -83,7 +83,9 @@ if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1)
 	std::cerr << "setsockopt error" << std::endl;
 	return (1);
 }
+GET /index.html HTTP/1.1 <CRLF>Accept : text/html, image/gif <CRLF>
 
+User-Agent : Mozilla/4.0 (compatible ; MSIE 4.0 ; Linux X11 2.2.17) <CRLF><CRLF>
 3.
 /*
 ** Gets a unique name for the socket

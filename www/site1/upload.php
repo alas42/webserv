@@ -16,6 +16,13 @@
 		echo "Error\n" . "<br>";
 	}
 
+	if($_FILES["fileToUpload"]["size"] <= 0)
+	{
+		$uploadOk = 0;
+		echo "Error\n" . "<br>";
+		echo "Please, choose a file\n"  . "<br>";
+	}
+
 	// Check if file already exists
 	if ($uploadOk == 1 && file_exists($target_file))
 	{

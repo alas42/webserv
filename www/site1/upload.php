@@ -1,15 +1,20 @@
 <?php
 
-	$target_dir = "./" . $_SERVER["UPLOAD_STORE"] . "/";
+	$target_dir = "." . $_SERVER["UPLOAD_STORE"] . "/";
 	$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
+	echo $target_file . "<br>";
 	$uploadOk = 0;
-	$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+	$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
 	echo "<!DOCTYPE html>";
 
 	if(isset($_POST["submit"]))
 	{
 		$uploadOk = 1;
+	}
+	else
+	{
+		echo "Error\n" . "<br>";
 	}
 
 	// Check if file already exists
@@ -20,6 +25,9 @@
 		$uploadOk = 0;
 	}
 
+	echo "Type: " . $_FILES["fileToUpload"]["type"] . "<br>";
+	echo "Size: " . ($_FILES["fileToUpload"]["size"]) . " b<br>";
+	
 	// Check file size
 	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 1000000000)
 	{

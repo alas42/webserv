@@ -266,7 +266,6 @@ void	Response::_binary(std::string filename)
 		content.push_back(*ist);
 	f.close();
 	this->_body = content;
-
 	this->_raw_response.append(this->_body);
 	this->setLengthResponseSizeT(this->_raw_response.size());
 }

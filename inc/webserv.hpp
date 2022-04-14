@@ -41,8 +41,6 @@
 #define CLIENTMAXBODYSIZE		210000000
 #define	CONNECTION_QUEUE		300
 
-#define send(X, Y, Z, A) -1
-
 	extern bool	g_end;
 
 	std::vector<std::string> mySplit(std::string s, std::string charset);

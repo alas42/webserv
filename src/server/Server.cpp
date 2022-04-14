@@ -107,7 +107,24 @@ void	Server::_closeConnection(std::vector<pollfd>::iterator	it)
 	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
 	{
 		if (this->_socket_clients.find(it->fd)->second.getRequestPtr() != 0)
-			fclose(this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp());
+		{
+			if (this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp() != NULL)
+			{
+				fclose(this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp());
+			}
+		}
+		this->_socket_clients.erase(it->fd);
+	}
+	this->_pollfds.erase(it);
+}
+
+void	Server::_closeConnection_send(std::vector<pollfd>::iterator	it)
+{
+	close(it->fd);
+	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
+	{
+		if (this->_socket_clients.find(it->fd)->second.getRequestPtr() != 0)
+			//fclose(this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp());
 		this->_socket_clients.erase(it->fd);
 	}
 	this->_pollfds.erase(it);
@@ -287,7 +304,6 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		}
 		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
 			return (1);
-
 		if (client->second.getResponse().isEverythingSent())		// TOUT EST ENVOYE
 		{
 			it->events = POLLIN;									// PASSE LE SOCKET EN LECTURE
@@ -319,7 +335,11 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		}
 		else if (request->second->isComplete())
 		{
-			fclose(request->second->getFp());
+			if (request->second->getFp() != NULL)
+			{
+				fclose(request->second->getFp());
+				request->second->setFpToNull();
+			}
 			_setClientPollFd(it, 1);
 			this->_pollfds.erase(it);
 			return (1);

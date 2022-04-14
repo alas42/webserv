@@ -161,7 +161,10 @@ void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 int											Request::getFd(void) { return this->_fd; }
 int											Request::getFlag(void) { return this->_flag; }
 FILE								*		Request::getFp(void) { return this->_fp; }
-
+void										Request::setFpToNull(void)
+{
+	this->_fp = NULL;
+}
 /*********************************************************/
 /***********************EXECUTION*************************/
 /*********************************************************/

@@ -1,8 +1,8 @@
 #include "Request.hpp"
 
 Request::Request(void): _block(), _path_to_cgi(""), _tmp_file(""),
- _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
- _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
+ _completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
+ _body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0),_fd(-1)
 {
 	this->_body_part = NULL;
 }
@@ -19,8 +19,8 @@ Request::~Request(void)
 
 Request::Request(const Request & other): _block(other._block), _path_to_cgi(other._path_to_cgi),
 	_tmp_file(other._tmp_file), _completed(other._completed), _cgi(other._cgi), _chunked(other._chunked), _post(other._post), _header_completed(other._header_completed),
-	_sent_continue(other._sent_continue), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
-	_length_of_chunk(other._length_of_chunk), _length_of_chunk_received(other._length_of_chunk_received), _fd(other._fd), _env_vars(other._env_vars)
+	_sent_continue(other._sent_continue),  _last_chunk_received(other._last_chunk_received), _body_part_len(other._body_part_len), _length_body(other._length_body), _length_header(other._length_header), _length_received(other._length_received),
+	_length_of_chunk(other._length_of_chunk), _fd(other._fd), _env_vars(other._env_vars) 
 {
 	this->_body_part = NULL;
 
@@ -47,12 +47,12 @@ Request & Request::operator=(const Request & other)
 		this->_post = other._post;
 		this->_header_completed = other._header_completed;
 		this->_sent_continue = other._sent_continue;
+		this->_last_chunk_received = other._last_chunk_received;
 		this->_body_part_len = other._body_part_len;
 		this->_length_body = other._length_body;
 		this->_length_header = other._length_header;
 		this->_length_received = other._length_received;
 		this->_length_of_chunk = other._length_of_chunk;
-		this->_length_of_chunk_received = other._length_of_chunk_received;
 		this->_fd = other._fd;
 		this->_env_vars = other._env_vars;
 		if (this->_body_part != NULL)
@@ -74,8 +74,8 @@ Request & Request::operator=(const Request & other)
 
 Request::Request(const char * request_str, int rc, Config & block, int id): _block(block),
 	_path_to_cgi("cgi/php-cgi"), _tmp_file(""),
-	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false),
-	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _length_of_chunk_received(0), _fd(-1)
+	_completed(false), _cgi(false), _chunked(false), _post(false), _header_completed(false), _sent_continue(false), _last_chunk_received(false),
+	_body_part_len(0), _length_body(0), _length_header(0), _length_received(0), _length_of_chunk(0), _fd(-1)
 {
 	this->_body_part = NULL;
 	std::string request_string(request_str);
@@ -102,46 +102,6 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	if (this->_post)
 		this->_initPostRequest(request_str, rc, id);
 	else
-		this->_completed = true;
-}
-
-void Request::addToBody(const char * request_str, int pos, int len)
-{
-	if (this->_body_part != NULL)
-	{
-		char * new_body_part = NULL;
-		new_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + len + 1));
-		if (new_body_part == NULL)
-			throw std::runtime_error("Error: addToBody Malloc\n");
-		new_body_part = (char *)memcpy(new_body_part, this->_body_part, this->_body_part_len);
-		memcpy(&new_body_part[this->_body_part_len], &request_str[pos], len);
-		free(this->_body_part);
-		this->_body_part = new_body_part;
-	}
-	else
-	{
-		if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
-			throw std::runtime_error("Error: addToBody Malloc\n");
-		this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
-	}
-	this->_body_part_len += len;
-	this->_body_part[this->_body_part_len] = '\0';
-}
-
-size_t	Request::writeInFile(void)
-{
-	size_t i = write(this->_fd, this->_body_part, this->_body_part_len);
-	this->_addToLengthReceived(i);
-	free(this->_body_part);
-	this->_body_part = NULL;
-	this->_body_part_len = 0;
-	return (i);
-}
-
-void	Request::_addToLengthReceived(size_t length_to_add)
-{
-	this->_length_received += length_to_add;
-	if (_length_received >= this->_length_body)
 		this->_completed = true;
 }
 
@@ -353,7 +313,9 @@ Response	Request::_executeGet(Response r) {
 
 Response	Request::_executePost(Response r) {
 
-	if (!this->_block.getAlowMethods().empty() && std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end()) {
+	if (!this->_block.getAlowMethods().empty() &&
+			std::find(this->_block.getAlowMethods().begin(), this->_block.getAlowMethods().end(), "POST") == this->_block.getAlowMethods().end())
+	{
 		r.error("405");
 		return r;
 	}
@@ -370,103 +332,111 @@ Response	Request::_executeRedirection(Response r) {
 	return r;
 }
 
-/* ----------------------------------TO CHANGE------------------------------------*/
+void Request::addToBody(const char * request_str, int pos, int len)
+{
+	if (this->_body_part != NULL)
+	{
+		char * new_body_part = NULL;
+		new_body_part = (char *)malloc(sizeof(char) * (this->_body_part_len + len + 1));
+		if (new_body_part == NULL)
+			throw std::runtime_error("Error: addToBody Malloc\n");
+		new_body_part = (char *)memcpy(new_body_part, this->_body_part, this->_body_part_len);
+		memcpy(&new_body_part[this->_body_part_len], &request_str[pos], len);
+		free(this->_body_part);
+		this->_body_part = new_body_part;
+	}
+	else
+	{
+		if (!(this->_body_part = (char *)malloc(sizeof(char) * (len + 1))))
+			throw std::runtime_error("Error: addToBody Malloc\n");
+		this->_body_part = (char *)memcpy(this->_body_part, &request_str[pos], len);
+	}
+	this->_body_part_len += len;
+	this->_body_part[this->_body_part_len] = '\0';
+}
+
+size_t	Request::writeInFile(void)
+{
+	size_t i = 0;
+
+	if (this->_body_part_len != 0)
+	{
+		i = write(this->_fd, this->_body_part, this->_body_part_len);
+		this->_addToLengthReceived(i);
+		if (this->_chunked)
+			this->_checkLastBlock();
+		free(this->_body_part);
+		this->_body_part = NULL;
+		this->_body_part_len = 0;
+	}
+	return (i);
+}
+
+void	Request::_checkLastBlock()
+{
+	if (this->_last_chunk_received)
+	{
+		this->_completed = true;
+		std::stringstream ss2;
+		ss2 << this->_length_received;
+		this->_env_vars["CONTENT_LENGTH"] = ss2.str();
+	}
+}
+
+void	Request::_addToLengthReceived(size_t length_to_add)
+{
+	this->_length_received += length_to_add;
+	if (!this->_chunked && _length_received >= this->_length_body)
+		this->_completed = true;
+}
+
 void Request::addToBodyChunked(const char * request_str, int len)
 {
 	if (len == 0)
 		return ;
+	std::string 				hexa = "";
+	size_t 						begin = 0;
+	int							i = 0;
 
-	char		*raw_request = NULL, *last_block = NULL, *size = NULL, *hexa = NULL, *block = NULL;
-	FILE 		*fp, *fo;
-	std::string	chunked_filename = this->_tmp_file + "_c";
-	bool		next = true;
-	int			i;
-
-	if (!(raw_request = (char *)malloc(sizeof(char) * (len + 1))))
-		throw std::runtime_error("Error: Malloc\n");
-	raw_request = (char *)memcpy(raw_request, &request_str[0], len);
-	raw_request[len] = '\0';
-
-	fp = fopen(chunked_filename.c_str(), "a+");
-	this->_length_of_chunk_received += len;
-	fwrite(raw_request, 1, len, fp);
-
-	if (this->_length_of_chunk_received >= 5)
+	while (true)
 	{
-		if (!(last_block = (char *)malloc(sizeof(char) * 6)))
+		if (this->_length_of_chunk == 0)
 		{
-			free(raw_request);
-			throw std::runtime_error("Error: Malloc\n");
-		}
-		fseek(fp, this->_length_of_chunk_received - 5, SEEK_SET);
-		fread(last_block, 1, 5, fp);
-		last_block[5] = '\0';
-
-		if (last_block[0] == '0' && last_block[1] == '\r' && last_block[2] == '\n')
-		{
-			fseek(fp, 0, 0);
-			fo = fopen(this->_tmp_file.c_str(), "w");
-			this->_length_of_chunk_received = 0;
-			while (next)
+			while (request_str[i] != '\r' && request_str[i] != '\n')
 			{
-				i = 0;
-				this->_length_of_chunk = 0;
-				std::stringstream	ss;
-
-				fseek(fp, this->_length_of_chunk_received, SEEK_SET);
-				if (!(size = (char *)malloc(sizeof(char) * 6)))
-				{
-					free(raw_request);
-					free(last_block);
-					throw std::runtime_error("Error: Malloc\n");
-				}
-				fread(size, 1, 5, fp);
-				size[5] = '\0';
-
-				while (size[i] != '\r' && size[i] != '\n') i++;
-				hexa = (char *)malloc(sizeof(char) * (i + 1));
-				hexa = (char *)memcpy(hexa, size, i);
-				hexa[i] = '\0';
-
-				ss << std::hex << std::string(hexa);
-				ss >> this->_length_of_chunk;
-
-				if (this->_length_of_chunk)
-				{
-					this->_length_received += this->_length_of_chunk;
-					if (!(block = (char *)malloc(sizeof(char) * this->_length_of_chunk)))
-					{
-						free(raw_request);
-						free(last_block);
-						free(size);
-						throw std::runtime_error("Error: Malloc\n");
-					}
-					this->_length_of_chunk_received += (strlen(hexa) + 2);
-					fseek(fp, this->_length_of_chunk_received, SEEK_SET);
-					this->_length_of_chunk_received += this->_length_of_chunk + 2;
-					fread(block, 1, this->_length_of_chunk, fp);
-					fwrite(block, 1, this->_length_of_chunk, fo);
-					free(block);
-					block = NULL;
-				}
-				else
-					next = false;
-				free(size);
-				size = NULL;
-				free(hexa);
-				hexa = NULL;
+				hexa.push_back(request_str[i]);
+				i++;
 			}
-			fclose(fo);
-			std::stringstream ss2;
-			ss2 << this->_length_received;
-			this->_env_vars["CONTENT_LENGTH"] = ss2.str();
-			this->_completed = true;
-			remove(chunked_filename.c_str());
+			
+			std::stringstream ss;
+			ss << std::hex << hexa;
+			ss >> this->_length_of_chunk;
+			begin += hexa.size() + 2;
 		}
-		free(last_block);
-		last_block = NULL;
+		else
+			begin = 0;
+		
+		if (this->_length_of_chunk == 0)
+		{
+			this->_last_chunk_received = true;
+			break ;
+		}
+		if (this->_length_of_chunk <= len - begin)
+		{
+			this->addToBody(request_str, begin, this->_length_of_chunk);
+			if (!hexa.empty())
+				hexa.clear();
+			i += (begin - i) + _length_of_chunk + 2;
+			begin += this->_length_of_chunk + 2;
+			this->_length_of_chunk = 0;
+		}
+		else
+		{
+			this->addToBody(request_str, begin, len - begin);
+			this->_length_of_chunk -= (len - begin);			
+			break ;
+		}
+		if (i >= len)
+			break ;
 	}
-	fclose(fp);
-	if (raw_request != NULL)
-		free(raw_request);
 }

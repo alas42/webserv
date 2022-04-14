@@ -103,7 +103,6 @@ int	Server::setup(void)
 
 void	Server::_closeConnection(std::vector<pollfd>::iterator	it)
 {
-	std::cout << "close_connection()" << std::endl;
 	close(it->fd);
 	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
 		this->_socket_clients.erase(it->fd);
@@ -128,7 +127,6 @@ bool	Server::_acceptConnections(int server_fd)
 		client_fd.fd = new_socket;
 		client_fd.events = POLLIN;
 		this->_pollfds.insert(this->_pollfds.begin(), client_fd);
-		std::cout << "accept, client fd = " << client_fd.fd << std::endl;
 		Client new_client(client_fd);
 		new_client.setId(this->_total_clients++);
 		this->_socket_clients.insert(std::pair<int, Client>(client_fd.fd, new_client));
@@ -197,10 +195,11 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		if (client_request_pollfd.fd != -1)							// IF REQUEST POST
 		{
 			client_request_pollfd.events = POLLOUT;
-			this->_pollfds.push_back(client_request_pollfd);		// ADD TO POLL
+			this->_pollfds.push_back(client_request_pollfd);
 			this->_requests_fd.push_back(client_request_pollfd.fd);
 			this->_fd_request_client.insert(std::pair<int, Request *>(client_request_pollfd.fd, client->second.getRequestPtr()));
-			std::cout << "added request_fd, fd = " << client_request_pollfd.fd << std::endl;
+			free(buffer);
+			return (2);
 		}
 	}
 	free(buffer);
@@ -210,7 +209,8 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 bool	Server::_pollin(std::vector<pollfd>::iterator	it)			// READING
 {
 	std::map<int, Client>::iterator client;
-	std::vector<int>::iterator find;
+	std::vector<int>::iterator 		find;
+	int								ret;
 
 	find = std::find(this->_server_fds.begin(), this->_server_fds.end(), it->fd);
 	if (find != this->_server_fds.end())							// SOCKET DU SERVEUR
@@ -223,11 +223,14 @@ bool	Server::_pollin(std::vector<pollfd>::iterator	it)			// READING
 		client = this->_socket_clients.find(it->fd);
 		if (client != this->_socket_clients.end())
 		{
-			if (this->_receiving(it, client))
+			ret = this->_receiving(it, client);
+			if (ret == 1)
 				return (1);
 			Request * ptr = client->second.getRequestPtr();
 			if (ptr != 0 && (ptr->isComplete() || (ptr->isChunked() && !ptr->sentContinue())))
 				it->events = POLLOUT;
+			if (ret == 2)
+				return (1);
 		}
 	}
 	return (0);
@@ -266,14 +269,17 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 	client = this->_socket_clients.find(it->fd);
 	if (client != this->_socket_clients.end()) 						// SOCKET DU CLIENT
 	{
-		std::cout << "SENDING TO CLIENT" << std::endl;
 		Request * client_request = client->second.getRequestPtr();
 		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
 		{
 			if (client_request->isChunked() && !client_request->sentContinue())
+			{
 				client->second.getResponse() = client_request->executeChunked();
+			}
 			else
+			{
 				client->second.getResponse() = client_request->execute();
+			}
 		}
 		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
 			return (1);
@@ -314,7 +320,6 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 
 bool	Server::_checkingRevents(void)
 {
-	std::vector<int>::iterator		find;
 	std::vector<pollfd>::iterator	it = this->_pollfds.begin();
 
 	for (; it != this->_pollfds.end(); it++)

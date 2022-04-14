@@ -22,7 +22,6 @@ class Response
 		void	createCgiGet(const char *filename);
 		void	createCgiPost(const char *filename, std::string const upload_path);
 		void	createGet(std::string filename);
-		void	createPost(std::string filename);
 		void	createContinue(void);
 		void	createRedirection(std::string redirection);
 		void	createDelete(std::string filename);
@@ -30,16 +29,19 @@ class Response
 		void	error(std::string const error_code);
 		void	addToLengthSent(size_t block_size);
 		bool	isEverythingSent(void);
-		void	setLengthResponse(size_t len);
+		void	setLengthResponseSizeT(size_t len_of_string);
 		size_t	getRemainingLength(void);
 		size_t	getLengthSent(void);
 		void	reset(void);
+		bool	nextBit(void);
 
 	private:
 		std::string							_header;
 		std::string							_body;
 		std::string							_raw_response;
+		std::string							_filename;
 		bool								_sent_all;
+		bool								_is_binary;
 		size_t								_length_sent;
 		size_t								_length_response;
 		std::map<std::string, std::string>	_mimes;
@@ -51,6 +53,7 @@ class Response
 		void		_createCgi(const char *filename, std::string header);
 		std::string _getPathToError(std::string error_code);
 		void		_binary(std::string filename);
+		std::streampos		_lengthOfFile(std::ifstream & f);
 };
 
 #endif

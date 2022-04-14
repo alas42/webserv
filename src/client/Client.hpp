@@ -24,9 +24,8 @@ class Client
 		void			setId(int new_id);
 		int 			getId(void);
 		int				getRequestFd(void);
-		struct pollfd	& getRequestPollFd(void);
+		struct pollfd	getRequestPollFd(void);
 		struct pollfd	& getClientPollFd(void);
-		void			setRequestFd(int new_fd);
 		Request		*	getRequestPtr(void);
 		void			resetRequest(void);
 

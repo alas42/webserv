@@ -102,7 +102,6 @@ Request::Request(const char * request_str, int rc, Config & block, int id): _blo
 	this->_block = parser.getBlock();
 	this->_post = parser.isPost();
 	this->_flag = parser.getFlag();
-	std::cout << "flag = " << _flag << std::endl;
 	this->_chunked = parser.isChunked();
 	this->_length_body = parser.getLengthBody();
 	this->_length_header = parser.getLengthHeader();
@@ -162,7 +161,10 @@ void										Request::setSentContinue(bool val) { this->_sent_continue = val;}
 int											Request::getFd(void) { return this->_fd; }
 int											Request::getFlag(void) { return this->_flag; }
 FILE								*		Request::getFp(void) { return this->_fp; }
-
+void										Request::setFpToNull(void)
+{
+	this->_fp = NULL;
+}
 /*********************************************************/
 /***********************EXECUTION*************************/
 /*********************************************************/
@@ -208,8 +210,6 @@ Response	Request::execute(void) {
 		this->_cgi = true;
 		if (pathIsFile(this->_env_vars["SCRIPT_FILENAME"]) == 1)
 		{
-			if (this->_length_body > this->_block.getClientMaxBodySize())
-				r.error("413");
 			Cgi c(this->_path_to_cgi, this->_post, this->_tmp_file, this->_env_vars);
 			c.execute();
 			if (this->_post)
@@ -217,6 +217,8 @@ Response	Request::execute(void) {
 			else
 				r.createCgiGet(std::string("cgi_" + this->_tmp_file).c_str());
 		}
+		else if (check_path(this->_env_vars["SCRIPT_FILENAME"]) == -1)
+			r.error("404");
 		else
 			r.error("400");
 	}
@@ -278,8 +280,8 @@ Response	Request::_executeDelete(Response r)
 	return (r);
 }
 
-Response	Request::_executeGet(Response r) {
-
+Response	Request::_executeGet(Response r)
+{
 	std::string path = this->_env_vars["DOCUMENT_ROOT"] + this->_env_vars["REQUEST_URI"];
 	int			ret_check_path;
 
@@ -314,8 +316,8 @@ Response	Request::_executePost(Response r)
 		r.error("405");
 		return r;
 	}
-	r.error("400");
-	return (r);
+	r = this->_executeGet(r);
+	return(r);
 }
 
 Response	Request::_executeRedirection(Response r) {
@@ -350,19 +352,28 @@ void Request::addToBody(const char * request_str, int pos, int len)
 	this->_body_part[this->_body_part_len] = '\0';
 }
 
-size_t	Request::writeInFile(void)
+int	Request::writeInFile(void)
 {
-	size_t i = 0;
+	int i = 0;
 
-	if (this->_body_part_len != 0)
+	if (this->_body_part_len > 0)
 	{
 		i = write(this->_fd, this->_body_part, this->_body_part_len);
+		if (i <= 0)
+			return (i);
 		this->_addToLengthReceived(i);
 		if (this->_chunked)
 			this->_checkLastBlock();
 		free(this->_body_part);
 		this->_body_part = NULL;
 		this->_body_part_len = 0;
+	}
+	else
+	{
+		this->_addToLengthReceived(i);
+		if (this->_chunked)
+			this->_checkLastBlock();
+		return (2);
 	}
 	return (i);
 }

@@ -13,7 +13,7 @@
 #include "Config.hpp"
 
 Config::Config(void): _ipAddress("127.0.0.1"), _port(8080), _serverNames(), _errorPages(), \
-						_clientMaxBodySize(0), _cgiPass(), _allowMethods(), _location(), \
+						_clientMaxBodySize(CLIENTMAXBODYSIZE), _cgiPass(), _allowMethods(), _location(), \
 						_root(), _index(), _autoIndex(false), _uploadFolder(), _redirection() {}
 
 Config::~Config(void) {}

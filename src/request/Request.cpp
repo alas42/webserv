@@ -356,11 +356,13 @@ int	Request::writeInFile(void)
 {
 	int i = 0;
 
-	if (this->_body_part_len > 0)
+	if (this->_body_part_len != 0)
 	{
 		i = write(this->_fd, this->_body_part, this->_body_part_len);
 		if (i <= 0)
+		{
 			return (i);
+		}
 		this->_addToLengthReceived(i);
 		if (this->_chunked)
 			this->_checkLastBlock();

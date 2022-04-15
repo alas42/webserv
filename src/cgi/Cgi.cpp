@@ -8,7 +8,8 @@ Cgi::~Cgi(void)
 
 Cgi::Cgi(std::string path, bool post, std::string infile, std::map<std::string, std::string> env_vars):
 	_post(post), _path_to_cgi(path), _infile(infile), _env_vars(env_vars)
-{}
+{
+}
 
 Cgi::Cgi(Cgi const & other):
 	_post(other._post), _path_to_cgi(other._path_to_cgi), _infile(other._infile),

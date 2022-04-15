@@ -16,7 +16,6 @@ class Client
 		Client(struct pollfd fd);
 		Client & operator=(Client const & other);
 
-		//Request 	&	getRequest(void);
 		Response	&	getResponse(void);
 		void 			setResponse(Response & r);
 		void			addToRequest(const char *str, int rc, Config & block);

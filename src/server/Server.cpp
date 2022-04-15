@@ -180,15 +180,13 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		free(buffer);
 		return (1);
 	}
-	std::cout << MAGENTA << rc << " bytes received"<< RESET << std::endl;
-	if (client->second.getRequestPtr() != 0)	// REQUEST ALREADY EXISITNG
+	if (client->second.getRequestPtr() != 0)					// REQUEST ALREADY EXISITNG
 	{
 		if (!client->second.getRequestPtr()->getFlag())
 			client->second.addToRequest(&buffer[0], rc, client->second.getRequestPtr()->getConf());
 	}
 	else														// CREATION OF NEW REQUEST
 	{
-		
 		std::string host;
 		std::string uri;
 
@@ -203,7 +201,6 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 			return (1);
 		}
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
-
 		struct pollfd client_request_pollfd = client->second.getRequestPollFd();
 		if (client_request_pollfd.fd != -1)						// IF REQUEST POST
 		{
@@ -266,7 +263,9 @@ void	Server::_setClientPollFd(std::vector<pollfd>::iterator	it, int event)
 				if (itpb->fd == client_fd)
 				{
 					if (event == 1)
+					{
 						itpb->events = POLLOUT;
+					}
 					else if (event == 0)
 					{
 						this->_pollfds.erase(it);
@@ -293,9 +292,13 @@ bool	Server::_pollout(std::vector<pollfd>::iterator	it)			// WRITING
 		if (client->second.getResponse().getRemainingLength() == 0) // QUAND ON A ENCORE RIEN ENVOYE
 		{
 			if (client_request->isChunked() && !client_request->sentContinue())
+			{
 				client->second.getResponse() = client_request->executeChunked();
+			}
 			else
+			{
 				client->second.getResponse() = client_request->execute();
+			}
 		}
 		if (this->_sending(it, client))								// ENVOI D'UNE PARTIE DE LA REPONSE
 			return (1);

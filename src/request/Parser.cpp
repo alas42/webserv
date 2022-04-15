@@ -214,7 +214,8 @@ void	Parser::_parseContentLength(std::string & output) {
 	{
 		this->_content_length = "-1";
 		this->_length_body = 0;
-		this->_flag = 411;
+		if (!this->_chunked)
+			this->_flag = 411;
 	}
 	this->_env_vars["CONTENT_LENGTH"] = this->_content_length;
 	if (this->_length_body > this->_block.getClientMaxBodySize())

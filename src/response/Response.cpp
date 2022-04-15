@@ -254,11 +254,7 @@ void	Response::_binary(std::string filename)
 	this->_header.append("\r\n\r\n");
 	this->_raw_response.append(this->_header);
 
-	std::string content;
-	std::istreambuf_iterator<char> ist(f);
-	std::istreambuf_iterator<char> ise;
-	for (; ist != ise; ist++)
-		content.push_back(*ist);
+	std::string content((std::istreambuf_iterator<char>(f)), (std::istreambuf_iterator<char>()));
 	f.close();
 	this->_body = content;
 	this->_raw_response.append(this->_body);

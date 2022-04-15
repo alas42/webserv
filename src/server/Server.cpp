@@ -179,13 +179,13 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 {
 	std::string		host = "";
 	int 			rc = -1;
-	size_t			buffer_size = BUFFER_SIZE;
-	char			*buffer = (char *)malloc(sizeof(char) * buffer_size);
+	char			*buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 
 	if (!buffer)
 		throw std::runtime_error("Error: Malloc\n");
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
+	buffer[rc] = '\0';
 	if (rc <= 0)
 	{
 		this->_closeConnection(it);
@@ -200,6 +200,7 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 	}
 	else														// CREATION OF NEW REQUEST
 	{
+		
 		std::string host;
 		std::string uri;
 
@@ -213,7 +214,6 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 			free(buffer);
 			return (1);
 		}
-
 		client->second.addToRequest(&buffer[0], rc, _config.at(configName));
 
 		struct pollfd client_request_pollfd = client->second.getRequestPollFd();

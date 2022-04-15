@@ -118,18 +118,6 @@ void	Server::_closeConnection(std::vector<pollfd>::iterator	it)
 	this->_pollfds.erase(it);
 }
 
-void	Server::_closeConnection_send(std::vector<pollfd>::iterator	it)
-{
-	close(it->fd);
-	if (this->_socket_clients.find(it->fd) != this->_socket_clients.end())
-	{
-		if (this->_socket_clients.find(it->fd)->second.getRequestPtr() != 0)
-			//fclose(this->_socket_clients.find(it->fd)->second.getRequestPtr()->getFp());
-		this->_socket_clients.erase(it->fd);
-	}
-	this->_pollfds.erase(it);
-}
-
 bool	Server::_acceptConnections(int server_fd)
 {
 	struct pollfd	client_fd;

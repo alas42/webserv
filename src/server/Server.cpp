@@ -54,7 +54,15 @@ void Server::_verifyHost(std::string & host) {
 		host.replace(0, 7, "127.0.0.1");
 }
 
-void	Server::config(const char * conf_file) { this->_fileToServer(conf_file); }
+void	Server::config(const char * conf_file)
+{
+	if (pathIsFile(conf_file) != 1)
+		throw std::runtime_error("Error: File incorrect\n");
+	std::string tmp(conf_file);
+	if (tmp.find(".conf") == std::string::npos)
+		throw std::runtime_error("Error: File incorrect type\n");
+	this->_fileToServer(conf_file);
+}
 
 int	Server::setup(void)
 {

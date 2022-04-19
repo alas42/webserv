@@ -3,13 +3,24 @@
 	$target_dir = "./" . $_SERVER["UPLOAD_STORE"] . "/";
 	$target_file = $target_dir . basename($_FILES["fileToUpload"]["name"]);
 	$uploadOk = 0;
-	$imageFileType = strtolower(pathinfo($target_file,PATHINFO_EXTENSION));
+	$imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
 	echo "<!DOCTYPE html>";
 
 	if(isset($_POST["submit"]))
 	{
 		$uploadOk = 1;
+	}
+	else
+	{
+		echo "Error\n" . "<br>";
+	}
+
+	if($_FILES["fileToUpload"]["size"] <= 0)
+	{
+		$uploadOk = 0;
+		echo "Error\n" . "<br>";
+		echo "Please, choose a file\n"  . "<br>";
 	}
 
 	// Check if file already exists
@@ -19,9 +30,8 @@
 		echo htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])) . " already exists.\n";
 		$uploadOk = 0;
 	}
-
 	// Check file size
-	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 500000000)
+	if ($uploadOk == 1 && $_FILES["fileToUpload"]["size"] > 1000000000)
 	{
 		echo "Error\n" ."<br>";
 		echo htmlspecialchars( basename( $_FILES["fileToUpload"]["name"])) . " is too large.\n";

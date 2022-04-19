@@ -6,7 +6,7 @@
 /*   By: tpierre <tpierre@student.42.fr>            +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/03/10 15:50:43 by ymehdi            #+#    #+#             */
-/*   Updated: 2022/04/13 18:43:27 by tpierre          ###   ########.fr       */
+/*   Updated: 2022/04/19 10:15:53 by tpierre          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -181,13 +181,13 @@ int	Server::_receiving(std::vector<pollfd>::iterator it, std::map<int, Client>::
 		throw std::runtime_error("Error: Malloc\n");
 	strcpy(buffer, "");
 	rc = recv(it->fd, buffer, BUFFER_SIZE, 0);
-	buffer[rc] = '\0';
 	if (rc <= 0)
 	{
 		this->_closeConnection(it);
 		free(buffer);
 		return (1);
 	}
+	buffer[rc] = '\0';
 	if (client->second.getRequestPtr() != 0)					// REQUEST ALREADY EXISITNG
 	{
 		if (!client->second.getRequestPtr()->getFlag())
